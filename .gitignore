@@ -1,0 +1,5 @@
+.DS_Store
+*.log
+qa-*.png
+node_modules/
+dist/
