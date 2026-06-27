@@ -84,32 +84,44 @@ const background = new THREE.Mesh(
         vec2 p = uv * 2.0 - 1.0;
         p.x *= uAspect;
 
-        vec2 flowA = vec2(p.x * 0.38 - uTime * 0.010, p.y * 0.52 + uTime * 0.030);
-        vec2 flowB = vec2(p.x * 0.82 + uTime * 0.014, p.y * 0.35 - uTime * 0.018);
-        float mist = fbm(flowA * 2.2 + vec2(1.0, 4.0));
-        float fine = fbm(flowB * 4.4 + vec2(8.0, 2.0));
+        vec2 flowA = vec2(p.x * 0.34 - uTime * 0.012, p.y * 0.58 + uTime * 0.026);
+        vec2 flowB = vec2(p.x * 0.92 + uTime * 0.017, p.y * 0.42 - uTime * 0.015);
+        vec2 flowC = vec2(p.x * 0.54 - p.y * 0.22 + uTime * 0.007, p.y * 0.75 + uTime * 0.021);
+        float mist = fbm(flowA * 2.05 + vec2(1.0, 4.0));
+        float silk = fbm(flowB * 3.65 + vec2(8.0, 2.0));
+        float haze = fbm(flowC * 5.10 + vec2(3.0, 9.0));
 
-        float vertical = smoothstep(-1.1, 1.1, p.y);
-        vec3 deep = vec3(0.006, 0.008, 0.030);
-        vec3 ink = vec3(0.018, 0.025, 0.082);
-        vec3 violet = vec3(0.115, 0.046, 0.230);
-        vec3 electric = vec3(0.050, 0.125, 0.300);
-        vec3 rose = vec3(0.560, 0.095, 0.390);
+        float vertical = smoothstep(-1.16, 1.08, p.y);
+        float lower = smoothstep(0.58, -1.0, p.y);
+        vec3 deep = vec3(0.004, 0.007, 0.026);
+        vec3 navy = vec3(0.014, 0.030, 0.096);
+        vec3 violet = vec3(0.170, 0.058, 0.340);
+        vec3 magenta = vec3(0.650, 0.075, 0.360);
+        vec3 electric = vec3(0.030, 0.210, 0.430);
+        vec3 cyan = vec3(0.080, 0.600, 0.760);
 
-        vec3 color = mix(deep, ink, vertical * 0.72);
-        color += electric * smoothstep(0.18, 0.82, mist) * 0.42;
-        color += violet * smoothstep(0.32, 0.92, fine) * 0.34;
+        vec3 color = mix(deep, navy, vertical * 0.86);
+        color = mix(color, violet, lower * 0.36);
+        color += electric * smoothstep(0.24, 0.86, mist) * 0.34;
+        color += violet * smoothstep(0.30, 0.92, silk) * 0.32;
+        color += magenta * smoothstep(0.44, 0.96, haze) * lower * 0.22;
 
-        float diagonalBand = smoothstep(0.88, 0.08, abs(p.y + p.x * 0.28 + 0.52));
-        float upperGlow = smoothstep(1.35, -0.18, distance(p, vec2(uAspect * 0.68, 0.68)));
-        float lowerGlow = smoothstep(1.15, -0.05, distance(p, vec2(-uAspect * 0.55, -0.95)));
-        color += rose * diagonalBand * 0.18;
-        color += violet * upperGlow * 0.20;
-        color += electric * lowerGlow * 0.22;
+        float ribbonA = smoothstep(0.72, 0.05, abs(p.y + p.x * 0.30 + 0.42));
+        float ribbonB = smoothstep(0.52, 0.04, abs(p.y - p.x * 0.18 - 0.54));
+        float upperGlow = smoothstep(1.45, -0.08, distance(p, vec2(uAspect * 0.64, 0.70)));
+        float lowerGlow = smoothstep(1.18, -0.04, distance(p, vec2(-uAspect * 0.62, -0.92)));
+        float centerDepth = smoothstep(1.10, 0.08, distance(p, vec2(0.08, -0.04)));
 
-        float vignette = smoothstep(1.65, 0.38, length(p / vec2(max(uAspect, 1.0), 1.0)));
-        color *= 0.50 + vignette * 0.70;
-        color += vec3(0.006, 0.004, 0.018) * (1.0 - vignette);
+        color += magenta * ribbonA * 0.26;
+        color += cyan * ribbonB * 0.09;
+        color += violet * upperGlow * 0.24;
+        color += electric * upperGlow * 0.12;
+        color += magenta * lowerGlow * 0.22;
+        color += cyan * centerDepth * 0.035;
+
+        float vignette = smoothstep(1.72, 0.36, length(p / vec2(max(uAspect, 1.0), 1.0)));
+        color *= 0.46 + vignette * 0.76;
+        color += vec3(0.008, 0.006, 0.024) * (1.0 - vignette);
 
         gl_FragColor = vec4(color, 1.0);
       }
@@ -208,16 +220,22 @@ function makePlanetTexture() {
 
 const starTexture = makeSoftDotTexture();
 const nebulaA = makeNebulaTexture({
-  core: "rgba(139, 69, 255, 0.34)",
-  mid: "rgba(92, 40, 180, 0.18)",
-  outer: "rgba(40, 50, 150, 0.06)",
-  secondary: "rgba(255, 80, 150, 0.12)",
+  core: "rgba(166, 72, 255, 0.42)",
+  mid: "rgba(104, 44, 208, 0.24)",
+  outer: "rgba(50, 62, 180, 0.08)",
+  secondary: "rgba(255, 66, 150, 0.18)",
 });
 const nebulaB = makeNebulaTexture({
-  core: "rgba(60, 145, 255, 0.22)",
-  mid: "rgba(74, 74, 210, 0.13)",
-  outer: "rgba(70, 30, 140, 0.04)",
-  secondary: "rgba(195, 80, 255, 0.10)",
+  core: "rgba(60, 175, 255, 0.28)",
+  mid: "rgba(76, 84, 230, 0.18)",
+  outer: "rgba(75, 34, 165, 0.06)",
+  secondary: "rgba(214, 72, 255, 0.14)",
+});
+const nebulaC = makeNebulaTexture({
+  core: "rgba(255, 78, 165, 0.26)",
+  mid: "rgba(142, 52, 218, 0.18)",
+  outer: "rgba(44, 88, 210, 0.05)",
+  secondary: "rgba(88, 220, 255, 0.10)",
 });
 const planetTexture = makePlanetTexture();
 
@@ -241,19 +259,27 @@ worldGroup.add(nebulaGroup);
 const nebulaSprites = [
   {
     texture: nebulaA,
-    position: new THREE.Vector3(-0.88, -0.74, -3.2),
-    scale: new THREE.Vector3(2.25, 0.82, 1),
-    rotation: -0.28,
-    opacity: 0.72,
-    drift: 0.020,
+    position: new THREE.Vector3(-0.92, -0.66, -3.2),
+    scale: new THREE.Vector3(2.70, 0.98, 1),
+    rotation: -0.34,
+    opacity: 0.82,
+    drift: 0.018,
   },
   {
     texture: nebulaB,
-    position: new THREE.Vector3(0.82, 0.42, -3.0),
-    scale: new THREE.Vector3(2.0, 0.68, 1),
-    rotation: 0.42,
-    opacity: 0.52,
-    drift: 0.014,
+    position: new THREE.Vector3(0.94, 0.46, -2.9),
+    scale: new THREE.Vector3(2.24, 0.80, 1),
+    rotation: 0.38,
+    opacity: 0.64,
+    drift: 0.012,
+  },
+  {
+    texture: nebulaC,
+    position: new THREE.Vector3(0.05, -0.10, -2.7),
+    scale: new THREE.Vector3(2.95, 0.62, 1),
+    rotation: -0.10,
+    opacity: 0.42,
+    drift: 0.010,
   },
 ];
 
@@ -311,30 +337,30 @@ function addStarLayer({ count, z, opacity, minScale, maxScale, speed, spreadY })
 }
 
 const farStars = addStarLayer({
-  count: 150,
+  count: 230,
   z: -2.6,
-  opacity: 0.34,
-  minScale: 0.004,
-  maxScale: 0.012,
-  speed: 0.038,
+  opacity: 0.38,
+  minScale: 0.003,
+  maxScale: 0.011,
+  speed: 0.026,
   spreadY: 4.2,
 });
 const midStars = addStarLayer({
-  count: 72,
+  count: 96,
   z: -1.2,
-  opacity: 0.46,
-  minScale: 0.008,
-  maxScale: 0.024,
-  speed: 0.082,
+  opacity: 0.56,
+  minScale: 0.007,
+  maxScale: 0.028,
+  speed: 0.066,
   spreadY: 3.8,
 });
 const nearDust = addStarLayer({
-  count: 26,
+  count: 38,
   z: 0.9,
-  opacity: 0.18,
-  minScale: 0.018,
-  maxScale: 0.060,
-  speed: 0.18,
+  opacity: 0.20,
+  minScale: 0.014,
+  maxScale: 0.070,
+  speed: 0.155,
   spreadY: 2.8,
 });
 
