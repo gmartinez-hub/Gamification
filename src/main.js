@@ -138,10 +138,10 @@ function makeSoftDotTexture() {
   cnv.height = size;
   const ctx = cnv.getContext("2d");
   const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 60);
-  gradient.addColorStop(0, "rgba(255,255,255,0.94)");
-  gradient.addColorStop(0.28, "rgba(176,197,255,0.42)");
-  gradient.addColorStop(0.62, "rgba(129,80,255,0.13)");
-  gradient.addColorStop(1, "rgba(129,80,255,0)");
+  gradient.addColorStop(0, "rgba(226,238,255,0.82)");
+  gradient.addColorStop(0.24, "rgba(118,182,255,0.28)");
+  gradient.addColorStop(0.58, "rgba(144,88,255,0.09)");
+  gradient.addColorStop(1, "rgba(144,88,255,0)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
 
@@ -184,31 +184,41 @@ function makePlanetTexture() {
   cnv.height = size;
   const ctx = cnv.getContext("2d");
 
-  const atmosphere = ctx.createRadialGradient(384, 384, 235, 384, 384, 365);
-  atmosphere.addColorStop(0, "rgba(115, 95, 255, 0.06)");
-  atmosphere.addColorStop(0.52, "rgba(142, 68, 255, 0.11)");
+  const atmosphere = ctx.createRadialGradient(360, 350, 170, 384, 384, 378);
+  atmosphere.addColorStop(0, "rgba(75, 212, 255, 0.08)");
+  atmosphere.addColorStop(0.38, "rgba(82, 96, 255, 0.22)");
+  atmosphere.addColorStop(0.72, "rgba(182, 66, 255, 0.18)");
   atmosphere.addColorStop(1, "rgba(142, 68, 255, 0)");
   ctx.fillStyle = atmosphere;
   ctx.fillRect(0, 0, size, size);
 
-  const body = ctx.createRadialGradient(250, 230, 60, 384, 384, 275);
-  body.addColorStop(0, "rgba(56, 72, 140, 0.52)");
-  body.addColorStop(0.42, "rgba(31, 37, 99, 0.62)");
-  body.addColorStop(0.78, "rgba(15, 16, 49, 0.68)");
+  const body = ctx.createRadialGradient(260, 235, 32, 384, 384, 285);
+  body.addColorStop(0, "rgba(96, 174, 255, 0.70)");
+  body.addColorStop(0.30, "rgba(61, 80, 188, 0.78)");
+  body.addColorStop(0.62, "rgba(48, 28, 118, 0.76)");
+  body.addColorStop(0.86, "rgba(13, 13, 54, 0.70)");
   body.addColorStop(1, "rgba(5, 6, 20, 0.0)");
   ctx.fillStyle = body;
   ctx.beginPath();
   ctx.arc(384, 384, 278, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(215, 182, 255, 0.16)";
-  ctx.lineWidth = 8;
+  const innerRing = ctx.createLinearGradient(80, 300, 690, 500);
+  innerRing.addColorStop(0, "rgba(50, 205, 255, 0.06)");
+  innerRing.addColorStop(0.45, "rgba(230, 95, 255, 0.24)");
+  innerRing.addColorStop(1, "rgba(98, 126, 255, 0.06)");
+  ctx.strokeStyle = innerRing;
+  ctx.lineWidth = 9;
   ctx.beginPath();
   ctx.ellipse(384, 410, 330, 72, -0.22, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.strokeStyle = "rgba(97, 171, 255, 0.08)";
-  ctx.lineWidth = 18;
+  const outerRing = ctx.createLinearGradient(70, 300, 700, 510);
+  outerRing.addColorStop(0, "rgba(52, 220, 255, 0.04)");
+  outerRing.addColorStop(0.52, "rgba(102, 100, 255, 0.18)");
+  outerRing.addColorStop(1, "rgba(255, 80, 185, 0.06)");
+  ctx.strokeStyle = outerRing;
+  ctx.lineWidth = 22;
   ctx.beginPath();
   ctx.ellipse(384, 415, 368, 88, -0.22, 0, Math.PI * 2);
   ctx.stroke();
@@ -337,30 +347,30 @@ function addStarLayer({ count, z, opacity, minScale, maxScale, speed, spreadY })
 }
 
 const farStars = addStarLayer({
-  count: 230,
+  count: 105,
   z: -2.6,
-  opacity: 0.38,
+  opacity: 0.22,
   minScale: 0.003,
-  maxScale: 0.011,
-  speed: 0.026,
+  maxScale: 0.009,
+  speed: 0.014,
   spreadY: 4.2,
 });
 const midStars = addStarLayer({
-  count: 96,
+  count: 34,
   z: -1.2,
-  opacity: 0.56,
+  opacity: 0.36,
   minScale: 0.007,
-  maxScale: 0.028,
-  speed: 0.066,
+  maxScale: 0.022,
+  speed: 0.030,
   spreadY: 3.8,
 });
 const nearDust = addStarLayer({
-  count: 38,
+  count: 8,
   z: 0.9,
-  opacity: 0.20,
-  minScale: 0.014,
-  maxScale: 0.070,
-  speed: 0.155,
+  opacity: 0.10,
+  minScale: 0.020,
+  maxScale: 0.055,
+  speed: 0.044,
   spreadY: 2.8,
 });
 
@@ -419,21 +429,12 @@ function smoothLoop(t) {
 
 function animateStarLayer(group, elapsed) {
   const speed = group.userData.speed;
-  const top = 1.25;
-  const bottom = -1.25;
 
   for (const star of group.children) {
     const { baseX, baseY, phase, drift } = star.userData;
-    star.position.x = baseX + Math.sin(elapsed * 0.12 + phase) * 0.035 * drift;
-    star.position.y = baseY - elapsed * speed * drift;
-    star.position.x -= elapsed * speed * 0.18;
-
-    if (star.position.y < bottom) {
-      star.userData.baseY += top - bottom + Math.random() * 0.45;
-      star.userData.baseX = (Math.random() - 0.5) * (viewport.aspect * 2.7);
-      star.position.y = star.userData.baseY;
-      star.position.x = star.userData.baseX;
-    }
+    star.position.x = baseX - elapsed * speed * drift;
+    star.position.x += Math.sin(elapsed * 0.10 + phase) * 0.024 * drift;
+    star.position.y = baseY + Math.cos(elapsed * 0.07 + phase) * 0.018 * drift;
 
     if (star.position.x < -viewport.aspect - 0.35) {
       star.userData.baseX += viewport.aspect * 2 + 0.7;
