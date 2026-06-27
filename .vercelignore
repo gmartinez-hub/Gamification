@@ -1,8 +1,4 @@
-.DS_Store
-*.log
 qa-*.png
-node_modules/
-dist/
 assets/ship/debug/
 assets/ship/registered/
 assets/ship/trimmed/
