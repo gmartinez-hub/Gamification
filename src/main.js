@@ -23,6 +23,13 @@ const clock = new THREE.Clock();
 const viewport = { width: 1, height: 1, aspect: 1 };
 const params = new URLSearchParams(window.location.search);
 
+const WORLD_HEIGHT = 72;
+const WORLD_MIN_Y = -18;
+const WORLD_MAX_Y = WORLD_HEIGHT + 18;
+const WORLD_HALF_WIDTH = 26;
+const WORLD_WRAP_X = WORLD_HALF_WIDTH * 2;
+const WORLD_WRAP_Y = WORLD_MAX_Y - WORLD_MIN_Y;
+
 const STAGES = ["stage1", "stage2", "stage3"];
 const DIRECTIONS = [
   "idle",
@@ -40,6 +47,7 @@ const input = {
   keys: new Set(),
   pointer: new THREE.Vector2(),
   smoothPointer: new THREE.Vector2(),
+  aimPoint: new THREE.Vector2(),
   velocity: new THREE.Vector2(),
   debugDirection: DIRECTIONS.includes(params.get("dir")) ? params.get("dir") : null,
 };
@@ -51,11 +59,12 @@ const state = {
   stageIndex: initialStageIndex,
   direction: initialDirection,
   position: new THREE.Vector2(0, -0.03),
-  worldOffset: new THREE.Vector2(0, THREE.MathUtils.clamp(Number(params.get("progress") || 0.08), 0, 1) * 18),
+  worldOffset: new THREE.Vector2(0, WORLD_MIN_Y + THREE.MathUtils.clamp(Number(params.get("progress") || 0.08), 0, 1) * WORLD_WRAP_Y),
   routeProgress: THREE.MathUtils.clamp(Number(params.get("progress") || 0.08), 0, 1),
   routeVelocity: 0,
   transition: null,
   controlMode: params.get("mode") === "astronaut" ? "astronaut" : "ship",
+  hoveredTarget: null,
 };
 
 const manifest = await fetch(new URL("../assets/runtime/manifest.json", import.meta.url)).then((response) => response.json());
@@ -139,16 +148,26 @@ const spaceAssets = manifest.space
 
 const worldTextures = {
   cyberEarth: loadWorldTexture("assets/runtime/three-textures/cyber-earth-dark-color.png"),
+  oceanColor: loadWorldTexture("assets/runtime/three-textures/ocean-color.png"),
   oceanWorld: loadWorldTexture("assets/runtime/three-textures/ocean-world-bright-color.png"),
   gasGiant: loadWorldTexture("assets/runtime/three-textures/gas-giant-color.png"),
   networkPlanet: loadWorldTexture("assets/runtime/three-textures/network-planet-dark-color.png"),
   craterWorld: loadWorldTexture("assets/runtime/three-textures/asteroid-crater-magenta-color.png"),
   craterNormal: loadWorldTexture("assets/runtime/three-textures/asteroid-crater-magenta-normal.png", { color: false }),
+  darkCrater: loadWorldTexture("assets/runtime/three-textures/dark-crater-color.png"),
+  darkCraterNormal: loadWorldTexture("assets/runtime/three-textures/dark-crater-normal.png", { color: false }),
   asteroidSurface: loadWorldTexture("assets/runtime/three-textures/asteroid-surface-neon-close-color.png", {
     repeat: [1.6, 1.6],
   }),
+  asteroidPlates: loadWorldTexture("assets/runtime/three-textures/asteroid-surface-plates-color.png", {
+    repeat: [1.35, 1.35],
+  }),
+  asteroidWide: loadWorldTexture("assets/runtime/three-textures/asteroid-surface-wide-color.png", {
+    repeat: [1.25, 1.25],
+  }),
   nebulaWide: loadWorldTexture("assets/runtime/three-textures/nebula-wide-background.png"),
   nebulaFlow: loadWorldTexture("assets/runtime/three-textures/nebula-flow-background.png"),
+  nebulaMagenta: loadWorldTexture("assets/runtime/three-textures/nebula-magenta-cyan-background.png"),
 };
 
 const stageDisplayName = {
@@ -307,6 +326,10 @@ const backgroundUniforms = {
   uThrust: { value: 0 },
   uRouteProgress: { value: state.routeProgress },
   uPointer: { value: new THREE.Vector2() },
+  uWorldOffset: { value: state.worldOffset.clone() },
+  uNebulaWide: { value: worldTextures.nebulaWide },
+  uNebulaFlow: { value: worldTextures.nebulaFlow },
+  uNebulaMagenta: { value: worldTextures.nebulaMagenta },
 };
 
 const backgroundMesh = new THREE.Mesh(
@@ -329,6 +352,10 @@ const backgroundMesh = new THREE.Mesh(
         uniform float uThrust;
         uniform float uRouteProgress;
         uniform vec2 uPointer;
+        uniform vec2 uWorldOffset;
+        uniform sampler2D uNebulaWide;
+        uniform sampler2D uNebulaFlow;
+        uniform sampler2D uNebulaMagenta;
         varying vec2 vUv;
 
         float hash(vec2 p) {
@@ -368,9 +395,16 @@ const backgroundMesh = new THREE.Mesh(
             uPointer.x * 0.025 + uTime * 0.012,
             uTime * -0.018 - route * 1.72
           );
+          vec2 mapDrift = vec2(uWorldOffset.x * 0.0028 + uTime * 0.002, -uWorldOffset.y * 0.0065);
 
           float nebulaA = fbm(vec2(p.x * 0.42, p.y * 0.78) + drift);
           float nebulaB = fbm(vec2(p.x * 1.15 - p.y * 0.12, p.y * 0.36) - drift * 0.8);
+          vec3 wideTex = texture2D(uNebulaWide, fract(vUv + mapDrift * vec2(0.7, 1.0))).rgb;
+          vec3 flowTex = texture2D(uNebulaFlow, fract(vUv * 1.08 + mapDrift * vec2(-0.5, 0.74))).rgb;
+          vec3 magentaTex = texture2D(uNebulaMagenta, fract(vUv * 0.96 + mapDrift * vec2(0.36, 0.58))).rgb;
+          float wideLum = dot(wideTex, vec3(0.2126, 0.7152, 0.0722));
+          float flowLum = dot(flowTex, vec3(0.2126, 0.7152, 0.0722));
+          float magentaLum = dot(magentaTex, vec3(0.2126, 0.7152, 0.0722));
           float depth = smoothstep(-1.0, 1.0, p.y);
           float upperRoute = smoothstep(0.42, 1.0, route);
           float objectiveRoute = smoothstep(0.76, 1.0, route);
@@ -385,6 +419,9 @@ const backgroundMesh = new THREE.Mesh(
           color += violet * smoothstep(0.44, 0.92, nebulaA) * (0.30 + upperRoute * 0.12);
           color += magenta * smoothstep(0.62, 0.96, nebulaB) * (0.14 + objectiveRoute * 0.18);
           color += cyan * smoothstep(0.66, 0.98, nebulaA + nebulaB * 0.24) * (0.10 + upperRoute * 0.16);
+          color += wideTex * smoothstep(0.045, 0.34, wideLum) * (0.10 + route * 0.05);
+          color += flowTex * smoothstep(0.030, 0.28, flowLum) * (0.09 + uThrust * 0.05);
+          color += magentaTex * smoothstep(0.035, 0.30, magentaLum) * (0.08 + upperRoute * 0.06);
 
           float corridor = smoothstep(0.70, 0.04, abs(p.x * 0.24 + p.y * 0.90 + 0.10));
           color += vec3(0.08, 0.24, 0.36) * corridor * (0.12 + uThrust * 0.12 + route * 0.08);
@@ -431,6 +468,7 @@ nebulaFlow.position.set(0, -0.25, -36);
 nebulaFlow.userData = { drift: new THREE.Vector2(-0.004, -0.003), parallax: 0.026 };
 nebulaLayers.add(nebulaFlow);
 backgroundScene.add(nebulaLayers);
+nebulaLayers.visible = false;
 
 const ambientLight = new THREE.AmbientLight(0x7fa8ff, 1.15);
 scene.add(ambientLight);
@@ -489,7 +527,7 @@ const integratedBackground = {
 };
 backgroundScene.add(integratedBackground.stars);
 backgroundScene.add(integratedBackground.streaks);
-const routeLength = 18;
+const routeLength = WORLD_HEIGHT;
 
 function makePremiumPlanetTexture(kind) {
   const size = 1024;
@@ -554,10 +592,10 @@ function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, m
   group.userData = {
     base: worldBase,
     routeY,
-    parallax: Math.abs(position.z) < 12 ? 0.15 : 0.07,
-    spin: kind === "dark" ? -0.026 : 0.018,
-    orbitRadius: new THREE.Vector2(0.18 + random() * 0.18, 0.08 + random() * 0.14),
-    orbitSpeed: (kind === "dark" ? -0.035 : 0.028) * (0.7 + random() * 0.65),
+    parallax: Math.abs(position.z) < 12 ? 0.18 : 0.09,
+    spin: (kind === "dark" ? -0.085 : 0.064) * (0.8 + random() * 0.55),
+    orbitRadius: new THREE.Vector2(0.48 + random() * 0.58, 0.24 + random() * 0.42),
+    orbitSpeed: (kind === "dark" ? -0.18 : 0.14) * (0.7 + random() * 0.85),
     orbitPhase: random() * Math.PI * 2,
   };
 
@@ -612,43 +650,56 @@ function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, m
 }
 
 function createIntegratedAsteroidGeometry(radius) {
-  const geometry = new THREE.DodecahedronGeometry(radius, 1);
+  const geometry = new THREE.IcosahedronGeometry(radius, 2);
   const position = geometry.attributes.position;
   for (let i = 0; i < position.count; i += 1) {
     const v = new THREE.Vector3().fromBufferAttribute(position, i);
-    v.multiplyScalar(0.84 + random() * 0.28);
+    v.multiplyScalar(0.86 + random() * 0.24);
     position.setXYZ(i, v.x, v.y, v.z);
   }
   geometry.computeVertexNormals();
   return geometry;
 }
 
-function createIntegratedAsteroid({ position, radius, routeY, objective = false, map = null }) {
+function createIntegratedAsteroid({ position, radius, routeY, objective = false, map = null, normalMap = null, size = "small" }) {
   const group = new THREE.Group();
   const worldBase = new THREE.Vector3(position.x, routeY + position.y, position.z);
   group.position.copy(worldBase);
+  const maxHp = objective || size === "large" ? 3 : size === "medium" ? 2 : 1;
   group.userData = {
     base: worldBase,
     routeY,
     parallax: THREE.MathUtils.mapLinear(position.z, -18, 2, 0.05, 0.50),
     drift: new THREE.Vector3((random() - 0.5) * 0.05, -0.044 - random() * 0.05, 0),
-    spin: new THREE.Vector3(0.10 + random() * 0.14, 0.13 + random() * 0.18, 0.05 + random() * 0.08),
+    spin: new THREE.Vector3(0.28 + random() * 0.28, 0.34 + random() * 0.34, 0.14 + random() * 0.22),
     phase: random() * Math.PI * 2,
-    orbitRadius: new THREE.Vector2(0.10 + random() * 0.18, 0.08 + random() * 0.16),
-    orbitSpeed: (random() > 0.5 ? 1 : -1) * (0.055 + random() * 0.060),
+    orbitRadius: new THREE.Vector2(0.34 + random() * 0.52, 0.22 + random() * 0.40),
+    orbitSpeed: (random() > 0.5 ? 1 : -1) * (0.18 + random() * 0.20),
     objective,
+    radius,
+    size,
+    maxHp,
+    hp: maxHp,
+    hitRadius: radius * (objective || size === "large" ? 2.1 : 2.65),
+    destroyed: false,
+    destroyTime: 0,
+    hitPulse: 0,
   };
 
   const mesh = new THREE.Mesh(
     createIntegratedAsteroidGeometry(radius),
     new THREE.MeshStandardMaterial({
       map,
+      normalMap,
+      normalScale: new THREE.Vector2(0.24, 0.24),
       color: objective ? 0x3a4057 : 0x30364a,
       roughness: 0.88,
       metalness: 0.10,
       emissive: objective ? 0x0b2638 : 0x101426,
       emissiveIntensity: objective ? 0.56 : 0.24,
-      flatShading: true,
+      flatShading: false,
+      transparent: true,
+      opacity: 1,
     })
   );
   mesh.userData.baseOpacity = 1;
@@ -693,62 +744,58 @@ function createIntegratedAsteroid({ position, radius, routeY, objective = false,
   return group;
 }
 
-createIntegratedPlanet({
-  kind: "ocean",
-  radius: 2.28,
-  position: new THREE.Vector3(5.9, 0, -10.4),
-  routeY: 1.8,
-  map: worldTextures.cyberEarth,
-});
-createIntegratedPlanet({
-  kind: "dark",
-  radius: 1.80,
-  position: new THREE.Vector3(-5.35, 0, -9.2),
-  routeY: 5.9,
-  opacity: 0.96,
-  map: worldTextures.craterWorld,
-  normalMap: worldTextures.craterNormal,
-});
-createIntegratedPlanet({
-  kind: "ocean",
-  radius: 1.15,
-  position: new THREE.Vector3(4.7, 0, -13.2),
-  routeY: 10.4,
-  opacity: 0.74,
-  map: worldTextures.oceanWorld,
-});
-createIntegratedPlanet({
-  kind: "dark",
-  radius: 2.05,
-  position: new THREE.Vector3(-4.95, 0, -11.6),
-  routeY: 15.8,
-  opacity: 0.90,
-  map: worldTextures.gasGiant,
-});
+[
+  { kind: "ocean", radius: 2.8, position: new THREE.Vector3(8.4, 0, -11.2), routeY: -9.0, opacity: 0.92, map: worldTextures.oceanWorld },
+  { kind: "dark", radius: 1.72, position: new THREE.Vector3(-10.6, 0, -9.8), routeY: 4.6, opacity: 0.90, map: worldTextures.cyberEarth },
+  { kind: "ocean", radius: 1.35, position: new THREE.Vector3(11.8, 0, -14.0), routeY: 18.0, opacity: 0.70, map: worldTextures.networkPlanet },
+  { kind: "dark", radius: 2.25, position: new THREE.Vector3(-8.8, 0, -11.8), routeY: 32.5, opacity: 0.86, map: worldTextures.darkCrater, normalMap: worldTextures.darkCraterNormal },
+  { kind: "ocean", radius: 1.72, position: new THREE.Vector3(9.6, 0, -10.6), routeY: 48.0, opacity: 0.80, map: worldTextures.gasGiant },
+  { kind: "dark", radius: 2.55, position: new THREE.Vector3(-12.6, 0, -12.4), routeY: 67.5, opacity: 0.86, map: worldTextures.craterWorld, normalMap: worldTextures.craterNormal },
+  { kind: "ocean", radius: 1.58, position: new THREE.Vector3(7.2, 0, -13.8), routeY: 82.0, opacity: 0.66, map: worldTextures.oceanColor },
+].forEach((planet) => createIntegratedPlanet(planet));
+
+const asteroidTextureCycle = [
+  worldTextures.asteroidSurface,
+  worldTextures.asteroidPlates,
+  worldTextures.asteroidWide,
+  worldTextures.darkCrater,
+];
 
 [
-  [-3.4, -0.8, -4.8, 0.19, 2.9, "asteroid_tech_round"],
-  [3.85, 0.4, -5.5, 0.17, 4.6, "asteroid_dark_small"],
-  [-4.85, -0.5, -6.4, 0.28, 6.8, "asteroid_tech_hollow"],
-  [5.1, 0.4, -5.8, 0.22, 8.4, "asteroid_dark_tiny"],
-  [-1.45, -0.4, -3.8, 0.16, 10.1, "asteroid_tech_left"],
-  [2.1, 0.6, -7.2, 0.15, 11.7, "asteroid_dark_small"],
-  [-4.0, 0.1, -4.2, 0.24, 13.2, "asteroid_tech_round"],
-  [4.5, -0.2, -6.2, 0.20, 14.6, "asteroid_dark_tiny"],
-].forEach(([x, y, z, radius, routeY]) =>
+  [-7.4, -0.8, -5.2, 0.28, -12.0, "medium"],
+  [6.9, 0.4, -5.9, 0.22, -6.4, "small"],
+  [-13.2, -0.1, -6.8, 0.42, 0.8, "large"],
+  [13.4, 0.5, -7.0, 0.20, 7.6, "small"],
+  [-4.6, -0.4, -4.4, 0.24, 13.8, "small"],
+  [7.0, 0.6, -7.4, 0.32, 20.6, "medium"],
+  [-10.4, 0.1, -5.2, 0.36, 25.2, "medium"],
+  [11.5, -0.2, -7.2, 0.25, 31.4, "small"],
+  [-2.2, 0.7, -4.8, 0.50, 38.2, "large"],
+  [14.2, -0.6, -6.5, 0.26, 44.0, "small"],
+  [-14.8, 0.4, -7.8, 0.30, 50.4, "medium"],
+  [4.8, -0.1, -4.9, 0.42, 56.0, "large"],
+  [-8.0, -0.3, -6.9, 0.22, 62.5, "small"],
+  [12.7, 0.2, -6.2, 0.33, 70.2, "medium"],
+  [-12.4, 0.8, -5.7, 0.24, 78.6, "small"],
+  [6.1, -0.5, -4.6, 0.40, 87.0, "large"],
+].forEach(([x, y, z, radius, routeY, size], index) =>
   createIntegratedAsteroid({
     position: new THREE.Vector3(x, y, z),
     radius,
     routeY,
-    map: worldTextures.asteroidSurface,
+    size,
+    map: asteroidTextureCycle[index % asteroidTextureCycle.length],
+    normalMap: index % 3 === 0 ? worldTextures.craterNormal : null,
   })
 );
 createIntegratedAsteroid({
-  position: new THREE.Vector3(0.92, 0, -1.05),
-  radius: 0.38,
-  routeY: 16.2,
+  position: new THREE.Vector3(1.9, 0, -1.7),
+  radius: 0.62,
+  routeY: 41.5,
   objective: true,
-  map: worldTextures.asteroidSurface,
+  size: "large",
+  map: worldTextures.asteroidPlates,
+  normalMap: worldTextures.craterNormal,
 });
 
 for (let i = 0; i < 420; i += 1) {
@@ -1123,6 +1170,29 @@ const astronautSprite = astronautInitialAsset
   : null;
 if (astronautSprite) astronautGroup.add(astronautSprite);
 
+const interactionFx = new THREE.Group();
+scene.add(interactionFx);
+const activeShots = [];
+const activeImpacts = [];
+const targetScreenPoint = new THREE.Vector2();
+const targetWorldPoint = new THREE.Vector3();
+const tetherPointCount = 10;
+const tetherGeometry = new THREE.BufferGeometry().setFromPoints(
+  Array.from({ length: tetherPointCount }, () => new THREE.Vector3())
+);
+const tetherLine = new THREE.Line(
+  tetherGeometry,
+  new THREE.LineBasicMaterial({
+    color: 0x8eeeff,
+    transparent: true,
+    opacity: 0.30,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  })
+);
+tetherLine.renderOrder = 16;
+scene.add(tetherLine);
+
 const portalSprite = makeSprite(fxFrames.burst[0], {
   opacity: 0,
   blending: THREE.AdditiveBlending,
@@ -1356,6 +1426,14 @@ function wrapIntegratedObject(object, margin = 5.2) {
   if (object.position.y > yLimit) object.position.y -= yLimit * 2.0;
 }
 
+function wrapWorldDelta(delta, span) {
+  return ((((delta + span * 0.5) % span) + span) % span) - span * 0.5;
+}
+
+function routeProgressFromWorldY(y) {
+  return THREE.MathUtils.clamp((y - WORLD_MIN_Y) / WORLD_WRAP_Y, 0, 1);
+}
+
 function routeViewY(routeY) {
   return routeY - state.routeProgress * routeLength;
 }
@@ -1397,15 +1475,16 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     const orbitAngle = elapsed * planet.userData.orbitSpeed + planet.userData.orbitPhase;
     const orbitX = Math.cos(orbitAngle) * planet.userData.orbitRadius.x;
     const orbitY = Math.sin(orbitAngle * 0.82) * planet.userData.orbitRadius.y;
+    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.74 + parallax * 0.30), WORLD_WRAP_X);
+    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.84 + parallax * 0.18), WORLD_WRAP_Y);
     planet.visible = true;
     planet.position.x =
-      base.x -
-      cameraWorld.x * (0.68 + parallax * 0.42) +
-      input.smoothPointer.x * parallax * 1.2 +
+      relativeX +
+      input.smoothPointer.x * parallax * 0.36 +
       orbitX;
     planet.position.y =
-      (base.y - cameraWorld.y) * (0.78 + parallax * 0.20) +
-      input.smoothPointer.y * parallax * 0.22 +
+      relativeY +
+      input.smoothPointer.y * parallax * 0.10 +
       orbitY;
     planet.position.z = base.z + Math.sin(orbitAngle * 0.55) * planet.userData.orbitRadius.y * 0.38;
     planet.rotation.y += delta * planet.userData.spin;
@@ -1423,8 +1502,8 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
       travelVelocity.x * 0.08 * depth;
     star.position.y =
       star.userData.base.y -
-      ((routeScroll + elapsed * (0.04 + speed * 0.32) * (0.45 + depth)) % 18);
-    if (star.position.y < -9) star.position.y += 18;
+      ((routeScroll + elapsed * (0.04 + speed * 0.32) * (0.45 + depth)) % 22);
+    if (star.position.y < -11) star.position.y += 22;
     star.material.opacity =
       0.045 +
       depth * 0.13 +
@@ -1438,29 +1517,41 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     const orbitAngle = elapsed * asteroid.userData.orbitSpeed + asteroid.userData.phase;
     const orbitX = Math.cos(orbitAngle) * asteroid.userData.orbitRadius.x;
     const orbitY = Math.sin(orbitAngle * 0.74) * asteroid.userData.orbitRadius.y;
+    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.78 + parallax * 0.28), WORLD_WRAP_X);
+    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.88 + parallax * 0.16), WORLD_WRAP_Y);
+    if (asteroid.userData.destroyed) asteroid.userData.destroyTime += delta;
+    asteroid.userData.hitPulse = Math.max(0, asteroid.userData.hitPulse - delta * 2.8);
+    const destroyedFade = asteroid.userData.destroyed
+      ? 1 - THREE.MathUtils.smoothstep(asteroid.userData.destroyTime, 0.0, 0.62)
+      : 1;
+    const hoverPulse = state.hoveredTarget === asteroid ? 0.22 + Math.sin(elapsed * 10) * 0.06 : 0;
+    const hitPulse = asteroid.userData.hitPulse * 0.28;
     asteroid.visible = true;
     asteroid.position.x =
-      base.x -
-      cameraWorld.x * (0.72 + parallax * 0.38) -
+      relativeX -
       travelVelocity.x * parallax * 0.18 +
-      input.smoothPointer.x * parallax * 0.44 +
+      input.smoothPointer.x * parallax * 0.18 +
       orbitX;
     asteroid.position.y =
-      (base.y - cameraWorld.y) * (0.82 + parallax * 0.20) +
+      relativeY +
       orbitY;
     asteroid.position.z = base.z + Math.sin(orbitAngle * 0.62) * 0.18;
     asteroid.rotation.x += asteroid.userData.spin.x * delta;
     asteroid.rotation.y += asteroid.userData.spin.y * delta;
     asteroid.rotation.z += asteroid.userData.spin.z * delta;
-    setGroupOpacity(asteroid, 1);
+    asteroid.scale.setScalar(1 + hitPulse + hoverPulse);
+    setGroupOpacity(asteroid, destroyedFade);
+    if (destroyedFade <= 0.01) asteroid.visible = false;
 
     if (asteroid.userData.objective) {
       const halo = asteroid.children.find((child) => child.userData.isObjectiveHalo);
       if (halo) {
-        halo.material.opacity = 0.40 + Math.sin(elapsed * 2.8) * 0.08;
+        halo.material.opacity = (0.40 + Math.sin(elapsed * 2.8) * 0.08 + hoverPulse) * destroyedFade;
         halo.scale.setScalar(1.18 + Math.sin(elapsed * 2.1) * 0.055);
       }
     }
+    backgroundObjectScreenPoint(asteroid, targetScreenPoint);
+    asteroid.userData.screenPoint = targetScreenPoint.clone();
   }
 
   for (const line of integratedBackground.streaks.children) {
@@ -1500,6 +1591,160 @@ function worldPointerFromEvent(event) {
   const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   const y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
   return new THREE.Vector2(x * viewport.aspect, y);
+}
+
+function backgroundObjectScreenPoint(object, out = new THREE.Vector2()) {
+  object.getWorldPosition(targetWorldPoint);
+  const projected = targetWorldPoint.project(backgroundCamera);
+  out.set(projected.x * viewport.aspect, projected.y);
+  return out;
+}
+
+function findInteractiveTarget(point) {
+  let best = null;
+  let bestDistance = Infinity;
+
+  for (const asteroid of integratedBackground.asteroids) {
+    if (!asteroid.visible || asteroid.userData.destroyed) continue;
+    const screenPoint = backgroundObjectScreenPoint(asteroid, targetScreenPoint);
+    asteroid.getWorldPosition(targetWorldPoint);
+    const distanceToCamera = Math.max(3.5, backgroundCamera.position.distanceTo(targetWorldPoint));
+    const hitRadius = THREE.MathUtils.clamp((asteroid.userData.hitRadius / distanceToCamera) * 3.1, 0.055, 0.26);
+    const distance = point.distanceTo(screenPoint);
+    asteroid.userData.screenPoint = screenPoint.clone();
+    asteroid.userData.screenHitRadius = hitRadius;
+    if (distance < hitRadius && distance < bestDistance) {
+      best = asteroid;
+      bestDistance = distance;
+    }
+  }
+
+  return best;
+}
+
+function shooterForTarget(target) {
+  if (!target) return "ship";
+  return target.userData.objective || target.userData.size === "large" ? "ship" : "astronaut";
+}
+
+function createShotLine(origin, target, shooter) {
+  const material = new THREE.LineBasicMaterial({
+    color: shooter === "ship" ? 0x38dcff : 0xf54de3,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const geometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(origin.x, origin.y, 0.08),
+    new THREE.Vector3(target.x, target.y, 0.08),
+  ]);
+  const line = new THREE.Line(geometry, material);
+  line.renderOrder = 31;
+  return line;
+}
+
+function spawnImpact(point, strong = false) {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: bgAuraTexture,
+      transparent: true,
+      opacity: strong ? 0.95 : 0.62,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+  sprite.position.set(point.x, point.y, 0.09);
+  sprite.scale.setScalar(strong ? 0.34 : 0.20);
+  sprite.renderOrder = 32;
+  sprite.userData = { time: 0, duration: strong ? 0.48 : 0.30, strong };
+  interactionFx.add(sprite);
+  activeImpacts.push(sprite);
+}
+
+function damageTarget(target, shooter) {
+  if (!target || target.userData.destroyed) return;
+  target.userData.hp -= shooter === "ship" ? 2 : 1;
+  target.userData.hitPulse = 1;
+  const impactPoint = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+  spawnImpact(impactPoint, target.userData.hp <= 0);
+  if (target.userData.hp <= 0) {
+    target.userData.destroyed = true;
+    target.userData.destroyTime = 0;
+  }
+}
+
+function fireAtTarget(target) {
+  if (!target || state.transition) return;
+  const shooter = shooterForTarget(target);
+  if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
+  if (shooter === "ship") enterShipMode();
+
+  const origin = shooter === "astronaut" ? astronautState.position.clone() : state.position.clone();
+  const targetPoint = backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+  const shot = createShotLine(origin, targetPoint, shooter);
+  shot.userData = { target, shooter, time: 0, duration: 0.18, origin };
+  interactionFx.add(shot);
+  activeShots.push(shot);
+  damageTarget(target, shooter);
+}
+
+function updateInteractionFx(delta) {
+  for (let i = activeShots.length - 1; i >= 0; i -= 1) {
+    const shot = activeShots[i];
+    shot.userData.time += delta;
+    const t = shot.userData.time / shot.userData.duration;
+    const targetPoint = shot.userData.target.userData.screenPoint || backgroundObjectScreenPoint(shot.userData.target, new THREE.Vector2());
+    const origin = shot.userData.shooter === "astronaut" ? astronautState.position : state.position;
+    const positions = shot.geometry.attributes.position;
+    positions.setXYZ(0, origin.x, origin.y, 0.08);
+    positions.setXYZ(1, targetPoint.x, targetPoint.y, 0.08);
+    positions.needsUpdate = true;
+    shot.material.opacity = Math.max(0, 0.85 * (1 - t));
+    if (t >= 1) {
+      interactionFx.remove(shot);
+      shot.geometry.dispose();
+      shot.material.dispose();
+      activeShots.splice(i, 1);
+    }
+  }
+
+  for (let i = activeImpacts.length - 1; i >= 0; i -= 1) {
+    const impact = activeImpacts[i];
+    impact.userData.time += delta;
+    const t = impact.userData.time / impact.userData.duration;
+    const scale = impact.userData.strong ? 0.34 + t * 0.42 : 0.20 + t * 0.22;
+    impact.scale.setScalar(scale);
+    impact.material.opacity = Math.max(0, (impact.userData.strong ? 0.95 : 0.62) * (1 - t));
+    if (t >= 1) {
+      interactionFx.remove(impact);
+      impact.material.dispose();
+      activeImpacts.splice(i, 1);
+    }
+  }
+}
+
+function updateTether(elapsed) {
+  if (!astronautSprite) {
+    tetherLine.visible = false;
+    return;
+  }
+  tetherLine.visible = true;
+  const from = new THREE.Vector2(shipGroup.position.x - shipSprite.scale.x * 0.10, shipGroup.position.y + shipSprite.scale.y * 0.10);
+  const to = astronautState.position;
+  const distance = from.distanceTo(to);
+  const side = new THREE.Vector2(-(to.y - from.y), to.x - from.x).normalize();
+  const positions = tetherGeometry.attributes.position;
+  for (let i = 0; i < tetherPointCount; i += 1) {
+    const t = i / (tetherPointCount - 1);
+    const sag = Math.sin(t * Math.PI) * (0.018 + distance * 0.018);
+    const wave = Math.sin(elapsed * 2.4 + t * Math.PI * 2.0) * 0.010 * Math.sin(t * Math.PI);
+    const x = THREE.MathUtils.lerp(from.x, to.x, t) + side.x * (sag + wave);
+    const y = THREE.MathUtils.lerp(from.y, to.y, t) + side.y * (sag + wave);
+    positions.setXYZ(i, x, y, 0.015);
+  }
+  positions.needsUpdate = true;
+  tetherLine.material.opacity = THREE.MathUtils.clamp(0.18 + distance * 0.12, 0.16, 0.42);
 }
 
 function enterAstronautMode() {
@@ -1651,16 +1896,20 @@ window.addEventListener("keyup", (event) => {
 window.addEventListener("pointermove", (event) => {
   input.pointer.x = (event.clientX / window.innerWidth - 0.5) * 2;
   input.pointer.y = -(event.clientY / window.innerHeight - 0.5) * 2;
+  input.aimPoint.copy(worldPointerFromEvent(event));
+  state.hoveredTarget = findInteractiveTarget(input.aimPoint);
 });
 
 window.addEventListener("pointerleave", () => {
   input.pointer.set(0, 0);
+  state.hoveredTarget = null;
 });
 
 window.addEventListener("pointerdown", (event) => {
   const point = worldPointerFromEvent(event);
   const astronautDistance = point.distanceTo(astronautState.position);
   const shipDistance = point.distanceTo(state.position);
+  const target = findInteractiveTarget(point);
 
   if (state.controlMode === "ship" && astronautDistance < 0.16) {
     enterAstronautMode();
@@ -1669,6 +1918,11 @@ window.addEventListener("pointerdown", (event) => {
 
   if (state.controlMode === "astronaut" && shipDistance < 0.24) {
     enterShipMode();
+    return;
+  }
+
+  if (target) {
+    fireAtTarget(target);
     return;
   }
 
@@ -1761,6 +2015,7 @@ function updateShipFx(elapsed, shipVelocity) {
   shipAura.material.opacity = 0.16 + pulse * 0.035 + speed * 0.20 + (state.transition ? 0.16 : 0);
   shipAura.rotation.z = elapsed * 0.16;
 
+  velocityWake.visible = true;
   velocityWake.position.set(behind.x * 0.28 * stageScale, behind.y * 0.28 * stageScale, -0.01);
   velocityWake.material.rotation = Math.atan2(direction.y, direction.x);
   velocityWake.material.opacity = moving ? 0.12 + speed * 0.24 : 0.025 + pulse * 0.025;
@@ -1824,15 +2079,15 @@ function animate() {
     const worldMoveSpeed = state.transition ? 0.72 : 1.72;
     state.worldOffset.x = THREE.MathUtils.clamp(
       state.worldOffset.x + input.velocity.x * worldMoveSpeed * delta,
-      -8.5,
-      8.5
+      -WORLD_HALF_WIDTH,
+      WORLD_HALF_WIDTH
     );
     state.worldOffset.y = THREE.MathUtils.clamp(
       state.worldOffset.y + input.velocity.y * worldMoveSpeed * 1.18 * delta,
-      0,
-      routeLength + 2
+      WORLD_MIN_Y,
+      WORLD_MAX_Y
     );
-    state.routeProgress = THREE.MathUtils.clamp(state.worldOffset.y / routeLength, 0, 1);
+    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
   } else {
     setDirection(input.debugDirection || "idle");
     state.routeVelocity = THREE.MathUtils.lerp(state.routeVelocity, 0, 1 - Math.pow(0.006, delta));
@@ -1848,11 +2103,14 @@ function animate() {
     shipVelocity.length() + (state.controlMode === "astronaut" ? input.velocity.length() * 0.22 : 0);
   backgroundUniforms.uRouteProgress.value = state.routeProgress;
   backgroundUniforms.uPointer.value.copy(input.smoothPointer);
+  backgroundUniforms.uWorldOffset.value.copy(state.worldOffset);
 
   updateIntegratedBackground(delta, elapsed, shipVelocity);
   updateShipFx(elapsed, shipVelocity);
   updateTransition(delta, elapsed);
   updateAstronaut(delta, elapsed, input.velocity);
+  updateInteractionFx(delta);
+  updateTether(elapsed);
 
   renderer.clear();
   renderer.render(backgroundScene, backgroundCamera);
