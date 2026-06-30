@@ -1,6 +1,16 @@
-qa-*.png
+qa-*
+background-lab/
+tools/
+assets/*.png
+assets/*.gif
 assets/ship/debug/
 assets/ship/registered/
 assets/ship/trimmed/
+assets/ship/
+assets/fx/debug/
+assets/fx/
+assets/ship-modules/debug/
+assets/ship-modules/
 assets/space/debug/
+assets/space/
 tools/cutout_ship_assets.py

@@ -6,5 +6,8 @@ dist/
 assets/ship/debug/
 assets/ship/registered/
 assets/ship/trimmed/
+assets/fx/debug/
+assets/ship-modules/debug/
 assets/space/debug/
 tools/cutout_ship_assets.py
+.vercel

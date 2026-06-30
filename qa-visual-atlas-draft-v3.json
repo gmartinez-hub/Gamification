@@ -1,0 +1,3707 @@
+{
+  "version": "draft-v3",
+  "note": "QA draft only. Not a final runtime atlas.",
+  "ship": [
+    {
+      "id": "stage3_full_direct_a",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_25_47 p.m. (1).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          1068,
+          841
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          1035,
+          807
+        ],
+        "margins": [
+          33,
+          34,
+          33,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_direct_a",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_25_47 p.m. (2).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          838,
+          810
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          804,
+          777
+        ],
+        "margins": [
+          33,
+          34,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_direct_a",
+      "category": "ship",
+      "component": "module_body",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_25_47 p.m. (3).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          1058,
+          859
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          1024,
+          825
+        ],
+        "margins": [
+          33,
+          34,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_direct_a",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_25_48 p.m. (4).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          911,
+          710
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          878,
+          676
+        ],
+        "margins": [
+          34,
+          33,
+          33,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_direct_a",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_25_48 p.m. (5).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          1017,
+          788
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          34,
+          983,
+          755
+        ],
+        "margins": [
+          34,
+          34,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "fx_energy_burst_direct_a",
+      "category": "fx",
+      "component": "energy_burst",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_25_48 p.m. (6).png",
+      "status": "fx_candidate",
+      "metrics": {
+        "size": [
+          684,
+          511
+        ],
+        "visible": true,
+        "bbox": [
+          7,
+          0,
+          684,
+          511
+        ],
+        "margins": [
+          7,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "stage3_full_direct_b",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_54 p.m. (1).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          1023,
+          795
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          989,
+          762
+        ],
+        "margins": [
+          33,
+          34,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_direct_b",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_54 p.m. (2).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          755,
+          664
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          721,
+          630
+        ],
+        "margins": [
+          34,
+          33,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_direct_b",
+      "category": "ship",
+      "component": "module_body",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_55 p.m. (3).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          910,
+          778
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          876,
+          744
+        ],
+        "margins": [
+          33,
+          34,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_direct_b",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_55 p.m. (4).png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          906,
+          600
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          872,
+          566
+        ],
+        "margins": [
+          33,
+          34,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_01",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_42 p.m. (1).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1075,
+          830
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          34,
+          1041,
+          796
+        ],
+        "margins": [
+          34,
+          34,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_02",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_42 p.m. (2).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1142,
+          937
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          1109,
+          903
+        ],
+        "margins": [
+          34,
+          33,
+          33,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_03",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_43 p.m. (3).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1062,
+          814
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          34,
+          1028,
+          781
+        ],
+        "margins": [
+          34,
+          34,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_04",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "rear_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_43 p.m. (4).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1060,
+          777
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          1026,
+          743
+        ],
+        "margins": [
+          33,
+          34,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_05",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "rear_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_44 p.m. (5).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1195,
+          921
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          1162,
+          888
+        ],
+        "margins": [
+          34,
+          33,
+          33,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_06",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_44 p.m. (6).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1201,
+          772
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          1168,
+          738
+        ],
+        "margins": [
+          34,
+          33,
+          33,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_angle_07",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_left_iso_alt",
+      "source": "ChatGPT Image 27 jun 2026, 01_04_44 p.m. (7).png",
+      "status": "runtime_candidate_needs_anchor",
+      "metrics": {
+        "size": [
+          1032,
+          834
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          998,
+          801
+        ],
+        "margins": [
+          34,
+          33,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_sheet_01",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (1).png",
+      "source_box": [
+        63,
+        80,
+        564,
+        449
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          553,
+          421
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          527,
+          396
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_sheet_02",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (1).png",
+      "source_box": [
+        667,
+        91,
+        1158,
+        445
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          543,
+          406
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          26,
+          517,
+          380
+        ],
+        "margins": [
+          25,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_sheet_03",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "rear_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (1).png",
+      "source_box": [
+        63,
+        513,
+        552,
+        826
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          541,
+          365
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          25,
+          515,
+          339
+        ],
+        "margins": [
+          25,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_sheet_04",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (1).png",
+      "source_box": [
+        677,
+        534,
+        1156,
+        836
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          531,
+          354
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          505,
+          354
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          0
+        ],
+        "touches": [
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "stage3_full_sheet_05",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "side",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (1).png",
+      "source_box": [
+        63,
+        955,
+        568,
+        1101
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          557,
+          198
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          26,
+          531,
+          172
+        ],
+        "margins": [
+          25,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage3_full_sheet_06",
+      "category": "ship",
+      "component": "stage_3_full",
+      "view": "top",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (1).png",
+      "source_box": [
+        673,
+        839,
+        1103,
+        1204
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          482,
+          417
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          0,
+          479,
+          391
+        ],
+        "margins": [
+          26,
+          0,
+          3,
+          26
+        ],
+        "touches": [
+          "top"
+        ]
+      }
+    },
+    {
+      "id": "stage1_cockpit_sheet_01",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (2).png",
+      "source_box": [
+        122,
+        62,
+        543,
+        428
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          473,
+          418
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          447,
+          393
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_sheet_02",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (2).png",
+      "source_box": [
+        670,
+        72,
+        1074,
+        426
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          456,
+          406
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          430,
+          380
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_sheet_03",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "rear_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (2).png",
+      "source_box": [
+        133,
+        521,
+        516,
+        787
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          435,
+          318
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          410,
+          292
+        ],
+        "margins": [
+          26,
+          26,
+          25,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_sheet_04",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (2).png",
+      "source_box": [
+        701,
+        520,
+        1084,
+        786
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          435,
+          318
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          409,
+          293
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_sheet_05",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "side",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (2).png",
+      "source_box": [
+        110,
+        933,
+        537,
+        1137
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          479,
+          256
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          453,
+          230
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage1_cockpit_sheet_06",
+      "category": "ship",
+      "component": "stage_1_cockpit",
+      "view": "top",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (2).png",
+      "source_box": [
+        676,
+        931,
+        1078,
+        1135
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          454,
+          256
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          25,
+          428,
+          230
+        ],
+        "margins": [
+          25,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_sheet_01",
+      "category": "ship",
+      "component": "module_body",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (3).png",
+      "source_box": [
+        91,
+        81,
+        560,
+        416
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          521,
+          387
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          495,
+          361
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_sheet_02",
+      "category": "ship",
+      "component": "module_body",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (3).png",
+      "source_box": [
+        680,
+        82,
+        1116,
+        418
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          488,
+          388
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          462,
+          362
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_sheet_03",
+      "category": "ship",
+      "component": "module_body",
+      "view": "rear_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (3).png",
+      "source_box": [
+        119,
+        472,
+        560,
+        792
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          493,
+          372
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          467,
+          346
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_sheet_04",
+      "category": "ship",
+      "component": "module_body",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (3).png",
+      "source_box": [
+        679,
+        473,
+        1108,
+        794
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          481,
+          372
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          456,
+          346
+        ],
+        "margins": [
+          26,
+          25,
+          25,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_sheet_05",
+      "category": "ship",
+      "component": "module_body",
+      "view": "side",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (3).png",
+      "source_box": [
+        95,
+        900,
+        559,
+        1103
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          516,
+          255
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          490,
+          229
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_body_sheet_06",
+      "category": "ship",
+      "component": "module_body",
+      "view": "top",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_14 p.m. (3).png",
+      "source_box": [
+        686,
+        874,
+        1116,
+        1108
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          482,
+          286
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          456,
+          260
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_sheet_01",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (4).png",
+      "source_box": [
+        86,
+        101,
+        492,
+        359
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          458,
+          310
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          26,
+          432,
+          284
+        ],
+        "margins": [
+          25,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_sheet_02",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (4).png",
+      "source_box": [
+        764,
+        102,
+        1169,
+        359
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          457,
+          309
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          26,
+          431,
+          283
+        ],
+        "margins": [
+          25,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_sheet_03",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "rear_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (4).png",
+      "source_box": [
+        108,
+        493,
+        498,
+        736
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          442,
+          295
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          416,
+          270
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_sheet_04",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (4).png",
+      "source_box": [
+        760,
+        497,
+        1148,
+        738
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          440,
+          293
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          415,
+          267
+        ],
+        "margins": [
+          26,
+          25,
+          25,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_sheet_05",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "side",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (4).png",
+      "source_box": [
+        87,
+        963,
+        528,
+        1054
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          493,
+          143
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          467,
+          117
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "module_wings_sheet_06",
+      "category": "ship",
+      "component": "module_wings",
+      "view": "top",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (4).png",
+      "source_box": [
+        775,
+        838,
+        1112,
+        1163
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          389,
+          377
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          363,
+          351
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_sheet_01",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (5).png",
+      "source_box": [
+        89,
+        100,
+        558,
+        439
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          521,
+          391
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          496,
+          366
+        ],
+        "margins": [
+          26,
+          26,
+          25,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_sheet_02",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (5).png",
+      "source_box": [
+        684,
+        101,
+        1153,
+        442
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          521,
+          393
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          26,
+          495,
+          368
+        ],
+        "margins": [
+          25,
+          26,
+          26,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_sheet_03",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "rear_left_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (5).png",
+      "source_box": [
+        133,
+        516,
+        538,
+        790
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          457,
+          326
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          25,
+          431,
+          300
+        ],
+        "margins": [
+          26,
+          25,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_sheet_04",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (5).png",
+      "source_box": [
+        695,
+        511,
+        1109,
+        788
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          466,
+          328
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          440,
+          302
+        ],
+        "margins": [
+          26,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_sheet_05",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "side",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (5).png",
+      "source_box": [
+        79,
+        937,
+        571,
+        1088
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          544,
+          203
+        ],
+        "visible": true,
+        "bbox": [
+          26,
+          26,
+          519,
+          178
+        ],
+        "margins": [
+          26,
+          26,
+          25,
+          25
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "stage2_pod_body_sheet_06",
+      "category": "ship",
+      "component": "stage_2_pod_body",
+      "view": "top",
+      "source": "ChatGPT Image 27 jun 2026, 01_36_15 p.m. (5).png",
+      "source_box": [
+        661,
+        918,
+        1153,
+        1108
+      ],
+      "status": "sheet_crop_needs_human_qa",
+      "metrics": {
+        "size": [
+          544,
+          242
+        ],
+        "visible": true,
+        "bbox": [
+          25,
+          26,
+          518,
+          216
+        ],
+        "margins": [
+          25,
+          26,
+          26,
+          26
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "reference_front",
+      "category": "reference",
+      "component": "reference_sheet",
+      "view": "front",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_56 p.m. (6).png",
+      "status": "reference_only_not_runtime",
+      "metrics": {
+        "size": [
+          260,
+          260
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          260
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "reference_rear",
+      "category": "reference",
+      "component": "reference_sheet",
+      "view": "rear",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_56 p.m. (7).png",
+      "status": "reference_only_not_runtime",
+      "metrics": {
+        "size": [
+          260,
+          260
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          260
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "reference_top",
+      "category": "reference",
+      "component": "reference_sheet",
+      "view": "top",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_57 p.m. (10).png",
+      "status": "reference_only_not_runtime",
+      "metrics": {
+        "size": [
+          260,
+          260
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          260
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "reference_left_side",
+      "category": "reference",
+      "component": "reference_sheet",
+      "view": "left_side",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_57 p.m. (8).png",
+      "status": "reference_only_not_runtime",
+      "metrics": {
+        "size": [
+          260,
+          260
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          260
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "reference_right_side",
+      "category": "reference",
+      "component": "reference_sheet",
+      "view": "right_side",
+      "source": "ChatGPT Image 27 jun 2026, 12_59_57 p.m. (9).png",
+      "status": "reference_only_not_runtime",
+      "metrics": {
+        "size": [
+          260,
+          260
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          260
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    }
+  ],
+  "space": [
+    {
+      "id": "asteroid-dark-small",
+      "category": "space",
+      "component": "asteroid",
+      "view": "single",
+      "source": "assets/space/trimmed/asteroid-dark-small.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          228,
+          211
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          216,
+          206
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          5
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "asteroid-dark-tiny",
+      "category": "space",
+      "component": "asteroid",
+      "view": "single",
+      "source": "assets/space/trimmed/asteroid-dark-tiny.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          208,
+          191
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          196,
+          179
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          12
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "asteroid-tech-hollow",
+      "category": "space",
+      "component": "asteroid",
+      "view": "single",
+      "source": "assets/space/trimmed/asteroid-tech-hollow.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          267,
+          235
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          257,
+          234
+        ],
+        "margins": [
+          12,
+          12,
+          10,
+          1
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "asteroid-tech-left",
+      "category": "space",
+      "component": "asteroid",
+      "view": "single",
+      "source": "assets/space/trimmed/asteroid-tech-left.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          234,
+          224
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          222,
+          214
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          10
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "asteroid-tech-round",
+      "category": "space",
+      "component": "asteroid",
+      "view": "single",
+      "source": "assets/space/trimmed/asteroid-tech-round.png",
+      "status": "needs_recut",
+      "metrics": {
+        "size": [
+          248,
+          237
+        ],
+        "visible": true,
+        "bbox": [
+          9,
+          12,
+          236,
+          237
+        ],
+        "margins": [
+          9,
+          12,
+          12,
+          0
+        ],
+        "touches": [
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "meteor-dark-cyan",
+      "category": "space",
+      "component": "meteor",
+      "view": "single",
+      "source": "assets/space/trimmed/meteor-dark-cyan.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          481,
+          281
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          469,
+          269
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          12
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "meteor-ice-cyan",
+      "category": "space",
+      "component": "meteor",
+      "view": "single",
+      "source": "assets/space/trimmed/meteor-ice-cyan.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          473,
+          291
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          461,
+          279
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          12
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "meteor-white-magenta",
+      "category": "space",
+      "component": "meteor",
+      "view": "single",
+      "source": "assets/space/trimmed/meteor-white-magenta.png",
+      "status": "runtime_candidate",
+      "metrics": {
+        "size": [
+          514,
+          291
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          502,
+          279
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          12
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "planet-dark-magenta",
+      "category": "space",
+      "component": "planet",
+      "view": "single",
+      "source": "assets/space/trimmed/planet-dark-magenta.png",
+      "status": "needs_recut",
+      "metrics": {
+        "size": [
+          317,
+          292
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          305,
+          292
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          0
+        ],
+        "touches": [
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "planet-ocean-cyber",
+      "category": "space",
+      "component": "planet",
+      "view": "single",
+      "source": "assets/space/trimmed/planet-ocean-cyber.png",
+      "status": "needs_recut",
+      "metrics": {
+        "size": [
+          310,
+          287
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          305,
+          287
+        ],
+        "margins": [
+          12,
+          12,
+          5,
+          0
+        ],
+        "touches": [
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "planet-ringed-white",
+      "category": "space",
+      "component": "planet",
+      "view": "single",
+      "source": "assets/space/trimmed/planet-ringed-white.png",
+      "status": "needs_recut",
+      "metrics": {
+        "size": [
+          360,
+          283
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          12,
+          360,
+          283
+        ],
+        "margins": [
+          0,
+          12,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "planet-tech-white",
+      "category": "space",
+      "component": "planet",
+      "view": "single",
+      "source": "assets/space/trimmed/planet-tech-white.png",
+      "status": "needs_recut",
+      "metrics": {
+        "size": [
+          319,
+          287
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          12,
+          307,
+          287
+        ],
+        "margins": [
+          12,
+          12,
+          12,
+          0
+        ],
+        "touches": [
+          "bottom"
+        ]
+      }
+    }
+  ],
+  "fx": [
+    {
+      "id": "energy_burst_frame_01",
+      "category": "fx",
+      "component": "energy_burst",
+      "view": "frame_01",
+      "source": "01_spaceship_fx_energy_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          302,
+          229
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          282,
+          209
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "energy_burst_frame_02",
+      "category": "fx",
+      "component": "energy_burst",
+      "view": "frame_02",
+      "source": "01_spaceship_fx_energy_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          474,
+          382
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          454,
+          362
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "energy_burst_frame_03",
+      "category": "fx",
+      "component": "energy_burst",
+      "view": "frame_03",
+      "source": "01_spaceship_fx_energy_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          529,
+          591
+        ],
+        "visible": true,
+        "bbox": [
+          19,
+          20,
+          509,
+          571
+        ],
+        "margins": [
+          19,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "energy_burst_frame_04",
+      "category": "fx",
+      "component": "energy_burst",
+      "view": "frame_04",
+      "source": "01_spaceship_fx_energy_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          429,
+          483
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          409,
+          463
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "twin_explosion_frame_01",
+      "category": "fx",
+      "component": "twin_explosion",
+      "view": "frame_01",
+      "source": "02_spaceship_fx_twin_explosion_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          484,
+          169
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          484,
+          149
+        ],
+        "margins": [
+          20,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "twin_explosion_frame_02",
+      "category": "fx",
+      "component": "twin_explosion",
+      "view": "frame_02",
+      "source": "02_spaceship_fx_twin_explosion_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          542,
+          257
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          522,
+          237
+        ],
+        "margins": [
+          0,
+          20,
+          20,
+          20
+        ],
+        "touches": [
+          "left"
+        ]
+      }
+    },
+    {
+      "id": "twin_explosion_frame_03",
+      "category": "fx",
+      "component": "twin_explosion",
+      "view": "frame_03",
+      "source": "02_spaceship_fx_twin_explosion_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          543,
+          332
+        ],
+        "visible": true,
+        "bbox": [
+          9,
+          20,
+          539,
+          312
+        ],
+        "margins": [
+          9,
+          20,
+          4,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "twin_explosion_frame_04",
+      "category": "fx",
+      "component": "twin_explosion",
+      "view": "frame_04",
+      "source": "02_spaceship_fx_twin_explosion_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          504,
+          239
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          486,
+          219
+        ],
+        "margins": [
+          20,
+          20,
+          18,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "large_explosion_frame_01",
+      "category": "fx",
+      "component": "large_explosion",
+      "view": "frame_01",
+      "source": "03_spaceship_fx_large_explosion_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          489,
+          293
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          489,
+          273
+        ],
+        "margins": [
+          20,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "large_explosion_frame_02",
+      "category": "fx",
+      "component": "large_explosion",
+      "view": "frame_02",
+      "source": "03_spaceship_fx_large_explosion_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          543,
+          541
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          543,
+          521
+        ],
+        "margins": [
+          0,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "left",
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "large_explosion_frame_03",
+      "category": "fx",
+      "component": "large_explosion",
+      "view": "frame_03",
+      "source": "03_spaceship_fx_large_explosion_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          543,
+          638
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          541,
+          618
+        ],
+        "margins": [
+          0,
+          20,
+          2,
+          20
+        ],
+        "touches": [
+          "left"
+        ]
+      }
+    },
+    {
+      "id": "large_explosion_frame_04",
+      "category": "fx",
+      "component": "large_explosion",
+      "view": "frame_04",
+      "source": "03_spaceship_fx_large_explosion_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          543,
+          546
+        ],
+        "visible": true,
+        "bbox": [
+          12,
+          20,
+          529,
+          526
+        ],
+        "margins": [
+          12,
+          20,
+          14,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "energy_ring_frame_01",
+      "category": "fx",
+      "component": "energy_ring",
+      "view": "frame_01",
+      "source": "04_spaceship_fx_energy_ring_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          254,
+          254
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          234,
+          234
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "energy_ring_frame_02",
+      "category": "fx",
+      "component": "energy_ring",
+      "view": "frame_02",
+      "source": "04_spaceship_fx_energy_ring_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          526,
+          373
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          526,
+          353
+        ],
+        "margins": [
+          20,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "energy_ring_frame_03",
+      "category": "fx",
+      "component": "energy_ring",
+      "view": "frame_03",
+      "source": "04_spaceship_fx_energy_ring_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          543,
+          534
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          543,
+          514
+        ],
+        "margins": [
+          0,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "left",
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "energy_ring_frame_04",
+      "category": "fx",
+      "component": "energy_ring",
+      "view": "frame_04",
+      "source": "04_spaceship_fx_energy_ring_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          489,
+          598
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          469,
+          578
+        ],
+        "margins": [
+          0,
+          20,
+          20,
+          20
+        ],
+        "touches": [
+          "left"
+        ]
+      }
+    },
+    {
+      "id": "particle_burst_frame_01",
+      "category": "fx",
+      "component": "particle_burst",
+      "view": "frame_01",
+      "source": "05_spaceship_fx_particle_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          482,
+          374
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          462,
+          354
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "particle_burst_frame_02",
+      "category": "fx",
+      "component": "particle_burst",
+      "view": "frame_02",
+      "source": "05_spaceship_fx_particle_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          538,
+          525
+        ],
+        "visible": true,
+        "bbox": [
+          1,
+          20,
+          518,
+          505
+        ],
+        "margins": [
+          1,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "particle_burst_frame_03",
+      "category": "fx",
+      "component": "particle_burst",
+      "view": "frame_03",
+      "source": "05_spaceship_fx_particle_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          543,
+          478
+        ],
+        "visible": true,
+        "bbox": [
+          19,
+          20,
+          523,
+          458
+        ],
+        "margins": [
+          19,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "particle_burst_frame_04",
+      "category": "fx",
+      "component": "particle_burst",
+      "view": "frame_04",
+      "source": "05_spaceship_fx_particle_burst_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          444,
+          493
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          424,
+          473
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "diagonal_streak_frame_01",
+      "category": "fx",
+      "component": "diagonal_streak",
+      "view": "frame_01",
+      "source": "06_spaceship_fx_diagonal_streak_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          341,
+          326
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          321,
+          306
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "diagonal_streak_frame_02",
+      "category": "fx",
+      "component": "diagonal_streak",
+      "view": "frame_02",
+      "source": "06_spaceship_fx_diagonal_streak_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          357,
+          349
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          337,
+          329
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "diagonal_streak_frame_03",
+      "category": "fx",
+      "component": "diagonal_streak",
+      "view": "frame_03",
+      "source": "06_spaceship_fx_diagonal_streak_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          452,
+          427
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          432,
+          407
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "diagonal_streak_frame_04",
+      "category": "fx",
+      "component": "diagonal_streak",
+      "view": "frame_04",
+      "source": "06_spaceship_fx_diagonal_streak_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          346,
+          327
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          326,
+          307
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "engine_blast_frame_01",
+      "category": "fx",
+      "component": "engine_blast",
+      "view": "frame_01",
+      "source": "07_spaceship_fx_engine_blast_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          313,
+          302
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          293,
+          282
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "engine_blast_frame_02",
+      "category": "fx",
+      "component": "engine_blast",
+      "view": "frame_02",
+      "source": "07_spaceship_fx_engine_blast_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          350,
+          330
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          330,
+          310
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "engine_blast_frame_03",
+      "category": "fx",
+      "component": "engine_blast",
+      "view": "frame_03",
+      "source": "07_spaceship_fx_engine_blast_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          360,
+          331
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          340,
+          311
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "engine_blast_frame_04",
+      "category": "fx",
+      "component": "engine_blast",
+      "view": "frame_04",
+      "source": "07_spaceship_fx_engine_blast_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          370,
+          332
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          350,
+          312
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "thruster_flame_frame_01",
+      "category": "fx",
+      "component": "thruster_flame",
+      "view": "frame_01",
+      "source": "08_spaceship_fx_thruster_flame_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          428,
+          365
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          408,
+          345
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "thruster_flame_frame_02",
+      "category": "fx",
+      "component": "thruster_flame",
+      "view": "frame_02",
+      "source": "08_spaceship_fx_thruster_flame_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          481,
+          406
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          461,
+          386
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "thruster_flame_frame_03",
+      "category": "fx",
+      "component": "thruster_flame",
+      "view": "frame_03",
+      "source": "08_spaceship_fx_thruster_flame_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          528,
+          438
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          513,
+          418
+        ],
+        "margins": [
+          20,
+          20,
+          15,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "thruster_flame_frame_04",
+      "category": "fx",
+      "component": "thruster_flame",
+      "view": "frame_04",
+      "source": "08_spaceship_fx_thruster_flame_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          518,
+          427
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          498,
+          407
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "comet_tail_frame_01",
+      "category": "fx",
+      "component": "comet_tail",
+      "view": "frame_01",
+      "source": "09_spaceship_fx_comet_tail_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          466,
+          438
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          446,
+          418
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "comet_tail_frame_02",
+      "category": "fx",
+      "component": "comet_tail",
+      "view": "frame_02",
+      "source": "09_spaceship_fx_comet_tail_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          542,
+          482
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          542,
+          462
+        ],
+        "margins": [
+          20,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "comet_tail_frame_03",
+      "category": "fx",
+      "component": "comet_tail",
+      "view": "frame_03",
+      "source": "09_spaceship_fx_comet_tail_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          543,
+          530
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          543,
+          510
+        ],
+        "margins": [
+          0,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "left",
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "comet_tail_frame_04",
+      "category": "fx",
+      "component": "comet_tail",
+      "view": "frame_04",
+      "source": "09_spaceship_fx_comet_tail_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          528,
+          551
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          508,
+          531
+        ],
+        "margins": [
+          0,
+          20,
+          20,
+          20
+        ],
+        "touches": [
+          "left"
+        ]
+      }
+    },
+    {
+      "id": "neon_streak_frame_01",
+      "category": "fx",
+      "component": "neon_streak",
+      "view": "frame_01",
+      "source": "10_spaceship_fx_neon_streak_sequence.gif",
+      "status": "sequence_frame_candidate",
+      "metrics": {
+        "size": [
+          446,
+          423
+        ],
+        "visible": true,
+        "bbox": [
+          20,
+          20,
+          426,
+          403
+        ],
+        "margins": [
+          20,
+          20,
+          20,
+          20
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "neon_streak_frame_02",
+      "category": "fx",
+      "component": "neon_streak",
+      "view": "frame_02",
+      "source": "10_spaceship_fx_neon_streak_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          543,
+          490
+        ],
+        "visible": true,
+        "bbox": [
+          8,
+          20,
+          543,
+          470
+        ],
+        "margins": [
+          8,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "neon_streak_frame_03",
+      "category": "fx",
+      "component": "neon_streak",
+      "view": "frame_03",
+      "source": "10_spaceship_fx_neon_streak_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          543,
+          543
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          543,
+          523
+        ],
+        "margins": [
+          0,
+          20,
+          0,
+          20
+        ],
+        "touches": [
+          "left",
+          "right"
+        ]
+      }
+    },
+    {
+      "id": "neon_streak_frame_04",
+      "category": "fx",
+      "component": "neon_streak",
+      "view": "frame_04",
+      "source": "10_spaceship_fx_neon_streak_sequence.gif",
+      "status": "needs_padding",
+      "metrics": {
+        "size": [
+          533,
+          548
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          20,
+          513,
+          528
+        ],
+        "margins": [
+          0,
+          20,
+          20,
+          20
+        ],
+        "touches": [
+          "left"
+        ]
+      }
+    },
+    {
+      "id": "motion-streak",
+      "category": "fx",
+      "component": "motion-streak",
+      "view": "single",
+      "source": "assets/fx/trimmed/motion-streak.png",
+      "status": "runtime_candidate_single",
+      "metrics": {
+        "size": [
+          524,
+          429
+        ],
+        "visible": true,
+        "bbox": [
+          16,
+          16,
+          508,
+          413
+        ],
+        "margins": [
+          16,
+          16,
+          16,
+          16
+        ],
+        "touches": []
+      }
+    }
+  ],
+  "character": [
+    {
+      "id": "astronaut_single_01",
+      "category": "character",
+      "component": "astronaut",
+      "view": "front_left_iso",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_37 p.m. (1).png",
+      "status": "character_view_candidate",
+      "metrics": {
+        "size": [
+          854,
+          1240
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          34,
+          821,
+          1207
+        ],
+        "margins": [
+          34,
+          34,
+          33,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "astronaut_single_02",
+      "category": "character",
+      "component": "astronaut",
+      "view": "front",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_37 p.m. (2).png",
+      "status": "character_view_candidate",
+      "metrics": {
+        "size": [
+          647,
+          1306
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          613,
+          1272
+        ],
+        "margins": [
+          34,
+          33,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "astronaut_single_03",
+      "category": "character",
+      "component": "astronaut",
+      "view": "front_right_iso",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_37 p.m. (3).png",
+      "status": "character_view_candidate",
+      "metrics": {
+        "size": [
+          832,
+          1224
+        ],
+        "visible": true,
+        "bbox": [
+          33,
+          34,
+          799,
+          1191
+        ],
+        "margins": [
+          33,
+          34,
+          33,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "astronaut_single_04",
+      "category": "character",
+      "component": "astronaut",
+      "view": "side",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_37 p.m. (4).png",
+      "status": "character_view_candidate",
+      "metrics": {
+        "size": [
+          520,
+          1293
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          34,
+          486,
+          1260
+        ],
+        "margins": [
+          34,
+          34,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "astronaut_single_05",
+      "category": "character",
+      "component": "astronaut",
+      "view": "rear",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_37 p.m. (5).png",
+      "status": "character_view_candidate",
+      "metrics": {
+        "size": [
+          644,
+          1353
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          33,
+          610,
+          1320
+        ],
+        "margins": [
+          34,
+          33,
+          34,
+          33
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "astronaut_single_06",
+      "category": "character",
+      "component": "astronaut",
+      "view": "rear_right_iso",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_37 p.m. (6).png",
+      "status": "character_view_candidate",
+      "metrics": {
+        "size": [
+          758,
+          1297
+        ],
+        "visible": true,
+        "bbox": [
+          34,
+          34,
+          724,
+          1263
+        ],
+        "margins": [
+          34,
+          34,
+          34,
+          34
+        ],
+        "touches": []
+      }
+    },
+    {
+      "id": "astronaut_sheet_01",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (1).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_02",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (2).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_03",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (3).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_04",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (4).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_05",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (5).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_06",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (6).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_07",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (7).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_08",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (8).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_09",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (9).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    },
+    {
+      "id": "astronaut_sheet_10",
+      "category": "character",
+      "component": "astronaut_animation_sheet",
+      "view": "sheet_reference",
+      "source": "ChatGPT Image 28 jun 2026, 09_57_50 p.m. (10).png",
+      "status": "sheet_reference_needs_frame_map",
+      "metrics": {
+        "size": [
+          260,
+          174
+        ],
+        "visible": true,
+        "bbox": [
+          0,
+          0,
+          260,
+          174
+        ],
+        "margins": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "touches": [
+          "left",
+          "top",
+          "right",
+          "bottom"
+        ]
+      }
+    }
+  ]
+}

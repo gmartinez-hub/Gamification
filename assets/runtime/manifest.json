@@ -1,0 +1,1317 @@
+{
+  "version": "runtime-demo-v3-stage-directions",
+  "source": "qa-visual-atlas-draft-v2",
+  "stage1": {
+    "front_left_iso": {
+      "path": "assets/runtime/stage1/front_left_iso.png",
+      "width": 513,
+      "height": 458,
+      "aspect": 1.1200873362445414
+    },
+    "front_right_iso": {
+      "path": "assets/runtime/stage1/front_right_iso.png",
+      "width": 496,
+      "height": 446,
+      "aspect": 1.1121076233183858
+    },
+    "rear_left_iso": {
+      "path": "assets/runtime/stage1/rear_left_iso.png",
+      "width": 475,
+      "height": 358,
+      "aspect": 1.3268156424581006
+    },
+    "rear_right_iso": {
+      "path": "assets/runtime/stage1/rear_right_iso.png",
+      "width": 475,
+      "height": 358,
+      "aspect": 1.3268156424581006
+    },
+    "side": {
+      "path": "assets/runtime/stage1/side.png",
+      "width": 519,
+      "height": 296,
+      "aspect": 1.7533783783783783
+    },
+    "top": {
+      "path": "assets/runtime/stage1/top.png",
+      "width": 494,
+      "height": 296,
+      "aspect": 1.6689189189189189
+    },
+    "rest": {
+      "path": "assets/runtime/stage1/rest.png",
+      "width": 734,
+      "height": 997,
+      "aspect": 0.7362086258776329
+    }
+  },
+  "space": {
+    "planet_tech_white": {
+      "path": "assets/runtime/space/planet_tech_white.png",
+      "width": 469,
+      "height": 448,
+      "aspect": 1.046875
+    },
+    "planet_ocean_cyber": {
+      "path": "assets/runtime/space/planet_ocean_cyber.png",
+      "width": 558,
+      "height": 448,
+      "aspect": 1.2455357142857142
+    },
+    "planet_ringed_white": {
+      "path": "assets/runtime/space/planet_ringed_white.png",
+      "width": 638,
+      "height": 465,
+      "aspect": 1.3720430107526882
+    },
+    "planet_dark_magenta": {
+      "path": "assets/runtime/space/planet_dark_magenta.png",
+      "width": 521,
+      "height": 473,
+      "aspect": 1.1014799154334038
+    },
+    "asteroid_tech_left": {
+      "path": "assets/runtime/space/asteroid_tech_left.png",
+      "width": 404,
+      "height": 493,
+      "aspect": 0.8194726166328601
+    },
+    "asteroid_tech_hollow": {
+      "path": "assets/runtime/space/asteroid_tech_hollow.png",
+      "width": 498,
+      "height": 498,
+      "aspect": 1.0
+    },
+    "asteroid_tech_round": {
+      "path": "assets/runtime/space/asteroid_tech_round.png",
+      "width": 478,
+      "height": 498,
+      "aspect": 0.9598393574297188
+    },
+    "asteroid_dark_small": {
+      "path": "assets/runtime/space/asteroid_dark_small.png",
+      "width": 488,
+      "height": 473,
+      "aspect": 1.0317124735729386
+    },
+    "asteroid_dark_tiny": {
+      "path": "assets/runtime/space/asteroid_dark_tiny.png",
+      "width": 420,
+      "height": 478,
+      "aspect": 0.8786610878661087
+    },
+    "meteor_white_magenta": {
+      "path": "assets/runtime/space/meteor_white_magenta.png",
+      "width": 791,
+      "height": 477,
+      "aspect": 1.6582809224318658
+    },
+    "meteor_dark_cyan": {
+      "path": "assets/runtime/space/meteor_dark_cyan.png",
+      "width": 818,
+      "height": 482,
+      "aspect": 1.6970954356846473
+    },
+    "meteor_ice_cyan": {
+      "path": "assets/runtime/space/meteor_ice_cyan.png",
+      "width": 700,
+      "height": 482,
+      "aspect": 1.4522821576763485
+    }
+  },
+  "fx": {
+    "engine_blast": [
+      {
+        "path": "assets/runtime/fx/engine_blast/01.png",
+        "width": 379,
+        "height": 366,
+        "aspect": 1.03551912568306
+      },
+      {
+        "path": "assets/runtime/fx/engine_blast/02.png",
+        "width": 416,
+        "height": 395,
+        "aspect": 1.0531645569620254
+      },
+      {
+        "path": "assets/runtime/fx/engine_blast/03.png",
+        "width": 424,
+        "height": 397,
+        "aspect": 1.0680100755667505
+      },
+      {
+        "path": "assets/runtime/fx/engine_blast/04.png",
+        "width": 435,
+        "height": 396,
+        "aspect": 1.0984848484848484
+      }
+    ],
+    "thruster_flame": [
+      {
+        "path": "assets/runtime/fx/thruster_flame/01.png",
+        "width": 493,
+        "height": 429,
+        "aspect": 1.1491841491841492
+      },
+      {
+        "path": "assets/runtime/fx/thruster_flame/02.png",
+        "width": 529,
+        "height": 471,
+        "aspect": 1.1231422505307855
+      },
+      {
+        "path": "assets/runtime/fx/thruster_flame/03.png",
+        "width": 543,
+        "height": 503,
+        "aspect": 1.0795228628230615
+      },
+      {
+        "path": "assets/runtime/fx/thruster_flame/04.png",
+        "width": 543,
+        "height": 491,
+        "aspect": 1.105906313645621
+      }
+    ],
+    "speed_streak": [
+      {
+        "path": "assets/runtime/fx/speed_streak/01.png",
+        "width": 510,
+        "height": 487,
+        "aspect": 1.0472279260780288
+      },
+      {
+        "path": "assets/runtime/fx/speed_streak/02.png",
+        "width": 543,
+        "height": 554,
+        "aspect": 0.98014440433213
+      },
+      {
+        "path": "assets/runtime/fx/speed_streak/03.png",
+        "width": 543,
+        "height": 607,
+        "aspect": 0.8945634266886326
+      },
+      {
+        "path": "assets/runtime/fx/speed_streak/04.png",
+        "width": 543,
+        "height": 612,
+        "aspect": 0.8872549019607843
+      }
+    ],
+    "reward_burst": [
+      {
+        "path": "assets/runtime/fx/reward_burst/01.png",
+        "width": 366,
+        "height": 294,
+        "aspect": 1.2448979591836735
+      },
+      {
+        "path": "assets/runtime/fx/reward_burst/02.png",
+        "width": 525,
+        "height": 446,
+        "aspect": 1.1771300448430493
+      },
+      {
+        "path": "assets/runtime/fx/reward_burst/03.png",
+        "width": 543,
+        "height": 656,
+        "aspect": 0.8277439024390244
+      },
+      {
+        "path": "assets/runtime/fx/reward_burst/04.png",
+        "width": 493,
+        "height": 547,
+        "aspect": 0.9012797074954296
+      }
+    ]
+  },
+  "stage2": {
+    "rest": {
+      "path": "assets/runtime/stage2/rest.png",
+      "width": 630,
+      "height": 1118,
+      "aspect": 0.5635062611806798
+    }
+  },
+  "stage3": {
+    "rest": {
+      "path": "assets/runtime/stage3/rest.png",
+      "width": 1208,
+      "height": 980,
+      "aspect": 1.2326530612244897
+    }
+  },
+  "directions": {
+    "stage1": {
+      "up_left": {
+        "path": "assets/runtime/stage1/directions/up_left.png",
+        "width": 475,
+        "height": 358,
+        "aspect": 1.3268156424581006,
+        "source": "rear_right_iso",
+        "transform": "direct"
+      },
+      "up": {
+        "path": "assets/runtime/stage1/directions/up.png",
+        "width": 296,
+        "height": 494,
+        "aspect": 0.5991902834008097,
+        "source": "top",
+        "transform": "up"
+      },
+      "up_right": {
+        "path": "assets/runtime/stage1/directions/up_right.png",
+        "width": 475,
+        "height": 358,
+        "aspect": 1.3268156424581006,
+        "source": "rear_left_iso",
+        "transform": "direct"
+      },
+      "left": {
+        "path": "assets/runtime/stage1/directions/left.png",
+        "width": 519,
+        "height": 296,
+        "aspect": 1.7533783783783783,
+        "source": "side",
+        "transform": "direct"
+      },
+      "idle": {
+        "path": "assets/runtime/stage1/directions/idle.png",
+        "width": 734,
+        "height": 997,
+        "aspect": 0.7362086258776329,
+        "source": "rest",
+        "transform": "direct"
+      },
+      "right": {
+        "path": "assets/runtime/stage1/directions/right.png",
+        "width": 519,
+        "height": 296,
+        "aspect": 1.7533783783783783,
+        "source": "side",
+        "transform": "mirror"
+      },
+      "down_left": {
+        "path": "assets/runtime/stage1/directions/down_left.png",
+        "width": 513,
+        "height": 458,
+        "aspect": 1.1200873362445414,
+        "source": "front_left_iso",
+        "transform": "direct"
+      },
+      "down": {
+        "path": "assets/runtime/stage1/directions/down.png",
+        "width": 296,
+        "height": 494,
+        "aspect": 0.5991902834008097,
+        "source": "top",
+        "transform": "down"
+      },
+      "down_right": {
+        "path": "assets/runtime/stage1/directions/down_right.png",
+        "width": 513,
+        "height": 458,
+        "aspect": 1.1200873362445414,
+        "source": "front_left_iso",
+        "transform": "mirror"
+      }
+    },
+    "stage2": {
+      "up_left": {
+        "path": "assets/runtime/stage2/directions/up_left.png",
+        "width": 497,
+        "height": 366,
+        "aspect": 1.3579234972677596,
+        "source": "rear_left_iso",
+        "transform": "mirror"
+      },
+      "up": {
+        "path": "assets/runtime/stage2/directions/up.png",
+        "width": 282,
+        "height": 584,
+        "aspect": 0.4828767123287671,
+        "source": "top",
+        "transform": "up"
+      },
+      "up_right": {
+        "path": "assets/runtime/stage2/directions/up_right.png",
+        "width": 497,
+        "height": 366,
+        "aspect": 1.3579234972677596,
+        "source": "rear_left_iso",
+        "transform": "direct"
+      },
+      "left": {
+        "path": "assets/runtime/stage2/directions/left.png",
+        "width": 584,
+        "height": 243,
+        "aspect": 2.403292181069959,
+        "source": "side",
+        "transform": "direct"
+      },
+      "idle": {
+        "path": "assets/runtime/stage2/directions/idle.png",
+        "width": 630,
+        "height": 1118,
+        "aspect": 0.5635062611806798,
+        "source": "rest",
+        "transform": "direct"
+      },
+      "right": {
+        "path": "assets/runtime/stage2/directions/right.png",
+        "width": 584,
+        "height": 243,
+        "aspect": 2.403292181069959,
+        "source": "side",
+        "transform": "mirror"
+      },
+      "down_left": {
+        "path": "assets/runtime/stage2/directions/down_left.png",
+        "width": 561,
+        "height": 431,
+        "aspect": 1.3016241299303943,
+        "source": "front_left_iso",
+        "transform": "direct"
+      },
+      "down": {
+        "path": "assets/runtime/stage2/directions/down.png",
+        "width": 282,
+        "height": 584,
+        "aspect": 0.4828767123287671,
+        "source": "top",
+        "transform": "down"
+      },
+      "down_right": {
+        "path": "assets/runtime/stage2/directions/down_right.png",
+        "width": 561,
+        "height": 431,
+        "aspect": 1.3016241299303943,
+        "source": "front_left_iso",
+        "transform": "mirror"
+      }
+    },
+    "stage3": {
+      "up_left": {
+        "path": "assets/runtime/stage3/directions/up_left.png",
+        "width": 581,
+        "height": 405,
+        "aspect": 1.434567901234568,
+        "source": "rear_left_iso",
+        "transform": "mirror"
+      },
+      "up": {
+        "path": "assets/runtime/stage3/directions/up.png",
+        "width": 457,
+        "height": 522,
+        "aspect": 0.8754789272030651,
+        "source": "top",
+        "transform": "up"
+      },
+      "up_right": {
+        "path": "assets/runtime/stage3/directions/up_right.png",
+        "width": 581,
+        "height": 405,
+        "aspect": 1.434567901234568,
+        "source": "rear_left_iso",
+        "transform": "direct"
+      },
+      "left": {
+        "path": "assets/runtime/stage3/directions/left.png",
+        "width": 597,
+        "height": 238,
+        "aspect": 2.508403361344538,
+        "source": "side",
+        "transform": "direct"
+      },
+      "idle": {
+        "path": "assets/runtime/stage3/directions/idle.png",
+        "width": 1208,
+        "height": 980,
+        "aspect": 1.2326530612244897,
+        "source": "rest",
+        "transform": "direct"
+      },
+      "right": {
+        "path": "assets/runtime/stage3/directions/right.png",
+        "width": 597,
+        "height": 238,
+        "aspect": 2.508403361344538,
+        "source": "side",
+        "transform": "mirror"
+      },
+      "down_left": {
+        "path": "assets/runtime/stage3/directions/down_left.png",
+        "width": 593,
+        "height": 461,
+        "aspect": 1.2863340563991323,
+        "source": "front_left_iso",
+        "transform": "direct"
+      },
+      "down": {
+        "path": "assets/runtime/stage3/directions/down.png",
+        "width": 457,
+        "height": 522,
+        "aspect": 0.8754789272030651,
+        "source": "top",
+        "transform": "down"
+      },
+      "down_right": {
+        "path": "assets/runtime/stage3/directions/down_right.png",
+        "width": 593,
+        "height": 461,
+        "aspect": 1.2863340563991323,
+        "source": "front_left_iso",
+        "transform": "mirror"
+      }
+    }
+  },
+  "astronaut": {
+    "float": {
+      "path": "assets/runtime/astronaut/float.png",
+      "width": 873,
+      "height": 1259,
+      "aspect": 0.69340746624305
+    },
+    "animations": {
+      "idle_hover": {
+        "fps": 9.090909090909092,
+        "frames": [
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/01_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/01_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/02_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/02_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/03_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/03_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/04_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/04_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/05_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/05_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/06_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/06_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/07_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/07_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/08_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/08_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/09_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/09_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/10_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/idle_hover/10_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          }
+        ]
+      },
+      "jetpack_boost": {
+        "fps": 9.090909090909092,
+        "frames": [
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/01_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/01_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/02_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/02_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/03_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/03_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/04_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/04_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/05_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/05_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/06_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/06_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/07_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/07_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/08_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/08_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/09_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/09_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/10_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/jetpack_boost/10_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          }
+        ]
+      },
+      "wave": {
+        "fps": 9.090909090909092,
+        "frames": [
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/01_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/01_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/02_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/02_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/03_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/03_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/04_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/04_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/05_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/05_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/06_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/06_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/07_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/07_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/08_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/08_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/09_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/09_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/wave/10_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/wave/10_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          }
+        ]
+      },
+      "thumbs_up": {
+        "fps": 9.090909090909092,
+        "frames": [
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/01_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/01_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/02_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/02_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/03_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/03_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/04_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/04_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/05_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/05_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/06_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/06_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/07_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/07_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/08_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/08_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/09_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/09_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          },
+          {
+            "right": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/10_right.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            },
+            "left": {
+              "path": "assets/runtime/astronaut/animations/thumbs_up/10_left.png",
+              "width": 512,
+              "height": 512,
+              "aspect": 1.0
+            }
+          }
+        ]
+      }
+    },
+    "views": {
+      "front_left": {
+        "path": "assets/runtime/astronaut/views/front_left.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "front": {
+        "path": "assets/runtime/astronaut/views/front.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "front_right": {
+        "path": "assets/runtime/astronaut/views/front_right.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "side_right": {
+        "path": "assets/runtime/astronaut/views/side_right.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "side_left": {
+        "path": "assets/runtime/astronaut/views/side_left.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "rear": {
+        "path": "assets/runtime/astronaut/views/rear.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "rear_right": {
+        "path": "assets/runtime/astronaut/views/rear_right.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      },
+      "rear_left": {
+        "path": "assets/runtime/astronaut/views/rear_left.png",
+        "width": 512,
+        "height": 512,
+        "aspect": 1.0
+      }
+    }
+  },
+  "spaceAnimated": {
+    "planet_tech": {
+      "fps": 1.7,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/planet_tech/01.png",
+          "width": 287,
+          "height": 306,
+          "aspect": 0.9379084967320261
+        },
+        {
+          "path": "assets/runtime/space-animated/planet_tech/02.png",
+          "width": 704,
+          "height": 705,
+          "aspect": 0.9985815602836879
+        },
+        {
+          "path": "assets/runtime/space-animated/planet_tech/03.png",
+          "width": 298,
+          "height": 309,
+          "aspect": 0.9644012944983819
+        }
+      ]
+    },
+    "planet_ocean": {
+      "fps": 1.7,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/planet_ocean/01.png",
+          "width": 321,
+          "height": 332,
+          "aspect": 0.9668674698795181
+        },
+        {
+          "path": "assets/runtime/space-animated/planet_ocean/02.png",
+          "width": 676,
+          "height": 672,
+          "aspect": 1.005952380952381
+        },
+        {
+          "path": "assets/runtime/space-animated/planet_ocean/03.png",
+          "width": 327,
+          "height": 331,
+          "aspect": 0.9879154078549849
+        }
+      ]
+    },
+    "planet_dark": {
+      "fps": 1.7,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/planet_dark/01.png",
+          "width": 332,
+          "height": 351,
+          "aspect": 0.9458689458689459
+        },
+        {
+          "path": "assets/runtime/space-animated/planet_dark/02.png",
+          "width": 665,
+          "height": 674,
+          "aspect": 0.9866468842729971
+        },
+        {
+          "path": "assets/runtime/space-animated/planet_dark/03.png",
+          "width": 332,
+          "height": 350,
+          "aspect": 0.9485714285714286
+        }
+      ]
+    },
+    "asteroid_core": {
+      "fps": 2.3,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/asteroid_core/01.png",
+          "width": 316,
+          "height": 361,
+          "aspect": 0.8753462603878116
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_core/02.png",
+          "width": 635,
+          "height": 621,
+          "aspect": 1.0225442834138487
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_core/03.png",
+          "width": 352,
+          "height": 354,
+          "aspect": 0.9943502824858758
+        }
+      ]
+    },
+    "asteroid_hollow": {
+      "fps": 2.3,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/asteroid_hollow/01.png",
+          "width": 355,
+          "height": 392,
+          "aspect": 0.9056122448979592
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_hollow/02.png",
+          "width": 663,
+          "height": 664,
+          "aspect": 0.9984939759036144
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_hollow/03.png",
+          "width": 329,
+          "height": 394,
+          "aspect": 0.8350253807106599
+        }
+      ]
+    },
+    "asteroid_ring": {
+      "fps": 2.3,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/asteroid_ring/01.png",
+          "width": 328,
+          "height": 395,
+          "aspect": 0.830379746835443
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_ring/02.png",
+          "width": 624,
+          "height": 662,
+          "aspect": 0.9425981873111783
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_ring/03.png",
+          "width": 354,
+          "height": 405,
+          "aspect": 0.8740740740740741
+        }
+      ]
+    },
+    "asteroid_blue": {
+      "fps": 2.3,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/asteroid_blue/01.png",
+          "width": 315,
+          "height": 303,
+          "aspect": 1.0396039603960396
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_blue/02.png",
+          "width": 641,
+          "height": 613,
+          "aspect": 1.0456769983686787
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_blue/03.png",
+          "width": 322,
+          "height": 306,
+          "aspect": 1.0522875816993464
+        }
+      ]
+    },
+    "asteroid_magenta": {
+      "fps": 2.3,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/asteroid_magenta/01.png",
+          "width": 328,
+          "height": 311,
+          "aspect": 1.0546623794212218
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_magenta/02.png",
+          "width": 633,
+          "height": 590,
+          "aspect": 1.0728813559322035
+        },
+        {
+          "path": "assets/runtime/space-animated/asteroid_magenta/03.png",
+          "width": 329,
+          "height": 316,
+          "aspect": 1.0411392405063291
+        }
+      ]
+    },
+    "meteor_neon": {
+      "fps": 2.3,
+      "frames": [
+        {
+          "path": "assets/runtime/space-animated/meteor_neon/01.png",
+          "width": 598,
+          "height": 378,
+          "aspect": 1.582010582010582
+        },
+        {
+          "path": "assets/runtime/space-animated/meteor_neon/02.png",
+          "width": 1108,
+          "height": 731,
+          "aspect": 1.5157318741450068
+        },
+        {
+          "path": "assets/runtime/space-animated/meteor_neon/03.png",
+          "width": 638,
+          "height": 505,
+          "aspect": 1.2633663366336634
+        }
+      ]
+    }
+  }
+}

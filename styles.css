@@ -12,3 +12,54 @@ body {
   width: 100vw;
   height: 100vh;
 }
+
+.hud {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #f6f8ff;
+  pointer-events: none;
+}
+
+.stage-label,
+.stage-button {
+  border: 1px solid rgba(118, 154, 255, 0.42);
+  background: rgba(10, 15, 38, 0.66);
+  box-shadow: 0 14px 36px rgba(7, 11, 32, 0.32);
+  backdrop-filter: blur(14px);
+}
+
+.stage-label {
+  min-width: 74px;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.stage-button {
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 0 15px;
+  color: #f6f8ff;
+  font: 700 13px/1 Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.stage-button:hover {
+  border-color: rgba(62, 217, 255, 0.66);
+  background: rgba(21, 31, 70, 0.76);
+}
+
+.stage-button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
