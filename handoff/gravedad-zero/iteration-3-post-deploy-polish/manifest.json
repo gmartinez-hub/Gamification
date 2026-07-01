@@ -1,0 +1,12 @@
+{
+  "name": "gravedad-zero-iteration-3-post-deploy-polish",
+  "deploy_strategy": "single_integrated_deploy",
+  "qa_strategy": "single_pass_qa",
+  "must_fix": [
+    "stage_regeneration",
+    "cinematic_autoaim_zero_gravity",
+    "floating_companion_no_floor_shadow",
+    "expanded_orbital_world_wrapped_objects",
+    "ship_engine_audio_loops"
+  ]
+}

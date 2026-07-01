@@ -300,12 +300,100 @@ const missionAudio = {
   loading: false,
 };
 
+class ShipEngineAudio {
+  constructor() {
+    this.ready = false;
+    this.basePath = "nave_three_audio_pack_v2_refined";
+    this.loops = {};
+    this.transitionWasActive = false;
+    this.speedCueCooldown = 0;
+    this.loopItems = {
+      idle: { file: "engine_idle_clean_loop_05.wav", volume: 0.055 },
+      move: { file: "engine_move_clean_loop_06.wav", volume: 0.075 },
+      boost: { file: "engine_boost_clean_loop_07.wav", volume: 0.105 },
+    };
+    this.oneShots = {
+      speed: { file: "motion_speed_whoosh_refined_09.wav", volume: 0.20 },
+      warp: { file: "motion_warp_jump_refined_10.wav", volume: 0.28 },
+    };
+  }
+
+  ensure() {
+    if (this.ready) return;
+    for (const [id, item] of Object.entries(this.loopItems)) {
+      const audio = new Audio(missionAssetUrl(`${this.basePath}/${item.file}`));
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.volume = 0;
+      this.loops[id] = audio;
+      audio.play().catch(() => {});
+    }
+    this.ready = true;
+  }
+
+  fadeLoop(id, targetVolume, delta) {
+    const loop = this.loops[id];
+    if (!loop) return;
+    const item = this.loopItems[id];
+    const target = THREE.MathUtils.clamp(targetVolume, 0, item.volume);
+    loop.volume = THREE.MathUtils.lerp(loop.volume, target, 1 - Math.pow(0.001, delta));
+    if (loop.paused && loop.volume > 0.002) loop.play().catch(() => {});
+  }
+
+  playOneShot(id) {
+    if (!this.ready) return null;
+    const item = this.oneShots[id];
+    if (!item) return null;
+    const audio = new Audio(missionAssetUrl(`${this.basePath}/${item.file}`));
+    audio.volume = item.volume;
+    audio.play().catch(() => {});
+    return audio;
+  }
+
+  update(shipVelocity, transition, delta) {
+    if (!this.ready) return;
+    const speed = THREE.MathUtils.clamp(shipVelocity.length(), 0, 1);
+    const move = THREE.MathUtils.smoothstep(speed, 0.08, 0.58);
+    const boost = transition ? 1 : THREE.MathUtils.smoothstep(speed, 0.66, 1);
+
+    this.fadeLoop("idle", this.loopItems.idle.volume * (0.88 - move * 0.42), delta);
+    this.fadeLoop("move", this.loopItems.move.volume * move * (1 - boost * 0.36), delta);
+    this.fadeLoop("boost", this.loopItems.boost.volume * boost, delta);
+
+    this.speedCueCooldown = Math.max(0, this.speedCueCooldown - delta);
+    if (!transition && speed > 0.84 && this.speedCueCooldown <= 0) {
+      this.playOneShot("speed");
+      this.speedCueCooldown = 1.4;
+    }
+
+    if (transition && !this.transitionWasActive) {
+      this.playOneShot("warp");
+    }
+    this.transitionWasActive = Boolean(transition);
+  }
+}
+
+const shipEngineAudio = new ShipEngineAudio();
+
 function missionAssetUrl(path) {
   return new URL(`../${path}`, import.meta.url).href;
 }
 
 function ensureMissionAudio() {
   missionAudio.ready = true;
+  ensureShipAudio();
+}
+
+function ensureShipAudio() {
+  shipEngineAudio.ensure();
+}
+
+function playShipOneShot(id) {
+  shipEngineAudio.playOneShot(id);
+}
+
+function updateShipEngineAudio(shipVelocity, transition, delta) {
+  shipEngineAudio.update(shipVelocity, transition, delta);
 }
 
 function playMissionAudio(id) {
@@ -988,14 +1076,14 @@ function createIntegratedAsteroid({
       new THREE.SpriteMaterial({
         map: bgAuraTexture,
         transparent: true,
-        opacity: size === "large" ? 0.36 : 0.26,
+        opacity: size === "large" ? 0.48 : 0.38,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       })
     );
-    targetHalo.scale.set(radius * (size === "large" ? 5.2 : 4.2), radius * (size === "large" ? 5.2 : 4.2), 1);
+    targetHalo.scale.set(radius * (size === "large" ? 5.8 : 4.9), radius * (size === "large" ? 5.8 : 4.9), 1);
     targetHalo.userData.isMissionTargetHalo = true;
-    targetHalo.userData.baseOpacity = size === "large" ? 0.36 : 0.26;
+    targetHalo.userData.baseOpacity = size === "large" ? 0.48 : 0.38;
     group.add(targetHalo);
   }
 
@@ -1004,13 +1092,83 @@ function createIntegratedAsteroid({
   return group;
 }
 
+const missionStageConfigs = [
+  {
+    mission: "MISSION 01",
+    name: "CAMPO INESTABLE",
+    subtitle: "CAMPO INESTABLE",
+    smallRequired: 3,
+    largeRequired: 1,
+    smallTargets: [
+      { x: -1.96, y: -0.14, z: -2.0, radius: 0.20 },
+      { x: -1.42, y: 0.40, z: -1.9, radius: 0.20 },
+      { x: -0.96, y: -0.76, z: -2.1, radius: 0.19 },
+    ],
+    largeTargets: [{ x: 0.35, y: 0.92, z: -2.0, radius: 0.50 }],
+  },
+  {
+    mission: "MISSION 02",
+    name: "ÓRBITA FRACTURADA",
+    subtitle: "ÓRBITA FRACTURADA",
+    smallRequired: 3,
+    largeRequired: 2,
+    smallTargets: [
+      { x: -2.02, y: 0.22, z: -2.15, radius: 0.20 },
+      { x: -1.48, y: -0.54, z: -1.95, radius: 0.20 },
+      { x: -0.90, y: -0.08, z: -2.05, radius: 0.19 },
+    ],
+    largeTargets: [
+      { x: 0.24, y: 0.86, z: -2.05, radius: 0.49 },
+      { x: 1.08, y: 0.18, z: -2.12, radius: 0.52 },
+    ],
+  },
+  {
+    mission: "MISSION 03",
+    name: "NÚCLEO DESCONOCIDO",
+    subtitle: "NÚCLEO DESCONOCIDO",
+    smallRequired: 3,
+    largeRequired: 3,
+    smallTargets: [
+      { x: -2.04, y: -0.54, z: -2.12, radius: 0.20 },
+      { x: -1.46, y: 0.14, z: -1.94, radius: 0.20 },
+      { x: -0.86, y: -0.54, z: -2.04, radius: 0.19 },
+    ],
+    largeTargets: [
+      { x: -0.18, y: 0.90, z: -2.06, radius: 0.49 },
+      { x: 0.78, y: 0.28, z: -2.14, radius: 0.52 },
+      { x: 1.46, y: -0.34, z: -2.08, radius: 0.47 },
+    ],
+  },
+];
+
+function currentMissionConfig(stageIndex = mission01.currentStageIndex ?? state.stageIndex) {
+  return missionStageConfigs[THREE.MathUtils.clamp(stageIndex, 0, missionStageConfigs.length - 1)];
+}
+
+function largeObjectiveLabel(count) {
+  return `${count} OBSTÁCULO${count === 1 ? "" : "S"} MAYOR${count === 1 ? "" : "ES"}`;
+}
+
+function largeObjectiveNoun(count) {
+  return `OBSTÁCULO${count === 1 ? "" : "S"} MAYOR${count === 1 ? "" : "ES"}`;
+}
+
+function missionObjectiveCopy(config) {
+  return `${config.smallRequired} SEÑALES MENORES / ${largeObjectiveLabel(config.largeRequired)}`;
+}
+
 const mission01 = {
   started: false,
   state: "boot",
+  currentStageIndex: initialStageIndex,
   smallRequired: 3,
   smallDestroyed: 0,
   smallAsteroids: [],
+  largeRequired: 1,
+  largeDestroyed: 0,
   largeObstacle: null,
+  largeObstacles: [],
+  stageTargets: new Map(),
   relicGroup: null,
   relicState: "hidden",
   relicTouched: false,
@@ -1031,6 +1189,9 @@ const aimAssist = {
   impactTime: 0.48,
   fired: false,
   impacted: false,
+  recoil: 0,
+  hitStop: 0,
+  played: {},
 };
 
 const robotCompanion = {
@@ -1059,7 +1220,7 @@ const menuScreens = {
     eyebrow: "MISSION 01",
     title: "CAMPO INESTABLE",
     subtitle: "RUTA DESCONOCIDA",
-    body: ["3 ASTEROIDES CHICOS", "1 OBSTÁCULO MAYOR", "ACTIVA LA RELIQUIA"],
+    body: ["3 SEÑALES MENORES", "1 OBSTÁCULO MAYOR", "ACTIVA LA RELIQUIA"],
     actions: [["INICIAR MISIÓN", "start"]],
   },
   controls: {
@@ -1076,7 +1237,7 @@ const menuScreens = {
     eyebrow: "GRAVEDAD ZERO",
     title: "PAUSA",
     subtitle: "RUTA DESCONOCIDA",
-    body: ["MISSION 01", "OBJETIVOS EN CURSO"],
+    body: ["OBJETIVOS EN CURSO", "STAGE ACTUAL"],
     actions: [["CONTINUAR", "resume"]],
   },
   stage_unlocked: {
@@ -1089,7 +1250,7 @@ const menuScreens = {
   mission_complete: {
     eyebrow: "GRAVEDAD ZERO",
     title: "MISSION COMPLETE",
-    subtitle: "STAGE 2",
+    subtitle: "STAGE UNLOCKED",
     body: ["ASTRONAUTA", "NAVE", "RELIQUIA"],
     actions: [["CONTINUAR", "resume"]],
   },
@@ -1111,6 +1272,346 @@ const asteroidTextureCycle = [
   worldTextures.asteroidWide,
   worldTextures.darkCrater,
 ];
+
+function resetMissionTarget(target, active = false) {
+  target.userData.active = active;
+  target.userData.destroyed = false;
+  target.userData.destroyTime = 0;
+  target.userData.hitPulse = 0;
+  target.userData.hp = target.userData.maxHp;
+  target.visible = active;
+  target.scale.setScalar(1);
+  setGroupOpacity(target, 1);
+}
+
+function placeMissionTarget(target, spec, routeY) {
+  target.userData.base.set(spec.x, routeY + spec.y, spec.z);
+  target.userData.routeY = routeY;
+  target.position.copy(target.userData.base);
+  target.userData.radius = spec.radius;
+  target.userData.hitRadius = spec.radius * (target.userData.missionRole === "large" ? 3.45 : 3.7);
+}
+
+function spawnStageTargets(stageIndex) {
+  const safeStageIndex = THREE.MathUtils.clamp(stageIndex, 0, missionStageConfigs.length - 1);
+  const existing = mission01.stageTargets.get(safeStageIndex);
+  if (existing) return existing;
+
+  const config = currentMissionConfig(safeStageIndex);
+  const routeBase = state.worldOffset.y * 0.944 + safeStageIndex * 0.18;
+  const pool = { small: [], large: [] };
+
+  config.smallTargets.forEach((spec, index) => {
+    const target = createIntegratedAsteroid({
+      position: new THREE.Vector3(spec.x, spec.y, spec.z),
+      radius: spec.radius,
+      routeY: routeBase + index * 0.34,
+      size: "small",
+      interactive: true,
+      missionRole: "small",
+      active: false,
+      map: asteroidTextureCycle[(safeStageIndex + index + 1) % asteroidTextureCycle.length],
+      normalMap: index === 1 ? worldTextures.craterNormal : null,
+    });
+    target.userData.stageIndex = safeStageIndex;
+    target.userData.targetIndex = index;
+    target.userData.maxHp = 1;
+    target.userData.hp = 1;
+    target.userData.hitRadius = spec.radius * 3.7;
+    target.visible = false;
+    pool.small.push(target);
+  });
+
+  config.largeTargets.forEach((spec, index) => {
+    const target = createIntegratedAsteroid({
+      position: new THREE.Vector3(spec.x, spec.y, spec.z),
+      radius: spec.radius,
+      routeY: routeBase + 1.42 + index * 0.36,
+      objective: true,
+      size: "large",
+      interactive: true,
+      missionRole: "large",
+      active: false,
+      map: asteroidTextureCycle[(safeStageIndex + index + 2) % asteroidTextureCycle.length],
+      normalMap: worldTextures.craterNormal,
+    });
+    target.userData.stageIndex = safeStageIndex;
+    target.userData.targetIndex = index;
+    target.userData.maxHp = 2;
+    target.userData.hp = 2;
+    target.userData.hitRadius = spec.radius * 3.45;
+    target.visible = false;
+    pool.large.push(target);
+  });
+
+  mission01.stageTargets.set(safeStageIndex, pool);
+  return pool;
+}
+
+function clearPreviousStageTargets() {
+  for (const pool of mission01.stageTargets.values()) {
+    for (const target of [...pool.small, ...pool.large]) {
+      resetMissionTarget(target, false);
+    }
+  }
+}
+
+function resetStageMission(stageIndex) {
+  const safeStageIndex = THREE.MathUtils.clamp(stageIndex, 0, missionStageConfigs.length - 1);
+  const config = currentMissionConfig(safeStageIndex);
+  const pool = spawnStageTargets(safeStageIndex);
+  const routeBase = state.worldOffset.y * 0.944;
+
+  mission01.started = true;
+  mission01.state = "small_asteroids";
+  mission01.currentStageIndex = safeStageIndex;
+  mission01.smallRequired = config.smallRequired;
+  mission01.largeRequired = config.largeRequired;
+  mission01.smallDestroyed = 0;
+  mission01.largeDestroyed = 0;
+  mission01.smallAsteroids = pool.small;
+  mission01.largeObstacles = pool.large;
+  mission01.largeObstacle = pool.large[0] || null;
+  mission01.relicTouched = false;
+  mission01.unlockStarted = false;
+  mission01.relicState = "hidden";
+  mission01.revealTime = 0;
+  mission01.relicDestroyTime = 0;
+
+  pool.small.forEach((target, index) => {
+    placeMissionTarget(target, config.smallTargets[index], routeBase + index * 0.34);
+    resetMissionTarget(target, false);
+  });
+  pool.large.forEach((target, index) => {
+    placeMissionTarget(target, config.largeTargets[index], routeBase + 1.42 + index * 0.36);
+    resetMissionTarget(target, false);
+  });
+
+  stopMissionAudio("relic_idle");
+  if (mission01.relicGroup) mission01.relicGroup.visible = false;
+  if (energyBeam) energyBeam.visible = false;
+  if (unlockFlash) unlockFlash.visible = false;
+  updateMissionHud(config.mission, missionObjectiveCopy(config), config.subtitle);
+  updateRobotPanel();
+}
+
+function activateStageTargets(stageIndex) {
+  const pool = spawnStageTargets(stageIndex);
+  setMissionTargetsActive(pool.small, true);
+  setMissionTargetsActive(pool.large, false);
+}
+
+function startMissionForStage(stageIndex) {
+  const safeStageIndex = THREE.MathUtils.clamp(stageIndex, 0, missionStageConfigs.length - 1);
+  const config = currentMissionConfig(safeStageIndex);
+  hideMenu();
+  if (state.stageIndex !== safeStageIndex) applyStage(safeStageIndex);
+  spawnStageTargets(safeStageIndex);
+  clearPreviousStageTargets();
+  resetStageMission(safeStageIndex);
+  activateStageTargets(safeStageIndex);
+  updateMissionHud(config.mission, missionObjectiveCopy(config), config.subtitle);
+  playMissionAudio("mission_start");
+  syncRobotCompanion("small_asteroids");
+  enterAstronautMode();
+}
+
+const orbitalWorld = {
+  group: new THREE.Group(),
+  objects: [],
+};
+backgroundScene.add(orbitalWorld.group);
+
+function createOrbitalObject({
+  kind = "debris",
+  position,
+  radius = 0.24,
+  routeY = 0,
+  map = null,
+  color = 0x9fdcff,
+  opacity = 0.42,
+  parallax = 0.20,
+  stageWeights = [1, 1, 1],
+  spin = 0.04,
+  drift = new THREE.Vector2(),
+  layer = "mid",
+}) {
+  let object;
+  if (kind === "planet") {
+    object = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 48, 32),
+      new THREE.MeshStandardMaterial({
+        map,
+        roughness: 0.80,
+        metalness: 0.02,
+        emissive: color,
+        emissiveIntensity: 0.16,
+        transparent: true,
+        opacity,
+      })
+    );
+  } else if (kind === "crystal") {
+    object = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(radius, 1),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+  } else {
+    object = new THREE.Mesh(
+      createIntegratedAsteroidGeometry(radius),
+      new THREE.MeshStandardMaterial({
+        map,
+        roughness: 0.90,
+        metalness: 0.06,
+        emissive: 0x09172a,
+        emissiveIntensity: 0.24,
+        transparent: true,
+        opacity,
+      })
+    );
+  }
+
+  const base = new THREE.Vector3(position.x, routeY + position.y, position.z);
+  object.position.copy(base);
+  object.userData = {
+    base,
+    baseOpacity: opacity,
+    routeY,
+    parallax,
+    stageWeights,
+    spin,
+    drift,
+    layer,
+    phase: random() * Math.PI * 2,
+    wrapX: WORLD_WRAP_X + 14 + Math.abs(position.z) * 0.8,
+    wrapY: WORLD_WRAP_Y + 18 + Math.abs(position.z) * 0.7,
+  };
+  orbitalWorld.group.add(object);
+  orbitalWorld.objects.push(object);
+  return object;
+}
+
+function createPlanetLayer() {
+  [
+    {
+      kind: "planet",
+      position: new THREE.Vector3(-18.5, 1.6, -26),
+      routeY: -6,
+      radius: 1.55,
+      map: worldTextures.gasGiant,
+      color: 0x2ddcff,
+      opacity: 0.38,
+      parallax: 0.055,
+      stageWeights: [0.9, 0.48, 0.62],
+      spin: 0.018,
+    },
+    {
+      kind: "planet",
+      position: new THREE.Vector3(18.2, -1.0, -24),
+      routeY: 24,
+      radius: 1.12,
+      map: worldTextures.networkPlanet,
+      color: 0xff4fdd,
+      opacity: 0.32,
+      parallax: 0.065,
+      stageWeights: [0.40, 0.95, 0.58],
+      spin: -0.020,
+    },
+    {
+      kind: "planet",
+      position: new THREE.Vector3(-16.8, -1.4, -21),
+      routeY: 55,
+      radius: 1.34,
+      map: worldTextures.craterWorld,
+      color: 0xbf52ff,
+      opacity: 0.34,
+      parallax: 0.075,
+      stageWeights: [0.50, 0.62, 1],
+      spin: 0.022,
+    },
+  ].forEach(createOrbitalObject);
+}
+
+function createDebrisField() {
+  for (let i = 0; i < 46; i += 1) {
+    const stageBias = i % 3;
+    createOrbitalObject({
+      kind: "debris",
+      position: new THREE.Vector3((random() - 0.5) * 38, (random() - 0.5) * 5.8, -8 - random() * 12),
+      routeY: WORLD_MIN_Y + random() * (WORLD_HEIGHT + 18),
+      radius: 0.045 + random() * 0.16,
+      map: asteroidTextureCycle[i % asteroidTextureCycle.length],
+      opacity: 0.20 + random() * 0.28,
+      parallax: 0.12 + random() * 0.18,
+      stageWeights: [stageBias === 0 ? 1 : 0.62, stageBias === 1 ? 1 : 0.62, stageBias === 2 ? 1 : 0.62],
+      spin: (random() > 0.5 ? 1 : -1) * (0.10 + random() * 0.34),
+      drift: new THREE.Vector2((random() - 0.5) * 0.025, -0.018 - random() * 0.018),
+      layer: "mid",
+    });
+  }
+}
+
+function createCrystalCluster() {
+  for (let i = 0; i < 18; i += 1) {
+    createOrbitalObject({
+      kind: "crystal",
+      position: new THREE.Vector3((random() - 0.5) * 24, (random() - 0.5) * 3.4, -4.2 - random() * 3.2),
+      routeY: 14 + i * 3.9,
+      radius: 0.030 + random() * 0.045,
+      color: i % 2 ? 0xff5de1 : 0x62edff,
+      opacity: 0.22 + random() * 0.20,
+      parallax: 0.26 + random() * 0.16,
+      stageWeights: [0.44, 0.68, 1],
+      spin: (random() > 0.5 ? 1 : -1) * (0.26 + random() * 0.36),
+      drift: new THREE.Vector2((random() - 0.5) * 0.020, -0.010 - random() * 0.020),
+      layer: "foreground",
+    });
+  }
+}
+
+function wrapOrbitalObject(object, cameraWorld = state.worldOffset) {
+  const base = object.userData.base;
+  const parallax = object.userData.parallax;
+  return {
+    x: wrapWorldDelta(base.x - cameraWorld.x * (0.62 + parallax * 0.55), object.userData.wrapX),
+    y: wrapWorldDelta(base.y - cameraWorld.y * (0.76 + parallax * 0.34), object.userData.wrapY),
+  };
+}
+
+function setOrbitalOpacity(object, opacity) {
+  if (object.material) {
+    object.material.transparent = true;
+    object.material.opacity = opacity;
+  }
+}
+
+function updateOrbitalObjects(delta, elapsed, travelVelocity) {
+  const cameraWorld = state.worldOffset;
+  const speed = travelVelocity.length();
+  for (const object of orbitalWorld.objects) {
+    const wrapped = wrapOrbitalObject(object, cameraWorld);
+    const parallax = object.userData.parallax;
+    const phase = elapsed * (0.18 + parallax) + object.userData.phase;
+    const drift = object.userData.drift;
+    object.position.x = wrapped.x + Math.cos(phase) * parallax * 0.82 - travelVelocity.x * parallax * 0.42;
+    object.position.y = wrapped.y + Math.sin(phase * 0.74) * parallax * 0.54 + drift.y * elapsed;
+    object.position.z = object.userData.base.z + Math.sin(phase * 0.42) * 0.18;
+    object.rotation.x += delta * object.userData.spin * 0.72;
+    object.rotation.y += delta * object.userData.spin;
+    object.rotation.z += delta * object.userData.spin * 0.42;
+
+    const stageWeight = object.userData.stageWeights[state.stageIndex] ?? 1;
+    const foregroundLift = object.userData.layer === "foreground" ? Math.max(0, speed - 0.12) * 0.18 : 0;
+    const shimmer = 0.86 + Math.sin(elapsed * 1.7 + object.userData.phase) * 0.14;
+    setOrbitalOpacity(object, object.userData.baseOpacity * stageWeight * shimmer + foregroundLift);
+    object.visible = stageWeight > 0.08;
+  }
+}
 
 [
   [-7.4, -0.8, -5.2, 0.28, -12.0, "medium"],
@@ -1149,40 +1650,10 @@ createIntegratedAsteroid({
   normalMap: worldTextures.craterNormal,
 });
 
-const missionStartRouteY = state.worldOffset.y * 0.94;
-[
-  [-2.22, -0.38, -2.0, 0.20],
-  [-1.36, 0.36, -1.9, 0.20],
-  [-0.62, -0.10, -2.1, 0.19],
-].forEach(([x, y, z, radius], index) => {
-  const asteroid = createIntegratedAsteroid({
-    position: new THREE.Vector3(x, y, z),
-    radius,
-    routeY: missionStartRouteY + index * 0.36,
-    size: "small",
-    interactive: true,
-    missionRole: "small",
-    active: false,
-    map: asteroidTextureCycle[(index + 1) % asteroidTextureCycle.length],
-    normalMap: index === 1 ? worldTextures.craterNormal : null,
-  });
-  mission01.smallAsteroids.push(asteroid);
-});
-
-mission01.largeObstacle = createIntegratedAsteroid({
-  position: new THREE.Vector3(0.35, 0.92, -2.0),
-  radius: 0.50,
-  routeY: missionStartRouteY + 1.7,
-  objective: true,
-  size: "large",
-  interactive: true,
-  missionRole: "large",
-  active: false,
-  map: worldTextures.asteroidPlates,
-  normalMap: worldTextures.craterNormal,
-});
-mission01.largeObstacle.userData.maxHp = 2;
-mission01.largeObstacle.userData.hp = 2;
+createPlanetLayer();
+createDebrisField();
+createCrystalCluster();
+spawnStageTargets(initialStageIndex);
 
 for (let i = 0; i < 420; i += 1) {
   const star = new THREE.Sprite(
@@ -1688,6 +2159,7 @@ const robotShadow = makeMissionSprite(robotFxTextures.shadow, {
   blending: THREE.NormalBlending,
 });
 robotShadow.position.set(0.012, -0.065, -0.01);
+robotShadow.visible = false;
 robotGroup.add(robotShadow);
 
 const robotGlow = makeMissionSprite(robotFxTextures.glowCyan, { opacity: 0.34, renderOrder: 51 });
@@ -1699,6 +2171,47 @@ const robotSprite = makeMissionSprite(robotFxTextures.idle, {
   blending: THREE.NormalBlending,
 });
 robotGroup.add(robotSprite);
+
+const robotOrbitRing = new THREE.Mesh(
+  new THREE.TorusGeometry(0.104, 0.003, 8, 96),
+  new THREE.MeshBasicMaterial({
+    color: 0x65ecff,
+    transparent: true,
+    opacity: 0.32,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  })
+);
+robotOrbitRing.renderOrder = 51;
+robotOrbitRing.rotation.x = Math.PI * 0.46;
+robotGroup.add(robotOrbitRing);
+
+const robotParticleBases = Array.from({ length: 14 }, (_, index) => {
+  const angle = (index / 14) * Math.PI * 2;
+  const radius = 0.090 + random() * 0.044;
+  return new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0.004);
+});
+const robotParticleGeometry = new THREE.BufferGeometry();
+robotParticleGeometry.setAttribute(
+  "position",
+  new THREE.Float32BufferAttribute(robotParticleBases.flatMap((point) => [point.x, point.y, point.z]), 3)
+);
+const robotParticles = new THREE.Points(
+  robotParticleGeometry,
+  new THREE.PointsMaterial({
+    map: starTexture,
+    color: 0x7eeaff,
+    size: 0.018,
+    transparent: true,
+    opacity: 0.40,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  })
+);
+robotParticles.renderOrder = 51;
+robotGroup.add(robotParticles);
 
 function setSpriteAsset(sprite, asset) {
   sprite.material.map = asset.texture;
@@ -1721,6 +2234,8 @@ function positionHudSprites() {
   robotSprite.scale.set(robotSize, robotSize, 1);
   robotGlow.scale.set(robotSize * 1.72, robotSize * 1.72, 1);
   robotShadow.scale.set(robotSize * 1.18, robotSize * 0.62, 1);
+  robotOrbitRing.scale.setScalar(robotSize / 0.16);
+  robotParticles.scale.setScalar(robotSize / 0.16);
 }
 
 function updateRobotPanel() {
@@ -1731,7 +2246,7 @@ function updateRobotPanel() {
   robotStateLabel.textContent = `COMPANION / ${robotCompanion.state.toUpperCase()}`;
   robotMessage.textContent = robotCompanion.message;
   robotSmallCounter.textContent = `${robotCompanion.smallCurrent}/${mission01.smallRequired}`;
-  robotLargeCounter.textContent = `${robotCompanion.largeCurrent}/1`;
+  robotLargeCounter.textContent = `${robotCompanion.largeCurrent}/${mission01.largeRequired}`;
   robotRelicCounter.textContent = `${robotCompanion.relicCurrent}/1`;
 }
 
@@ -1752,7 +2267,7 @@ function setRobotCompanionState(stateName, message) {
 
 function syncRobotCompanion(missionState = mission01.state) {
   robotCompanion.smallCurrent = mission01.smallDestroyed;
-  robotCompanion.largeCurrent = mission01.largeObstacle?.userData.destroyed ? 1 : 0;
+  robotCompanion.largeCurrent = mission01.largeDestroyed;
   robotCompanion.relicCurrent = mission01.relicTouched ? 1 : 0;
 
   if (!mission01.started) {
@@ -1767,7 +2282,8 @@ function syncRobotCompanion(missionState = mission01.state) {
   }
 
   if (missionState === "large_obstacle") {
-    setRobotCompanionState("alert", "OBSTÁCULO MAYOR DETECTADO");
+    const remaining = Math.max(0, mission01.largeRequired - mission01.largeDestroyed);
+    setRobotCompanionState("alert", `FALTAN ${remaining} OBSTÁCULOS`);
     return;
   }
 
@@ -1800,21 +2316,42 @@ function updateRobotCompanion(delta, elapsed) {
   robotCompanion.pulse = Math.max(0, robotCompanion.pulse - delta * 2.4);
   const bob = Math.sin(elapsed * 2.2) * 0.014;
   const pulse = robotCompanion.pulse;
-  robotSprite.position.y = bob;
-  robotSprite.rotation.z = Math.sin(elapsed * 1.35) * 0.035;
+  const pointerDelta = input.aimPoint.clone().sub(new THREE.Vector2(robotGroup.position.x, robotGroup.position.y));
+  const pointerPull = THREE.MathUtils.clamp(1 - pointerDelta.length() / 0.48, 0, 1);
+  robotSprite.position.x = pointerDelta.x * 0.018 * pointerPull;
+  robotSprite.position.y = bob + pointerDelta.y * 0.014 * pointerPull;
+  robotSprite.rotation.z = Math.sin(elapsed * 1.35) * 0.035 + pointerDelta.x * 0.055 * pointerPull;
   robotSprite.material.opacity = 0.92 + Math.sin(elapsed * 2.8) * 0.04;
   robotGlow.position.y = bob * 0.55;
-  robotGlow.scale.multiplyScalar(1);
   robotGlow.material.opacity =
     robotCompanion.state === "alert"
       ? 0.38 + Math.sin(elapsed * 7.2) * 0.12 + pulse * 0.18
       : 0.26 + Math.sin(elapsed * 3.0) * 0.08 + pulse * 0.16;
   const baseScale = viewport.aspect < 0.75 ? 0.18 : 0.16;
   robotSprite.scale.setScalar(baseScale * (1 + pulse * 0.10));
+  robotOrbitRing.rotation.z = elapsed * (robotCompanion.state === "alert" ? -1.8 : -0.86);
+  robotOrbitRing.rotation.y = Math.sin(elapsed * 0.9) * 0.42;
+  robotOrbitRing.material.color.set(robotCompanion.state === "alert" ? 0xff62df : 0x65ecff);
+  robotOrbitRing.material.opacity = 0.22 + pulse * 0.18 + Math.sin(elapsed * 3.0) * 0.04;
+  robotParticles.material.color.set(robotCompanion.state === "stage_clear" ? 0xffffff : robotCompanion.state === "alert" ? 0xff70df : 0x7eeaff);
+  robotParticles.material.opacity = 0.26 + pulse * 0.28 + Math.sin(elapsed * 4.4) * 0.04;
+  const positions = robotParticleGeometry.attributes.position;
+  robotParticleBases.forEach((base, index) => {
+    const orbit = elapsed * (0.8 + index * 0.022) + index * 0.74;
+    const wobble = 1 + Math.sin(orbit * 1.7) * 0.12 + pulse * 0.22;
+    positions.setXYZ(
+      index,
+      base.x * wobble + Math.cos(orbit) * 0.010,
+      base.y * wobble + Math.sin(orbit * 0.82) * 0.010,
+      base.z
+    );
+  });
+  positions.needsUpdate = true;
 }
 
 function validTargetForMissionPhase(target) {
   if (!target?.userData?.missionRole || !mission01.started) return false;
+  if (target.userData.active === false || target.userData.destroyed) return false;
   if (target.userData.missionRole === "small") return mission01.state === "small_asteroids";
   if (target.userData.missionRole === "large") return mission01.state === "large_obstacle";
   return false;
@@ -1845,6 +2382,7 @@ function beginAimAssistTarget(target, clickPoint) {
   aimAssist.time = 0;
   aimAssist.fired = false;
   aimAssist.impacted = false;
+  aimAssist.recoil = 0;
   aimAssist.played = { click: true };
   aimReticle.visible = true;
   aimClickPulse.visible = true;
@@ -1870,6 +2408,7 @@ function beginAimAssistRelic(clickPoint) {
   aimAssist.time = 0;
   aimAssist.fired = false;
   aimAssist.impacted = false;
+  aimAssist.recoil = 0;
   aimAssist.played = { click: true };
   aimReticle.visible = true;
   aimClickPulse.visible = true;
@@ -1890,10 +2429,14 @@ function clearAimAssistSprites() {
   fireReleaseFlash.visible = false;
   aimAssist.active = false;
   aimAssist.target = null;
+  aimAssist.recoil = 0;
 }
 
 function updateAimAssist(delta, elapsed) {
-  if (!aimAssist.active) return;
+  if (!aimAssist.active) {
+    astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, 0, 0.12);
+    return;
+  }
   aimAssist.time += delta;
   const t = aimAssist.time;
   const progress = THREE.MathUtils.clamp(t / aimAssist.duration, 0, 1);
@@ -1903,6 +2446,27 @@ function updateAimAssist(delta, elapsed) {
       : aimAssist.firePoint.clone();
   aimAssist.firePoint.copy(targetPoint);
   const origin = aimAssist.shooter === "astronaut" ? astronautState.position : state.position;
+  const aimVector = targetPoint.clone().sub(origin);
+  const aimAngle = Math.atan2(aimVector.y, aimVector.x);
+  const aimDirection = aimVector.lengthSq() > 0.0001 ? aimVector.clone().normalize() : new THREE.Vector2(1, 0);
+  const orientationIn = THREE.MathUtils.smoothstep(t, 0.12, 0.32);
+  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, 0.60, 0.78);
+  const orientation = orientationIn * orientationOut;
+  const aimTilt = THREE.MathUtils.clamp(Math.sin(aimAngle) * 0.18 - Math.cos(aimAngle) * 0.05, -0.24, 0.24);
+  const recoilOffset = aimDirection.clone().multiplyScalar(-aimAssist.recoil);
+
+  if (aimAssist.shooter === "ship") {
+    shipGroup.rotation.z += aimTilt * orientation;
+    shipGroup.position.x += recoilOffset.x;
+    shipGroup.position.y += recoilOffset.y;
+  } else {
+    astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, aimTilt * 1.45 * orientation, 0.24);
+    if (astronautSprite) {
+      astronautSprite.position.x += recoilOffset.x;
+      astronautSprite.position.y += recoilOffset.y;
+    }
+  }
+  aimAssist.recoil = Math.max(0, aimAssist.recoil - delta * 0.42);
 
   if (!aimAssist.played.lock && t >= 0.04) {
     aimAssist.played.lock = true;
@@ -1932,7 +2496,7 @@ function updateAimAssist(delta, elapsed) {
 
   aimRotationStreaks.position.set(origin.x, origin.y, 0.17);
   aimRotationStreaks.scale.setScalar(0.42 + progress * 0.18);
-  aimRotationStreaks.material.rotation = elapsed * (aimAssist.shooter === "ship" ? -0.7 : 0.9);
+  aimRotationStreaks.material.rotation = aimAngle + elapsed * (aimAssist.shooter === "ship" ? -0.7 : 0.9);
   aimRotationStreaks.material.opacity = 0.30 * Math.sin(Math.PI * Math.min(1, progress));
 
   placeBeamSprite(aimGuideLine, origin, targetPoint);
@@ -1944,6 +2508,7 @@ function updateAimAssist(delta, elapsed) {
     fireReleaseFlash.position.set(origin.x, origin.y, 0.19);
     fireReleaseFlash.scale.setScalar(aimAssist.shooter === "ship" ? 0.28 : 0.18);
     fireReleaseFlash.material.opacity = 0.82;
+    aimAssist.recoil = aimAssist.shooter === "ship" ? 0.105 : 0.064;
     playMissionAudio("fire_release_snap");
     playMissionAudio(aimAssist.shooter === "ship" ? "ship_heavy_fire_cue" : "astronaut_tool_fire_cue");
     if (aimAssist.kind === "target" && aimAssist.target) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
@@ -1958,6 +2523,7 @@ function updateAimAssist(delta, elapsed) {
 
   if (!aimAssist.impacted && t >= aimAssist.impactTime) {
     aimAssist.impacted = true;
+    aimAssist.hitStop = Math.max(aimAssist.hitStop, 0.085);
     if (aimAssist.kind === "target" && aimAssist.target) damageTarget(aimAssist.target, aimAssist.shooter);
     if (aimAssist.kind === "relic") touchMissionRelic();
   }
@@ -2067,6 +2633,7 @@ function startStageTransition() {
     applied: false,
   };
   stageButton.disabled = true;
+  playShipOneShot("warp");
 }
 
 function finishStageTransition() {
@@ -2077,6 +2644,7 @@ function finishStageTransition() {
   transitionStreak.visible = false;
   stageButton.disabled = false;
   updateStageHud();
+  startMissionForStage(state.stageIndex);
 }
 
 function applyStage(stageIndex) {
@@ -2347,15 +2915,24 @@ function findInteractiveTarget(point) {
   let bestDistance = Infinity;
 
   for (const asteroid of integratedBackground.asteroids) {
-    if (!asteroid.userData.interactive || !asteroid.visible || asteroid.userData.destroyed) continue;
+    if (
+      !asteroid.userData.interactive ||
+      !asteroid.visible ||
+      asteroid.userData.active === false ||
+      asteroid.userData.destroyed ||
+      !validTargetForMissionPhase(asteroid)
+    ) {
+      continue;
+    }
     const screenPoint = backgroundObjectScreenPoint(asteroid, targetScreenPoint);
     asteroid.getWorldPosition(targetWorldPoint);
     const distanceToCamera = Math.max(3.5, backgroundCamera.position.distanceTo(targetWorldPoint));
-    const hitRadius = THREE.MathUtils.clamp((asteroid.userData.hitRadius / distanceToCamera) * 3.1, 0.055, 0.26);
+    const hitRadius = THREE.MathUtils.clamp((asteroid.userData.hitRadius / distanceToCamera) * 4.4, 0.090, 0.36);
+    const snapRadius = hitRadius + (asteroid.userData.missionRole === "large" ? 0.20 : 0.16);
     const distance = point.distanceTo(screenPoint);
     asteroid.userData.screenPoint = screenPoint.clone();
     asteroid.userData.screenHitRadius = hitRadius;
-    if (distance < hitRadius && distance < bestDistance) {
+    if (distance < snapRadius && distance < bestDistance) {
       best = asteroid;
       bestDistance = distance;
     }
@@ -2462,50 +3039,23 @@ function setMissionTargetsActive(targets, active) {
 
 function startMission01() {
   if (mission01.started) return;
-  hideMenu();
-  mission01.started = true;
-  mission01.state = "small_asteroids";
-  mission01.smallDestroyed = 0;
-  mission01.relicTouched = false;
-  mission01.unlockStarted = false;
-  mission01.relicState = "hidden";
-  mission01.revealTime = 0;
-  mission01.relicDestroyTime = 0;
-  relicGroup.visible = false;
-  energyBeam.visible = false;
-  unlockFlash.visible = false;
-  if (state.stageIndex !== 0) applyStage(0);
-  setMissionTargetsActive(mission01.smallAsteroids, true);
-  for (const target of mission01.smallAsteroids) {
-    target.userData.destroyed = false;
-    target.userData.destroyTime = 0;
-    target.userData.hp = target.userData.maxHp;
-  }
-  if (mission01.largeObstacle) {
-    mission01.largeObstacle.userData.active = false;
-    mission01.largeObstacle.userData.destroyed = false;
-    mission01.largeObstacle.userData.destroyTime = 0;
-    mission01.largeObstacle.userData.hp = mission01.largeObstacle.userData.maxHp;
-  }
-  updateMissionHud("MISSION START", "3 SEÑALES MENORES", "RUTA DESCONOCIDA");
-  playMissionAudio("mission_start");
-  syncRobotCompanion("small_asteroids");
-  enterAstronautMode();
+  startMissionForStage(state.stageIndex);
 }
 
 function completeSmallMissionTargets() {
   if (mission01.state !== "small_asteroids") return;
   mission01.state = "large_obstacle";
-  updateMissionHud("OBSTÁCULO DETECTADO", "NÚCLEO INESTABLE", "RUTA DESCONOCIDA");
+  const config = currentMissionConfig();
+  updateMissionHud("OBSTÁCULO DETECTADO", largeObjectiveLabel(mission01.largeRequired), config.subtitle);
   playMissionAudio("large_spawn");
   syncRobotCompanion("large_obstacle");
-  if (mission01.largeObstacle) {
-    mission01.largeObstacle.userData.active = true;
-    mission01.largeObstacle.userData.destroyed = false;
-    mission01.largeObstacle.userData.destroyTime = 0;
-    mission01.largeObstacle.userData.hitPulse = 1;
-    mission01.largeObstacle.visible = true;
-    const aura = mission01.largeObstacle.children.find((child) => child.userData.isObjectiveHalo);
+  for (const obstacle of mission01.largeObstacles) {
+    obstacle.userData.active = true;
+    obstacle.userData.destroyed = false;
+    obstacle.userData.destroyTime = 0;
+    obstacle.userData.hitPulse = 1;
+    obstacle.visible = true;
+    const aura = obstacle.children.find((child) => child.userData.isObjectiveHalo);
     if (aura) aura.material.map = missionFxTextures.largeSpawnAura;
   }
   enterShipMode();
@@ -2513,6 +3063,7 @@ function completeSmallMissionTargets() {
 
 function revealMissionRelic(sourceTarget) {
   if (mission01.state === "relic" || mission01.state === "unlocked") return;
+  const config = currentMissionConfig();
   mission01.state = "relic";
   mission01.relicState = "revealing";
   mission01.revealTime = 0;
@@ -2529,7 +3080,7 @@ function revealMissionRelic(sourceTarget) {
   relicRingB.material.opacity = 0;
   relicCore.material.opacity = 0;
   relicScanlines.material.opacity = 0;
-  updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", "RUTA DESCONOCIDA");
+  updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", config.subtitle);
   playMissionAudio("large_break");
   syncRobotCompanion("relic");
   window.setTimeout(() => {
@@ -2539,7 +3090,7 @@ function revealMissionRelic(sourceTarget) {
     playMissionAudio("relic_idle");
     enterAstronautMode();
     mission01.relicState = "collectible";
-    updateMissionHud("RELIQUIA ACTIVADA", "TOCÁ LA SEÑAL", "RUTA DESCONOCIDA");
+    updateMissionHud("RELIQUIA ACTIVADA", "TOCÁ LA SEÑAL", config.subtitle);
     syncRobotCompanion("relic");
   }, 520);
 }
@@ -2574,16 +3125,17 @@ function touchMissionRelic() {
 
   window.setTimeout(() => {
     playMissionAudio("stage_unlocked");
-    if (!state.transition && state.stageIndex === 0) startStageTransition();
+    if (!state.transition) startStageTransition();
   }, 760);
 }
 
 function handleMissionTargetDestroyed(target, shooter) {
   if (!target?.userData.missionRole) return;
+  const config = currentMissionConfig();
   if (target.userData.missionRole === "small") {
     playMissionAudio("small_break");
     mission01.smallDestroyed = Math.min(mission01.smallRequired, mission01.smallDestroyed + 1);
-    updateMissionHud("TOMA EL CONTROL", `${mission01.smallDestroyed}/${mission01.smallRequired} SEÑALES MENORES`, "RUTA DESCONOCIDA");
+    updateMissionHud("TOMA EL CONTROL", `${mission01.smallDestroyed}/${mission01.smallRequired} SEÑALES MENORES`, config.subtitle);
     playMissionAudio("robot_item_update");
     syncRobotCompanion("small_asteroids");
     if (mission01.smallDestroyed >= mission01.smallRequired) {
@@ -2592,9 +3144,17 @@ function handleMissionTargetDestroyed(target, shooter) {
   }
   if (target.userData.missionRole === "large") {
     playMissionAudio("large_break");
+    mission01.largeDestroyed = Math.min(mission01.largeRequired, mission01.largeDestroyed + 1);
+    updateMissionHud(
+      "NÚCLEO INESTABLE",
+      `${mission01.largeDestroyed}/${mission01.largeRequired} ${largeObjectiveNoun(mission01.largeRequired)}`,
+      config.subtitle
+    );
     playMissionAudio("robot_item_update");
     syncRobotCompanion("large_obstacle");
-    window.setTimeout(() => revealMissionRelic(target), 380);
+    if (mission01.largeDestroyed >= mission01.largeRequired) {
+      window.setTimeout(() => revealMissionRelic(target), 380);
+    }
   }
 }
 
@@ -3079,8 +3639,11 @@ function updateShipFx(elapsed, shipVelocity) {
 }
 
 function animate() {
-  const delta = Math.min(clock.getDelta(), 0.033);
+  const rawDelta = Math.min(clock.getDelta(), 0.033);
   const elapsed = clock.elapsedTime;
+  const hitStopped = aimAssist.hitStop > 0;
+  if (hitStopped) aimAssist.hitStop = Math.max(0, aimAssist.hitStop - rawDelta);
+  const delta = rawDelta * (hitStopped ? 0.04 : aimAssist.active ? 0.46 : 1);
 
   const keyX = keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
   const keyY = keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
@@ -3143,11 +3706,13 @@ function animate() {
   backgroundUniforms.uWorldOffset.value.copy(state.worldOffset);
 
   updateIntegratedBackground(delta, elapsed, shipVelocity);
+  updateOrbitalObjects(delta, elapsed, shipVelocity);
+  updateShipEngineAudio(shipVelocity, state.transition, rawDelta);
   updateShipFx(elapsed, shipVelocity);
   updateTransition(delta, elapsed);
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(delta);
-  updateAimAssist(delta, elapsed);
+  updateAimAssist(rawDelta, elapsed);
   updateMission01(delta, elapsed);
   updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
