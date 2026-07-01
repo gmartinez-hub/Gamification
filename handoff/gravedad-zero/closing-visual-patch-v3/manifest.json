@@ -1,0 +1,34 @@
+{
+  "name": "gravedad-zero-closing-visual-patch-v3",
+  "purpose": "close visual QA issues: 3D companion, zero-g aim orientation, visual hierarchy, HUD layout, asset usage",
+  "source_of_truth": "handoff/gravedad-zero/closing-visual-patch-v3/",
+  "read_order": [
+    "01_CODEX_PROMPT_CLOSING_PATCH.md",
+    "02_WHAT_WE_NEED.md",
+    "03_ASSET_INVENTORY_FOR_THREE.md",
+    "04_THREE_COMPANION_PRIMITIVE_SPEC.md",
+    "05_ZERO_G_AIM_ORIENTATION_SPEC.md",
+    "06_WORLD_VISUAL_HIERARCHY_SPEC.md",
+    "07_HUD_COPY_LAYOUT_SPEC.md",
+    "08_QA_CLOSING_VISUAL_PASS.md"
+  ],
+  "must_fix": [
+    "remove_companion_shadow_and_base",
+    "replace_sprite_robot_with_three_primitives",
+    "actor_rotates_to_aim_with_zero_g_inertia",
+    "reduce_visual_noise",
+    "create_clear_synthetic_landmarks",
+    "prevent_hud_text_truncation",
+    "use_existing_three_assets_intentionally",
+    "provide_qa_evidence"
+  ],
+  "automatic_failures": [
+    "visible_robot_shadow",
+    "visible_robot_floor_base",
+    "autoaim_without_actor_rotation",
+    "truncated_objective_text",
+    "old_wording_visible",
+    "world_more_noisy_than_before",
+    "new_nebula_overlays"
+  ]
+}

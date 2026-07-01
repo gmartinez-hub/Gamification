@@ -292,6 +292,45 @@ body {
   text-overflow: clip;
 }
 
+.mission-progress-stack {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  color: #ffffff;
+}
+
+.mission-counter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 25px;
+  border: 1px solid rgba(126, 234, 255, 0.18);
+  border-radius: 6px;
+  padding: 0 9px;
+  background: rgba(126, 234, 255, 0.055);
+}
+
+.mission-counter-row span,
+.mission-counter-row strong {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mission-counter-row span {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.mission-counter-row strong {
+  color: #ff72df;
+}
+
+.mission-progress-final .mission-counter-row strong {
+  color: #ffffff;
+}
+
 .gem-hud {
   display: inline-flex;
   align-items: center;

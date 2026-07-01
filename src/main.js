@@ -224,7 +224,6 @@ const robotFxTextures = {
   stage_clear: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_stage_clear.png"),
   glowCyan: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_glow_cyan.png"),
   glowMagenta: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_glow_magenta.png"),
-  shadow: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_shadow.png"),
 };
 
 const missionAudioItems = {
@@ -564,8 +563,44 @@ function updateMissionHud(status, progress = "", subtitle = "") {
   missionTitle.textContent = "GRAVEDAD ZERO";
   if (subtitle) missionSubtitle.textContent = subtitle;
   missionStatus.textContent = status;
-  missionProgress.textContent = progress;
+  renderMissionProgress(progress);
   updateGemHud();
+}
+
+function makeHudCounterRow(label, value) {
+  const row = document.createElement("div");
+  row.className = "mission-counter-row";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  valueEl.textContent = value;
+  row.append(labelEl, valueEl);
+  return row;
+}
+
+function renderMissionProgress(progress = "") {
+  missionProgress.replaceChildren();
+  missionProgress.classList.remove("mission-progress-stack", "mission-progress-final");
+
+  if (mission01.finalSignalAcquired || mission01.finalComplete) {
+    missionProgress.classList.add("mission-progress-stack", "mission-progress-final");
+    missionProgress.append(
+      makeHudCounterRow("RUTA", "ESTABILIZADA"),
+      makeHudCounterRow("ESTADO", mission01.finalComplete ? "MISSION COMPLETE" : "SEÑAL FINAL")
+    );
+    return;
+  }
+
+  if (mission01.started) {
+    missionProgress.classList.add("mission-progress-stack");
+    missionProgress.append(
+      makeHudCounterRow("FRAGMENTOS", `${mission01.smallDestroyed}/${mission01.smallRequired}`),
+      makeHudCounterRow("NÚCLEOS", `${mission01.largeDestroyed}/${mission01.largeRequired}`)
+    );
+    return;
+  }
+
+  missionProgress.textContent = progress;
 }
 
 function updateGemHud() {
@@ -1355,6 +1390,11 @@ const aimAssist = {
   fired: false,
   impacted: false,
   recoil: 0,
+  recoilRoll: 0,
+  orientationAngle: 0,
+  angularVelocity: 0,
+  targetRotation: 0,
+  baseDirection: "right",
   hitStop: 0,
   played: {},
 };
@@ -1922,9 +1962,9 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
   const tint = proceduralStageTint(stageAffinity);
   const radius =
     kind === "planet_far"
-      ? 1.7 + rand() * 2.2
+      ? 2.0 + rand() * 2.4
       : kind === "planet_mid"
-        ? 0.88 + rand() * 1.2
+        ? 1.05 + rand() * 1.25
         : kind === "moon" || kind === "tech_moon"
           ? 0.36 + rand() * 0.48
           : kind === "debris_cluster" || kind === "foreground_shards"
@@ -1932,7 +1972,11 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
             : 0.28 + rand() * 0.42;
   const naturalMap = proceduralBodyTextures.natural[Math.floor(rand() * proceduralBodyTextures.natural.length)];
   const syntheticMap = proceduralBodyTextures.synthetic[Math.floor(rand() * proceduralBodyTextures.synthetic.length)];
-  const opacity = kind === "planet_far" ? 0.28 + rand() * 0.18 : 0.46 + rand() * 0.34;
+  const decorative =
+    kind === "debris_cluster" ||
+    kind === "foreground_shards" ||
+    kind === "moon";
+  const opacity = kind === "planet_far" ? 0.24 + rand() * 0.16 : decorative ? 0.24 + rand() * 0.22 : 0.48 + rand() * 0.30;
 
   group.userData = {
     kind,
@@ -2054,7 +2098,7 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
     group.add(fragment);
     group.add(createLineCage(rand, radius * 1.5, tint));
   } else {
-    const count = kind === "debris_cluster" ? 5 + Math.floor(rand() * 5) : 3 + Math.floor(rand() * 4);
+    const count = kind === "debris_cluster" ? 2 + Math.floor(rand() * 3) : 1 + Math.floor(rand() * 2);
     for (let i = 0; i < count; i += 1) {
       const shardRadius = radius * (0.35 + rand() * 0.65);
       const shard = new THREE.Mesh(
@@ -2063,7 +2107,7 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
           map: i % 3 === 0 ? syntheticMap : naturalMap,
           color: i % 3 === 0 ? tint : 0xffffff,
           emissive: i % 3 === 0 ? tint : 0x071426,
-          opacity: kind === "foreground_shards" ? 0.58 : 0.42,
+          opacity: kind === "foreground_shards" ? 0.26 : 0.24,
           metalness: i % 3 === 0 ? 0.22 : 0.08,
         })
       );
@@ -2098,9 +2142,9 @@ function spawnChunkObjects(chunkX, chunkY) {
     "debris_cluster",
     "foreground_shards",
   ];
-  const planetCount = 1 + (rand() > 0.56 ? 1 : 0);
-  const syntheticCount = 2 + Math.floor(rand() * 4);
-  const debrisCount = 6 + Math.floor(rand() * 6);
+  const planetCount = rand() > 0.62 ? 1 : 0;
+  const syntheticCount = rand() > 0.78 ? 2 : rand() > 0.34 ? 1 : 0;
+  const debrisCount = 2 + Math.floor(rand() * 3);
   const selections = [];
   for (let i = 0; i < planetCount; i += 1) selections.push(bodyKinds[Math.floor(rand() * 3)]);
   for (let i = 0; i < syntheticCount; i += 1) selections.push(bodyKinds[3 + Math.floor(rand() * 6)]);
@@ -2184,10 +2228,16 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
     const finalBoost = mission01.finalStarted ? 0.22 : 0;
     const stageAffinity = object.userData.stageAffinity;
     const stageBlend = stageAffinity === 3 || stageAffinity === state.stageIndex ? 1 : 0.62;
+    const decorativeFade =
+      object.userData.kind === "debris_cluster" || object.userData.kind === "foreground_shards" ? 0.58 : 1;
     const pulse = 0.88 + Math.sin(elapsed * (object.userData.kind === "gravity_node" ? 2.6 : 1.2) + object.userData.phase) * 0.12;
     object.traverse((child) => {
       if (!child.material || child.userData.baseOpacity === undefined) return;
-      child.material.opacity = THREE.MathUtils.clamp(child.userData.baseOpacity * stageBlend * pulse + finalBoost, 0, 0.92);
+      child.material.opacity = THREE.MathUtils.clamp(
+        child.userData.baseOpacity * stageBlend * pulse * decorativeFade + finalBoost,
+        0,
+        0.92
+      );
     });
 
     const isSynthetic =
@@ -2933,67 +2983,163 @@ const robotGroup = new THREE.Group();
 robotGroup.renderOrder = 52;
 scene.add(robotGroup);
 
-const robotShadow = makeMissionSprite(robotFxTextures.shadow, {
-  opacity: 0.34,
-  renderOrder: 50,
-  blending: THREE.NormalBlending,
-});
-robotShadow.position.set(0.012, -0.065, -0.01);
-robotShadow.visible = false;
-robotGroup.add(robotShadow);
+const robotHudModel = new THREE.Group();
+robotGroup.add(robotHudModel);
 
-const robotGlow = makeMissionSprite(robotFxTextures.glowCyan, { opacity: 0.34, renderOrder: 51 });
-robotGroup.add(robotGlow);
-
-const robotSprite = makeMissionSprite(robotFxTextures.idle, {
-  opacity: 0.96,
-  renderOrder: 52,
-  blending: THREE.NormalBlending,
-});
-robotGroup.add(robotSprite);
-
-const robotOrbitRing = new THREE.Mesh(
-  new THREE.TorusGeometry(0.104, 0.003, 8, 96),
-  new THREE.MeshBasicMaterial({
-    color: 0x65ecff,
-    transparent: true,
-    opacity: 0.32,
-    blending: THREE.AdditiveBlending,
+function makeRobotMaterial({ color, emissive = 0x000000, emissiveIntensity = 0, roughness = 0.52, metalness = 0.04, opacity = 1 }) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    emissive,
+    emissiveIntensity,
+    roughness,
+    metalness,
+    transparent: opacity < 1,
+    opacity,
     depthWrite: false,
     depthTest: false,
-  })
-);
-robotOrbitRing.renderOrder = 51;
-robotOrbitRing.rotation.x = Math.PI * 0.46;
-robotOrbitRing.visible = false;
-robotGroup.add(robotOrbitRing);
+  });
+}
 
-const robotParticleBases = Array.from({ length: 14 }, (_, index) => {
-  const angle = (index / 14) * Math.PI * 2;
-  const radius = 0.090 + random() * 0.044;
-  return new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0.004);
+function makeRobotLine(points, color = 0x38215c, opacity = 0.86) {
+  const line = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(points),
+    new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+      depthTest: false,
+    })
+  );
+  line.renderOrder = 53;
+  return line;
+}
+
+const robotModelParts = {
+  accent: [],
+  body: [],
+  glow: [],
+};
+
+const robotBodyMaterial = makeRobotMaterial({
+  color: 0xf3f5ff,
+  emissive: 0x182540,
+  emissiveIntensity: 0.10,
+  roughness: 0.38,
 });
-const robotParticleGeometry = new THREE.BufferGeometry();
-robotParticleGeometry.setAttribute(
-  "position",
-  new THREE.Float32BufferAttribute(robotParticleBases.flatMap((point) => [point.x, point.y, point.z]), 3)
+const robotFaceMaterial = makeRobotMaterial({
+  color: 0xded9ff,
+  emissive: 0x3b2e74,
+  emissiveIntensity: 0.10,
+  roughness: 0.42,
+});
+const robotAccentMaterial = makeRobotMaterial({
+  color: 0x8065ff,
+  emissive: 0x6b42ff,
+  emissiveIntensity: 0.42,
+  roughness: 0.30,
+  metalness: 0.12,
+});
+const robotTipMaterial = makeRobotMaterial({
+  color: 0xffe9a6,
+  emissive: 0xffb95e,
+  emissiveIntensity: 0.72,
+  roughness: 0.34,
+});
+const robotGlowMaterial = new THREE.MeshBasicMaterial({
+  color: 0x74efff,
+  transparent: true,
+  opacity: 0.12,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  depthTest: false,
+});
+
+const robotBody = new THREE.Mesh(new THREE.SphereGeometry(0.080, 36, 24), robotBodyMaterial);
+robotBody.scale.set(1.05, 1.12, 0.86);
+robotBody.renderOrder = 52;
+robotHudModel.add(robotBody);
+robotModelParts.body.push(robotBody);
+
+const robotFace = new THREE.Mesh(new THREE.SphereGeometry(0.064, 32, 18), robotFaceMaterial);
+robotFace.position.set(0, 0.004, 0.038);
+robotFace.scale.set(1.08, 0.92, 0.30);
+robotFace.renderOrder = 53;
+robotHudModel.add(robotFace);
+robotModelParts.body.push(robotFace);
+
+const robotInnerGlow = new THREE.Mesh(new THREE.SphereGeometry(0.058, 28, 18), robotGlowMaterial);
+robotInnerGlow.position.set(0, 0.006, 0.022);
+robotInnerGlow.scale.set(1.05, 0.92, 0.24);
+robotInnerGlow.renderOrder = 52;
+robotHudModel.add(robotInnerGlow);
+robotModelParts.glow.push(robotInnerGlow);
+
+for (const x of [-0.030, 0.030]) {
+  const glasses = new THREE.Mesh(
+    new THREE.TorusGeometry(0.020, 0.0026, 8, 48),
+    robotAccentMaterial
+  );
+  glasses.position.set(x, 0.010, 0.071);
+  glasses.renderOrder = 54;
+  robotHudModel.add(glasses);
+  robotModelParts.accent.push(glasses);
+
+  const eye = makeRobotLine(
+    [
+      new THREE.Vector3(x - 0.010, 0.009, 0.075),
+      new THREE.Vector3(x - 0.004, 0.005, 0.076),
+      new THREE.Vector3(x + 0.004, 0.005, 0.076),
+      new THREE.Vector3(x + 0.010, 0.009, 0.075),
+    ],
+    0x4d357f,
+    0.90
+  );
+  robotHudModel.add(eye);
+}
+
+const bridge = makeRobotLine(
+  [new THREE.Vector3(-0.010, 0.010, 0.073), new THREE.Vector3(0.010, 0.010, 0.073)],
+  0x8065ff,
+  0.78
 );
-const robotParticles = new THREE.Points(
-  robotParticleGeometry,
-  new THREE.PointsMaterial({
-    map: starTexture,
-    color: 0x7eeaff,
-    size: 0.018,
-    transparent: true,
-    opacity: 0.40,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: false,
-  })
+robotHudModel.add(bridge);
+
+const mouth = makeRobotLine(
+  [
+    new THREE.Vector3(-0.014, -0.022, 0.073),
+    new THREE.Vector3(-0.004, -0.027, 0.075),
+    new THREE.Vector3(0.006, -0.026, 0.075),
+    new THREE.Vector3(0.016, -0.020, 0.073),
+  ],
+  0x4d357f,
+  0.72
 );
-robotParticles.renderOrder = 51;
-robotParticles.visible = false;
-robotGroup.add(robotParticles);
+robotHudModel.add(mouth);
+
+for (const side of [-1, 1]) {
+  const sideDot = new THREE.Mesh(new THREE.SphereGeometry(0.010, 16, 10), robotAccentMaterial);
+  sideDot.position.set(side * 0.072, -0.004, 0.010);
+  sideDot.renderOrder = 53;
+  robotHudModel.add(sideDot);
+  robotModelParts.accent.push(sideDot);
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.004, 0.062, 12), robotAccentMaterial);
+  stem.position.set(side * 0.045, 0.073, 0.002);
+  stem.rotation.z = side * -0.34;
+  stem.renderOrder = 52;
+  robotHudModel.add(stem);
+  robotModelParts.accent.push(stem);
+
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.010, 16, 10), robotTipMaterial);
+  tip.position.set(side * 0.056, 0.108, 0.002);
+  tip.renderOrder = 53;
+  robotHudModel.add(tip);
+}
+
+const robotHudLight = new THREE.PointLight(0x76edff, 0.62, 0.38);
+robotHudLight.position.set(0, 0.02, 0.10);
+robotHudModel.add(robotHudLight);
 
 function setSpriteAsset(sprite, asset) {
   sprite.material.map = asset.texture;
@@ -3013,11 +3159,7 @@ function positionHudSprites() {
   aimField.scale.set(Math.min(1.46, viewport.aspect * 1.04), Math.min(1.46, viewport.aspect * 1.04), 1);
   const robotSize = viewport.aspect < 0.75 ? 0.18 : 0.16;
   robotGroup.position.set(viewport.aspect - robotSize * 0.90 - 0.055, 0.77, 0.22);
-  robotSprite.scale.set(robotSize, robotSize, 1);
-  robotGlow.scale.set(robotSize * 1.12, robotSize * 1.12, 1);
-  robotShadow.scale.set(robotSize * 1.18, robotSize * 0.62, 1);
-  robotOrbitRing.visible = false;
-  robotParticles.visible = false;
+  robotHudModel.scale.setScalar(robotSize / 0.16);
 }
 
 function updateRobotPanel() {
@@ -3038,10 +3180,14 @@ function setRobotCompanionState(stateName, message) {
   robotCompanion.state = nextState;
   robotCompanion.message = message || robotCompanion.message;
   robotCompanion.pulse = changed ? 1 : Math.max(robotCompanion.pulse, 0.28);
-  robotSprite.material.map = robotFxTextures[nextState];
-  robotGlow.material.map = nextState === "alert" ? robotFxTextures.glowMagenta : robotFxTextures.glowCyan;
-  robotSprite.material.needsUpdate = true;
-  robotGlow.material.needsUpdate = true;
+  const accent = nextState === "alert" ? 0xff64de : nextState === "stage_clear" ? 0xffffff : 0x8065ff;
+  const glow = nextState === "alert" ? 0xff62df : nextState === "stage_clear" ? 0xffffff : 0x74efff;
+  for (const part of robotModelParts.accent) {
+    part.material.color.setHex(accent);
+    part.material.emissive?.setHex(accent);
+  }
+  robotGlowMaterial.color.setHex(glow);
+  robotHudLight.color.setHex(glow);
   if (changed && nextState === "alert") playMissionAudio("robot_alert_ping");
   if (changed && nextState === "stage_clear") playMissionAudio("robot_stage_clear");
   updateRobotPanel();
@@ -3105,19 +3251,21 @@ function updateRobotCompanion(delta, elapsed) {
   const pulse = robotCompanion.pulse;
   const pointerDelta = input.aimPoint.clone().sub(new THREE.Vector2(robotGroup.position.x, robotGroup.position.y));
   const pointerPull = THREE.MathUtils.clamp(1 - pointerDelta.length() / 0.48, 0, 1);
-  robotSprite.position.x = pointerDelta.x * 0.018 * pointerPull;
-  robotSprite.position.y = bob + pointerDelta.y * 0.014 * pointerPull;
-  robotSprite.rotation.z = Math.sin(elapsed * 1.35) * 0.035 + pointerDelta.x * 0.055 * pointerPull;
-  robotSprite.material.opacity = 0.92 + Math.sin(elapsed * 2.8) * 0.04;
-  robotGlow.position.y = bob * 0.55;
-  robotGlow.material.opacity =
+  robotHudModel.position.x = pointerDelta.x * 0.018 * pointerPull;
+  robotHudModel.position.y = bob + pointerDelta.y * 0.014 * pointerPull;
+  robotHudModel.rotation.x = pointerDelta.y * -0.22 * pointerPull + Math.sin(elapsed * 1.4) * 0.035;
+  robotHudModel.rotation.y = pointerDelta.x * 0.26 * pointerPull + Math.sin(elapsed * 1.1) * 0.030;
+  robotHudModel.rotation.z =
+    Math.sin(elapsed * 1.35) * 0.026 +
+    pointerDelta.x * 0.052 * pointerPull +
+    (robotCompanion.state === "alert" ? Math.sin(elapsed * 5.2) * 0.035 : 0);
+  robotGlowMaterial.opacity =
     robotCompanion.state === "alert"
       ? 0.16 + Math.sin(elapsed * 7.2) * 0.04 + pulse * 0.08
       : 0.10 + Math.sin(elapsed * 3.0) * 0.025 + pulse * 0.06;
   const baseScale = viewport.aspect < 0.75 ? 0.18 : 0.16;
-  robotSprite.scale.setScalar(baseScale * (1 + pulse * 0.10));
-  robotOrbitRing.visible = false;
-  robotParticles.visible = false;
+  robotHudModel.scale.setScalar((baseScale / 0.16) * (1 + pulse * 0.08));
+  robotHudLight.intensity = robotCompanion.state === "alert" ? 0.72 + pulse * 0.28 : 0.48 + pulse * 0.18;
 }
 
 function validTargetForMissionPhase(target) {
@@ -3154,6 +3302,11 @@ function beginAimAssistTarget(target, clickPoint) {
   aimAssist.fired = false;
   aimAssist.impacted = false;
   aimAssist.recoil = 0;
+  aimAssist.recoilRoll = 0;
+  aimAssist.orientationAngle = shooter === "astronaut" ? astronautGroup.rotation.z : shipGroup.rotation.z;
+  aimAssist.angularVelocity = 0;
+  aimAssist.targetRotation = aimAssist.orientationAngle;
+  aimAssist.baseDirection = "right";
   aimAssist.played = { click: true };
   aimReticle.visible = true;
   aimClickPulse.visible = true;
@@ -3180,6 +3333,11 @@ function beginAimAssistRelic(clickPoint) {
   aimAssist.fired = false;
   aimAssist.impacted = false;
   aimAssist.recoil = 0;
+  aimAssist.recoilRoll = 0;
+  aimAssist.orientationAngle = astronautGroup.rotation.z;
+  aimAssist.angularVelocity = 0;
+  aimAssist.targetRotation = aimAssist.orientationAngle;
+  aimAssist.baseDirection = "right";
   aimAssist.played = { click: true };
   aimReticle.visible = true;
   aimClickPulse.visible = true;
@@ -3201,12 +3359,15 @@ function clearAimAssistSprites() {
   aimAssist.active = false;
   aimAssist.target = null;
   aimAssist.recoil = 0;
+  aimAssist.recoilRoll = 0;
+  aimAssist.angularVelocity = 0;
 }
 
 function updateAimAssist(delta, elapsed) {
   if (!aimAssist.active) {
     astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, 0, 0.12);
     backgroundCamera.position.z = THREE.MathUtils.lerp(backgroundCamera.position.z, 9.6, 0.08);
+    backgroundCamera.rotation.z = THREE.MathUtils.lerp(backgroundCamera.rotation.z, 0, 0.10);
     return;
   }
   aimAssist.time += delta;
@@ -3221,27 +3382,41 @@ function updateAimAssist(delta, elapsed) {
   const aimVector = targetPoint.clone().sub(origin);
   const aimAngle = Math.atan2(aimVector.y, aimVector.x);
   const aimDirection = aimVector.lengthSq() > 0.0001 ? aimVector.clone().normalize() : new THREE.Vector2(1, 0);
-  const orientationIn = THREE.MathUtils.smoothstep(t, 0.12, 0.32);
-  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, 0.60, 0.78);
+  const baseDirection = directionFromAngle(aimAngle);
+  const baseAngle = directionAngles[baseDirection] ?? 0;
+  const desiredRotation = normalizeAngle(aimAngle - baseAngle);
+  const orientationIn = THREE.MathUtils.smoothstep(t, 0.10, 0.30);
+  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, 0.66, 0.88);
   const orientation = orientationIn * orientationOut;
-  const aimTilt = THREE.MathUtils.clamp(Math.sin(aimAngle) * 0.18 - Math.cos(aimAngle) * 0.05, -0.24, 0.24);
+  const angularDelta = shortestAngle(aimAssist.orientationAngle, desiredRotation);
+  aimAssist.angularVelocity += angularDelta * 24 * delta;
+  aimAssist.angularVelocity *= Math.pow(0.84, delta * 60);
+  aimAssist.angularVelocity = THREE.MathUtils.clamp(aimAssist.angularVelocity, -8.5, 8.5);
+  aimAssist.orientationAngle = normalizeAngle(aimAssist.orientationAngle + aimAssist.angularVelocity * delta);
+  aimAssist.targetRotation = desiredRotation;
+  aimAssist.baseDirection = baseDirection;
   const recoilOffset = aimDirection.clone().multiplyScalar(-aimAssist.recoil);
   const sideVector = new THREE.Vector2(-aimDirection.y, aimDirection.x);
+  const recoilRoll = THREE.MathUtils.clamp(-Math.sin(aimAngle) * aimAssist.recoil * 3.8, -0.18, 0.18);
+  aimAssist.recoilRoll = THREE.MathUtils.lerp(aimAssist.recoilRoll, recoilRoll, 0.34);
   backgroundCamera.position.z = THREE.MathUtils.lerp(backgroundCamera.position.z, 9.35 - orientation * 0.26, 0.22);
-  backgroundCamera.rotation.z += aimTilt * orientation * 0.020;
+  backgroundCamera.rotation.z = THREE.MathUtils.lerp(backgroundCamera.rotation.z, sideVector.x * orientation * 0.020, 0.18);
 
   if (aimAssist.shooter === "ship") {
-    shipGroup.rotation.z += aimTilt * orientation * 0.42;
+    setDirection(baseDirection);
+    shipGroup.rotation.z = aimAssist.orientationAngle + aimAssist.recoilRoll;
     shipGroup.position.x += recoilOffset.x;
     shipGroup.position.y += recoilOffset.y;
   } else {
-    astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, aimTilt * 1.45 * orientation, 0.24);
+    setAstronautViewFrame(astronautViewFromAimDirection(baseDirection));
+    astronautGroup.rotation.z = aimAssist.orientationAngle + aimAssist.recoilRoll;
     if (astronautSprite) {
       astronautSprite.position.x += recoilOffset.x + sideVector.x * 0.012 * orientation;
       astronautSprite.position.y += recoilOffset.y + sideVector.y * 0.012 * orientation;
     }
   }
   aimAssist.recoil = Math.max(0, aimAssist.recoil - delta * 0.42);
+  aimAssist.recoilRoll = THREE.MathUtils.lerp(aimAssist.recoilRoll, 0, 0.10);
 
   if (!aimAssist.played.lock && t >= 0.04) {
     aimAssist.played.lock = true;
@@ -3278,7 +3453,8 @@ function updateAimAssist(delta, elapsed) {
   placeBeamSprite(aimGuideLine, origin, targetPoint);
   aimGuideLine.material.opacity = 0.25 * (1 - THREE.MathUtils.smoothstep(progress, 0.60, 0.96));
 
-  if (!aimAssist.fired && t >= aimAssist.fireTime) {
+  const alignmentError = Math.abs(shortestAngle(aimAssist.orientationAngle, aimAssist.targetRotation));
+  if (!aimAssist.fired && t >= aimAssist.fireTime && (alignmentError < 0.18 || t >= aimAssist.fireTime + 0.16)) {
     aimAssist.fired = true;
     fireReleaseFlash.visible = true;
     fireReleaseFlash.position.set(origin.x, origin.y, 0.19);
@@ -3384,6 +3560,53 @@ function resolveDirection(x, y) {
   if (diagonal && y < 0 && x > 0) return "down_right";
   if (Math.abs(x) > Math.abs(y)) return x > 0 ? "right" : "left";
   return y > 0 ? "up" : "down";
+}
+
+const directionAngles = {
+  right: 0,
+  up_right: Math.PI * 0.25,
+  up: Math.PI * 0.5,
+  up_left: Math.PI * 0.75,
+  left: Math.PI,
+  down_left: -Math.PI * 0.75,
+  down: -Math.PI * 0.5,
+  down_right: -Math.PI * 0.25,
+};
+
+const aimDirectionOrder = ["right", "up_right", "up", "up_left", "left", "down_left", "down", "down_right"];
+
+function normalizeAngle(angle) {
+  return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+
+function shortestAngle(current, target) {
+  return normalizeAngle(target - current);
+}
+
+function directionFromAngle(angle) {
+  let best = "right";
+  let bestDelta = Infinity;
+  for (const direction of aimDirectionOrder) {
+    const delta = Math.abs(shortestAngle(directionAngles[direction], angle));
+    if (delta < bestDelta) {
+      best = direction;
+      bestDelta = delta;
+    }
+  }
+  return best;
+}
+
+function astronautViewFromAimDirection(direction) {
+  return {
+    up: "rear",
+    down: "front",
+    left: "side_left",
+    right: "side_right",
+    up_left: "rear_left",
+    up_right: "rear_right",
+    down_left: "front_left",
+    down_right: "front_right",
+  }[direction] || "front_right";
 }
 
 function updateStageHud() {
