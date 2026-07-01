@@ -1,0 +1,22 @@
+{
+  "version": "mission-01-vfx-v1",
+  "assets": {
+    "smallAsteroidHitFlash": "assets/vfx/asteroids/small_asteroid_hit_flash.png",
+    "smallAsteroidBreakAtlas": "assets/vfx/asteroids/small_asteroid_break_burst_atlas_4x4.png",
+    "largeObstacleSpawnAura": "assets/vfx/asteroids/large_obstacle_spawn_aura.png",
+    "largeObstacleCoreCracks": "assets/vfx/asteroids/large_obstacle_core_cracks_overlay.png",
+    "largeObstacleBreakAtlas": "assets/vfx/asteroids/large_obstacle_break_burst_atlas_4x4.png",
+    "relicCore": "assets/hologram/relic_hologram_alpha_cropped.png",
+    "relicRings": [
+      "assets/hologram/relic_orbit_ring_01.png",
+      "assets/hologram/relic_orbit_ring_02.png"
+    ],
+    "relicGlow": "assets/hologram/relic_aura_glow.png",
+    "relicParticles": "assets/hologram/relic_particles_atlas_4x4.png",
+    "relicScanlines": "assets/hologram/relic_scanlines_overlay.png",
+    "stageUnlockShockwaveAtlas": "assets/vfx/stage_unlock/stage_unlock_shockwave_atlas_4x4.png",
+    "stageUnlockFlash": "assets/vfx/stage_unlock/stage_unlock_flash_glow.png",
+    "energyTransferBeam": "assets/vfx/stage_unlock/energy_transfer_beam_vertical.png",
+    "hudMissionFrame": "assets/vfx/stage_unlock/hud_mission_frame_overlay.png"
+  }
+}

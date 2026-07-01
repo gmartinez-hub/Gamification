@@ -1,0 +1,61 @@
+{
+  "version": "mission-01-v1",
+  "name": "Gravedad Zero / Mission 01",
+  "goal": "complete_stage_1_unlock",
+  "narrative": {
+    "title": "GRAVEDAD ZERO",
+    "stageIntro": "RUTA DESCONOCIDA",
+    "primaryCTA": "TOMA EL CONTROL"
+  },
+  "rules": {
+    "stage": 1,
+    "smallAsteroidsRequired": 3,
+    "smallAsteroidsDestroyedBy": "astronaut",
+    "largeObstaclesRequired": 1,
+    "largeObstaclesDestroyedBy": "ship",
+    "unlockRelicCollectedBy": "astronaut_touch",
+    "shipUpgradeTarget": "stage_2_existing_mapping"
+  },
+  "sequence": [
+    {
+      "state": "boot",
+      "hud": "GRAVEDAD ZERO / TOMA EL CONTROL"
+    },
+    {
+      "state": "mission_start",
+      "hud": "MISSION START"
+    },
+    {
+      "state": "astronaut_phase",
+      "hud": "OBSTÁCULOS MENORES 0/3"
+    },
+    {
+      "state": "small_asteroids_complete",
+      "hud": "NÚCLEO INESTABLE"
+    },
+    {
+      "state": "large_obstacle_phase",
+      "hud": "OBSTÁCULO DETECTADO"
+    },
+    {
+      "state": "large_obstacle_destroyed",
+      "hud": "SEÑAL LIBERADA"
+    },
+    {
+      "state": "relic_reveal",
+      "hud": "RELIQUIA ACTIVADA"
+    },
+    {
+      "state": "relic_collectible",
+      "hud": "TOMA LA RELIQUIA"
+    },
+    {
+      "state": "stage_unlock",
+      "hud": "STAGE UNLOCKED"
+    },
+    {
+      "state": "ship_upgrade",
+      "hud": "NUEVA RUTA ABIERTA"
+    }
+  ]
+}

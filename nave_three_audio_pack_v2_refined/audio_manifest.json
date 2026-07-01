@@ -1,0 +1,108 @@
+{
+  "version": "nave_three_audio_pack_v2_refined",
+  "format": "wav",
+  "sampleRate": 44100,
+  "channels": 1,
+  "style": "original premium cinematic space-opera inspired, cleaned to reduce white-noise hiss",
+  "suggestedRepoPath": "assets/audio/",
+  "assets": [
+    {
+      "id": "ui_mission_click",
+      "file": "ui_mission_click_refined_01.wav",
+      "loop": false,
+      "volume": 0.42,
+      "use": "click corto de misión / claim"
+    },
+    {
+      "id": "ui_hover_sonar",
+      "file": "ui_hover_sonar_02.wav",
+      "loop": false,
+      "volume": 0.28,
+      "use": "hover/select sutil"
+    },
+    {
+      "id": "ui_mission_accept",
+      "file": "ui_mission_accept_refined_03.wav",
+      "loop": false,
+      "volume": 0.48,
+      "use": "misión aceptada / confirmación premium"
+    },
+    {
+      "id": "ship_module_attach",
+      "file": "ship_module_attach_refined_04.wav",
+      "loop": false,
+      "volume": 0.62,
+      "use": "pieza acopla / módulo instalado"
+    },
+    {
+      "id": "engine_idle",
+      "file": "engine_idle_clean_loop_05.wav",
+      "loop": true,
+      "volume": 0.16,
+      "use": "motor idle"
+    },
+    {
+      "id": "engine_move",
+      "file": "engine_move_clean_loop_06.wav",
+      "loop": true,
+      "volume": 0.24,
+      "use": "motor movimiento normal"
+    },
+    {
+      "id": "engine_boost",
+      "file": "engine_boost_clean_loop_07.wav",
+      "loop": true,
+      "volume": 0.34,
+      "use": "boost / despegue"
+    },
+    {
+      "id": "motion_liftoff",
+      "file": "motion_liftoff_ignition_08.wav",
+      "loop": false,
+      "volume": 0.58,
+      "use": "despegue / primera activación"
+    },
+    {
+      "id": "motion_speed_whoosh",
+      "file": "motion_speed_whoosh_refined_09.wav",
+      "loop": false,
+      "volume": 0.48,
+      "use": "entrada de velocidad / speed lines"
+    },
+    {
+      "id": "motion_warp_jump",
+      "file": "motion_warp_jump_refined_10.wav",
+      "loop": false,
+      "volume": 0.68,
+      "use": "warp / cambio de zona"
+    },
+    {
+      "id": "combat_shield_hit",
+      "file": "combat_shield_hit_refined_11.wav",
+      "loop": false,
+      "volume": 0.5,
+      "use": "shield hit / impacto"
+    },
+    {
+      "id": "combat_warning_laser_blip",
+      "file": "combat_warning_laser_blip_12.wav",
+      "loop": false,
+      "volume": 0.36,
+      "use": "warning / obstáculo / blip"
+    },
+    {
+      "id": "reward_unlock_sparkle",
+      "file": "reward_unlock_sparkle_refined_13.wav",
+      "loop": false,
+      "volume": 0.44,
+      "use": "recompensa / desbloqueo"
+    },
+    {
+      "id": "ambient_space_low",
+      "file": "ambient_space_low_loop_14.wav",
+      "loop": true,
+      "volume": 0.1,
+      "use": "cama ambiental muy baja"
+    }
+  ]
+}

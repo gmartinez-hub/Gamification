@@ -1,0 +1,63 @@
+{
+  "version": "hologram-relic-v1",
+  "artifact": {
+    "name": "Stage Relic Hologram",
+    "shape": "gem_hologram",
+    "tone": "sci_fi_elegant_space_relic",
+    "scaleRelativeToAstronaut": 1.5,
+    "colorMode": "same_color_all_stages",
+    "colors": [
+      "cyan",
+      "magenta",
+      "violet",
+      "white"
+    ],
+    "purpose": "unlock_next_ship_stage"
+  },
+  "states": [
+    "hidden_inside_large_obstacle",
+    "reveal",
+    "wow_expansion",
+    "idle_collectible",
+    "astronaut_touch",
+    "energy_transfer_to_ship",
+    "stage_unlock"
+  ],
+  "timingSeconds": {
+    "largeObstacleBreak": 0.8,
+    "relicReveal": 1.4,
+    "wowExpansion": 0.65,
+    "idleCollectible": "until astronaut reaches it",
+    "touchAbsorption": 0.8,
+    "stageTransition": 1.2
+  },
+  "motion": {
+    "idleFloatAmplitude": 0.12,
+    "idleRotationY": 0.45,
+    "ringRotationSpeeds": [
+      0.4,
+      -0.7,
+      1.1
+    ],
+    "flicker": "subtle irregular emissive intensity",
+    "wowScale": {
+      "from": 1.0,
+      "peak": 2.2,
+      "settle": 1.5
+    }
+  },
+  "assets": {
+    "coreSprite": "assets/hologram/relic_hologram_alpha_cropped.png",
+    "greenScreenReference": "assets/hologram/relic_hologram_greenscreen.png",
+    "rings": [
+      "assets/hologram/relic_orbit_ring_01.png",
+      "assets/hologram/relic_orbit_ring_02.png"
+    ],
+    "glow": "assets/hologram/relic_aura_glow.png",
+    "scanlines": "assets/hologram/relic_scanlines_overlay.png",
+    "particles": "assets/hologram/relic_particles_atlas_4x4.png",
+    "shockwave": "assets/vfx/stage_unlock_shockwave_ring.png",
+    "flash": "assets/vfx/stage_unlock_flash_glow.png",
+    "asteroidCracks": "assets/vfx/special_asteroid_core_cracks_overlay.png"
+  }
+}

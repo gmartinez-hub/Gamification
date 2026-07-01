@@ -1,0 +1,87 @@
+{
+  "version": "mission-01-audio-v1-clean",
+  "format": "wav",
+  "sampleRate": 44100,
+  "channels": 1,
+  "notes": "Sonidos limpios, sintéticos y tonales. Evitar ruido blanco/hiss fuerte.",
+  "assets": [
+    {
+      "id": "mission_start",
+      "file": "mission_start_arcade_01.wav",
+      "loop": false,
+      "volume": 0.46
+    },
+    {
+      "id": "astronaut_exit",
+      "file": "astronaut_exit_airlock_02.wav",
+      "loop": false,
+      "volume": 0.42
+    },
+    {
+      "id": "small_asteroid_hit",
+      "file": "small_asteroid_hit_03.wav",
+      "loop": false,
+      "volume": 0.3
+    },
+    {
+      "id": "small_asteroid_break",
+      "file": "small_asteroid_break_04.wav",
+      "loop": false,
+      "volume": 0.42
+    },
+    {
+      "id": "large_obstacle_spawn",
+      "file": "large_obstacle_spawn_05.wav",
+      "loop": false,
+      "volume": 0.48
+    },
+    {
+      "id": "large_obstacle_hit",
+      "file": "large_obstacle_hit_06.wav",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "id": "large_obstacle_break",
+      "file": "large_obstacle_break_07.wav",
+      "loop": false,
+      "volume": 0.68
+    },
+    {
+      "id": "relic_reveal",
+      "file": "relic_reveal_08.wav",
+      "loop": false,
+      "volume": 0.62
+    },
+    {
+      "id": "relic_expansion_burst",
+      "file": "relic_expansion_burst_09.wav",
+      "loop": false,
+      "volume": 0.7
+    },
+    {
+      "id": "relic_idle",
+      "file": "relic_idle_clean_loop_10.wav",
+      "loop": true,
+      "volume": 0.09
+    },
+    {
+      "id": "astronaut_touch_relic",
+      "file": "astronaut_touch_relic_11.wav",
+      "loop": false,
+      "volume": 0.52
+    },
+    {
+      "id": "energy_transfer_to_ship",
+      "file": "energy_transfer_to_ship_12.wav",
+      "loop": false,
+      "volume": 0.58
+    },
+    {
+      "id": "stage_unlocked",
+      "file": "stage_unlocked_arcade_13.wav",
+      "loop": false,
+      "volume": 0.64
+    }
+  ]
+}

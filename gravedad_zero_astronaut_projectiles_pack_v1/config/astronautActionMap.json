@@ -1,0 +1,42 @@
+{
+  "version": "astronaut-action-map-v1",
+  "actions": {
+    "idle_float": {
+      "currentAnimation": "idle_hover",
+      "finalAnimationNeeded": false
+    },
+    "move_float": {
+      "currentAnimation": "directional_static_views + procedural drift",
+      "optionalCurrentAnimation": "jetpack_boost left/right",
+      "finalAnimationNeeded": false
+    },
+    "tool_pulse": {
+      "currentPlaceholderAnimation": "wave",
+      "fx": [
+        "astronaut_tool_muzzle_flash",
+        "astronaut_tool_beam",
+        "astronaut_tool_impact"
+      ],
+      "finalAnimationNeeded": true,
+      "finalAnimationName": "tool_hit"
+    },
+    "touch_relic": {
+      "currentPlaceholderAnimation": "thumbs_up",
+      "fx": [
+        "generic_target_lock_glow",
+        "generic_energy_particles"
+      ],
+      "finalAnimationNeeded": true,
+      "finalAnimationName": "touch_relic"
+    },
+    "energy_absorb": {
+      "currentPlaceholderAnimation": "idle_hover",
+      "fx": [
+        "generic_energy_particles",
+        "energy_transfer_to_ship from Mission 01 pack"
+      ],
+      "finalAnimationNeeded": true,
+      "finalAnimationName": "energy_absorb"
+    }
+  }
+}

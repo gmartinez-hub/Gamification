@@ -1,0 +1,66 @@
+{
+  "version": "audio-event-map-v1",
+  "notes": "Mapear con sonidos limpios, sin white-noise/hiss fuerte. Usar Audio Pack v2 para base y generar v3 para relic unlock.",
+  "events": {
+    "boot_start": {
+      "sound": "ui_mission_click_refined_01.wav",
+      "volume": 0.42
+    },
+    "mission_start": {
+      "sound": "ui_mission_accept_refined_03.wav",
+      "volume": 0.48
+    },
+    "astronaut_exit": {
+      "sound": "ui_hover_sonar_02.wav",
+      "volume": 0.28
+    },
+    "small_asteroid_hit": {
+      "sound": "combat_warning_laser_blip_12.wav",
+      "volume": 0.25
+    },
+    "small_asteroid_break": {
+      "sound": "combat_shield_hit_refined_11.wav",
+      "volume": 0.35
+    },
+    "large_obstacle_spawn": {
+      "sound": "motion_liftoff_ignition_08.wav",
+      "volume": 0.42
+    },
+    "large_obstacle_hit": {
+      "sound": "combat_shield_hit_refined_11.wav",
+      "volume": 0.52
+    },
+    "large_obstacle_break": {
+      "sound": "motion_warp_jump_refined_10.wav",
+      "volume": 0.7
+    },
+    "relic_reveal": {
+      "sound": "motion_liftoff_ignition_08.wav",
+      "volume": 0.62
+    },
+    "relic_expansion_burst": {
+      "sound": "motion_warp_jump_refined_10.wav",
+      "volume": 0.76
+    },
+    "relic_idle_loop": {
+      "sound": "ambient_space_low_loop_14.wav",
+      "volume": 0.08
+    },
+    "astronaut_touch_relic": {
+      "sound": "reward_unlock_sparkle_refined_13.wav",
+      "volume": 0.5
+    },
+    "energy_transfer_to_ship": {
+      "sound": "motion_speed_whoosh_refined_09.wav",
+      "volume": 0.48
+    },
+    "ship_stage_upgrade": {
+      "sound": "ui_mission_accept_refined_03.wav",
+      "volume": 0.62
+    },
+    "stage_unlocked_arcade": {
+      "sound": "reward_unlock_sparkle_refined_13.wav",
+      "volume": 0.6
+    }
+  }
+}

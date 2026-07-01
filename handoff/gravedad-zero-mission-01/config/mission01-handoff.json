@@ -1,0 +1,65 @@
+{
+  "version": "gravedad-zero-mission-01-handoff-v1",
+  "name": "Gravedad Zero",
+  "mission": "Mission 01",
+  "rules": {
+    "stage": 1,
+    "smallAsteroidsRequired": 3,
+    "smallAsteroidsDestroyedBy": "astronaut",
+    "largeObstaclesRequired": 1,
+    "largeObstaclesDestroyedBy": "ship",
+    "relicScaleRelativeToAstronaut": 1.5,
+    "relicInteraction": "astronaut_touch",
+    "shipUpgrade": "advance_to_stage_2_existing_mapping"
+  },
+  "copy": {
+    "narrativeLanguage": "es",
+    "arcadeMicrocopyLanguage": "en",
+    "avoid": [
+      "comercio",
+      "ventas",
+      "cobros",
+      "facturación",
+      "cliente",
+      "negocio"
+    ],
+    "boot": [
+      "GRAVEDAD ZERO",
+      "RUTA DESCONOCIDA",
+      "TOMA EL CONTROL"
+    ],
+    "states": [
+      "MISSION START",
+      "OBSTÁCULOS MENORES {count}/3",
+      "NÚCLEO INESTABLE",
+      "OBSTÁCULO DETECTADO",
+      "SEÑAL LIBERADA",
+      "RELIQUIA ACTIVADA",
+      "STAGE UNLOCKED",
+      "NUEVA RUTA ABIERTA"
+    ]
+  },
+  "astronautDirectionMap": {
+    "idle": "front_right",
+    "up": "rear",
+    "down": "front",
+    "left": "side_left",
+    "right": "side_right",
+    "up_left": "rear_left",
+    "up_right": "rear_right",
+    "down_left": "front_left",
+    "down_right": "front_right"
+  },
+  "placeholderAnimations": {
+    "idle": "idle_hover",
+    "move": "directional_views + procedural drift",
+    "tool_pulse": "wave",
+    "touch_relic": "thumbs_up",
+    "energy_absorb": "idle_hover"
+  },
+  "futureAnimations": [
+    "astronaut_tool_hit",
+    "astronaut_touch_relic",
+    "astronaut_energy_absorb"
+  ]
+}

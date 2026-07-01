@@ -1,0 +1,38 @@
+// src/ui/MissionHudCopy.js
+// Copy/state map for the first mission HUD.
+
+export const missionHudStates = {
+  boot: {
+    title: "GRAVEDAD ZERO",
+    subtitle: "RUTA DESCONOCIDA",
+    cta: "TOMA EL CONTROL",
+  },
+  mission_start: {
+    micro: "MISSION START",
+    body: "El caos del espacio bloquea la ruta.",
+  },
+  astronaut_phase: {
+    micro: "SYSTEM ONLINE",
+    counter: "OBSTÁCULOS MENORES {count}/3",
+  },
+  small_asteroids_complete: {
+    micro: "BOOST READY",
+    body: "NÚCLEO INESTABLE",
+  },
+  large_obstacle_phase: {
+    body: "OBSTÁCULO DETECTADO",
+  },
+  large_obstacle_destroyed: {
+    body: "SEÑAL LIBERADA",
+  },
+  relic_reveal: {
+    body: "RELIQUIA ACTIVADA",
+  },
+  relic_collectible: {
+    body: "TOMA LA RELIQUIA",
+  },
+  stage_unlock: {
+    micro: "STAGE UNLOCKED",
+    body: "NUEVA RUTA ABIERTA",
+  },
+};

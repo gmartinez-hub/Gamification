@@ -1,0 +1,51 @@
+{
+  "version": "astronaut-2-5d-direction-map-v1",
+  "directions": {
+    "idle": {
+      "view": "front_right",
+      "animation": "idle_hover",
+      "notes": "Use current idle_hover animation."
+    },
+    "up": {
+      "view": "rear",
+      "animation": "jetpack_boost",
+      "fallback": "rear"
+    },
+    "down": {
+      "view": "front",
+      "animation": "jetpack_boost",
+      "fallback": "front"
+    },
+    "left": {
+      "view": "side_left",
+      "animation": "jetpack_boost",
+      "fallback": "side_left"
+    },
+    "right": {
+      "view": "side_right",
+      "animation": "jetpack_boost",
+      "fallback": "side_right"
+    },
+    "up_left": {
+      "view": "rear_left",
+      "animation": "jetpack_boost",
+      "fallback": "rear_left"
+    },
+    "up_right": {
+      "view": "rear_right",
+      "animation": "jetpack_boost",
+      "fallback": "rear_right"
+    },
+    "down_left": {
+      "view": "front_left",
+      "animation": "jetpack_boost",
+      "fallback": "front_left"
+    },
+    "down_right": {
+      "view": "front_right",
+      "animation": "jetpack_boost",
+      "fallback": "front_right"
+    }
+  },
+  "runtimeRecommendation": "For Mission 01 use existing static directional views while moving, with procedural bob/tilt and jetpack FX. Do not block the vertical slice waiting for 9 fully animated movement loops."
+}

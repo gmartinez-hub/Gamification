@@ -63,3 +63,77 @@ body {
   cursor: default;
   opacity: 0.58;
 }
+
+.mission-hud {
+  position: fixed;
+  left: 18px;
+  top: 18px;
+  z-index: 9;
+  width: min(280px, calc(100vw - 36px));
+  padding: 13px 14px 12px;
+  border: 1px solid rgba(68, 221, 255, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(7, 13, 31, 0.68), rgba(16, 8, 35, 0.52)),
+    rgba(4, 7, 18, 0.48);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(15px);
+  color: #f7f9ff;
+  font-family: Arial, Helvetica, sans-serif;
+  pointer-events: none;
+}
+
+.mission-title,
+.mission-subtitle,
+.mission-status,
+.mission-progress {
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mission-title {
+  color: #7eeaff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.mission-subtitle {
+  margin-top: 5px;
+  color: rgba(247, 249, 255, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mission-status {
+  margin-top: 12px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.mission-progress {
+  margin-top: 5px;
+  color: #ff72df;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+@media (max-width: 720px) {
+  .hud {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .mission-hud {
+    left: 14px;
+    top: 14px;
+    width: min(250px, calc(100vw - 28px));
+  }
+}

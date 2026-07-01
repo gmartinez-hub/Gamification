@@ -1,0 +1,47 @@
+{
+  "version": "projectile-vfx-v1",
+  "assets": {
+    "astronaut_tool_muzzle_flash": "assets/vfx/astronaut/astronaut_tool_muzzle_flash.png",
+    "astronaut_tool_beam": "assets/vfx/astronaut/astronaut_tool_beam.png",
+    "astronaut_tool_beam_atlas": "assets/vfx/astronaut/astronaut_tool_beam_atlas_4x4.png",
+    "astronaut_tool_impact_atlas": "assets/vfx/astronaut/astronaut_tool_impact_atlas_4x4.png",
+    "astronaut_tool_particles_atlas": "assets/vfx/astronaut/astronaut_tool_particles_atlas_4x4.png",
+    "ship_heavy_charge_atlas": "assets/vfx/ship/ship_heavy_charge_atlas_4x4.png",
+    "ship_heavy_projectile_core": "assets/vfx/ship/ship_heavy_projectile_core.png",
+    "ship_heavy_projectile_trail": "assets/vfx/ship/ship_heavy_projectile_trail.png",
+    "ship_heavy_impact_atlas": "assets/vfx/ship/ship_heavy_impact_atlas_4x4.png",
+    "generic_energy_hit_atlas": "assets/vfx/projectiles/generic_energy_hit_atlas_4x4.png",
+    "generic_energy_particles_atlas": "assets/vfx/projectiles/generic_energy_particles_atlas_4x4.png",
+    "generic_target_lock_glow": "assets/vfx/projectiles/generic_target_lock_glow.png"
+  },
+  "projectiles": {
+    "astronaut_tool_pulse": {
+      "owner": "astronaut",
+      "use": "break_small_asteroids",
+      "type": "short_beam",
+      "maxDistance": 0.55,
+      "durationSeconds": 0.18,
+      "damage": 1,
+      "vfx": [
+        "muzzle_flash",
+        "beam",
+        "impact_atlas",
+        "particles"
+      ]
+    },
+    "ship_heavy_shot": {
+      "owner": "ship",
+      "use": "break_large_obstacle",
+      "type": "charged_projectile",
+      "chargeSeconds": 0.35,
+      "travelSeconds": 0.32,
+      "damage": 3,
+      "vfx": [
+        "charge_atlas",
+        "projectile_core",
+        "trail",
+        "impact_atlas"
+      ]
+    }
+  }
+}
