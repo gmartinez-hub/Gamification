@@ -3,6 +3,7 @@ import * as THREE from "../vendor/three.module.js";
 const canvas = document.querySelector("#scene");
 const stageButton = document.querySelector("#stageButton");
 const stageLabel = document.querySelector("#stageLabel");
+const speedButton = document.querySelector("#speedButton");
 const missionTitle = document.querySelector("#missionTitle");
 const missionSubtitle = document.querySelector("#missionSubtitle");
 const missionStatus = document.querySelector("#missionStatus");
@@ -10,6 +11,9 @@ const missionProgress = document.querySelector("#missionProgress");
 const gemHud = document.querySelector("#gemHud");
 const robotPanel = document.querySelector("#robotPanel");
 const robotStateLabel = document.querySelector("#robotStateLabel");
+const robotGoal = document.querySelector("#robotGoal");
+const robotAction = document.querySelector("#robotAction");
+const robotTip = document.querySelector("#robotTip");
 const robotMessage = document.querySelector("#robotMessage");
 const robotSmallCounter = document.querySelector("#robotSmallCounter");
 const robotLargeCounter = document.querySelector("#robotLargeCounter");
@@ -73,6 +77,72 @@ const input = {
 
 const initialStageIndex = Math.max(0, Math.min(STAGES.length - 1, Number(params.get("stage") || 1) - 1));
 const initialDirection = input.debugDirection || "idle";
+
+const STAGE_TUNING = [
+  {
+    label: "Stage 1",
+    shipMaxSpeed: 1.00,
+    acceleration: 1.00,
+    worldMoveSpeed: 1.00,
+    parallaxSpeed: 1.00,
+    targetSpeed: 1.00,
+    debrisSpeed: 1.00,
+    spawnDensity: 1.00,
+    audioIntensity: 0.85,
+    speedLines: 0.75,
+  },
+  {
+    label: "Stage 2",
+    shipMaxSpeed: 1.12,
+    acceleration: 1.10,
+    worldMoveSpeed: 1.16,
+    parallaxSpeed: 1.14,
+    targetSpeed: 1.10,
+    debrisSpeed: 1.12,
+    spawnDensity: 1.06,
+    audioIntensity: 1.00,
+    speedLines: 1.00,
+  },
+  {
+    label: "Stage 3",
+    shipMaxSpeed: 1.26,
+    acceleration: 1.18,
+    worldMoveSpeed: 1.34,
+    parallaxSpeed: 1.30,
+    targetSpeed: 1.18,
+    debrisSpeed: 1.24,
+    spawnDensity: 1.10,
+    audioIntensity: 1.14,
+    speedLines: 1.28,
+  },
+  {
+    label: "Final",
+    shipMaxSpeed: 1.34,
+    acceleration: 1.22,
+    worldMoveSpeed: 1.46,
+    parallaxSpeed: 1.38,
+    targetSpeed: 1.10,
+    debrisSpeed: 1.20,
+    spawnDensity: 1.02,
+    audioIntensity: 1.22,
+    speedLines: 1.45,
+  },
+];
+
+const SPEED_MODES = [
+  { label: "x1", multiplier: 1.0, audio: 1.0, streaks: 1.0 },
+  { label: "x2", multiplier: 1.45, audio: 1.15, streaks: 1.25 },
+  { label: "x3", multiplier: 1.85, audio: 1.30, streaks: 1.55 },
+];
+
+const requestedSpeedMode = Math.max(0, Math.min(SPEED_MODES.length - 1, Number(params.get("speed") || 1) - 1));
+const speedState = {
+  modeIndex: requestedSpeedMode,
+  currentMultiplier: SPEED_MODES[requestedSpeedMode].multiplier,
+  visualMultiplier: SPEED_MODES[requestedSpeedMode].multiplier,
+  currentTuning: { ...STAGE_TUNING[initialStageIndex] },
+  notificationTime: 0,
+};
 
 const state = {
   stageIndex: initialStageIndex,
@@ -320,7 +390,7 @@ const missionAudioItems = {
     path: "nave_three_audio_pack_v2_refined/reward_unlock_sparkle_refined_13.wav",
     volume: 0.26,
   },
-  zero_g_orientation_spray: {
+  zero_g_rotate_whoosh: {
     path: "nave_three_audio_pack_v2_refined/motion_speed_whoosh_refined_09.wav",
     volume: 0.15,
   },
@@ -367,7 +437,7 @@ const audioEventMap = {
   stage_route_unlocked: "stage_route_unlocked",
   target_lock: "aim_lock_confirm",
   slow_motion_enter: "slow_motion_enter",
-  zero_g_orientation_spray: "zero_g_orientation_spray",
+  zero_g_rotate_whoosh: "zero_g_rotate_whoosh",
   micro_thruster_burst: "micro_thruster_burst",
   fire_release: "fire_release_snap",
   recoil_hit: "recoil_hit",
@@ -441,20 +511,20 @@ class ShipEngineAudio {
     return audio;
   }
 
-  update(shipVelocity, transition, delta) {
+  update(shipVelocity, transition, delta, intensity = 1) {
     if (!this.ready) return;
-    const speed = THREE.MathUtils.clamp(shipVelocity.length(), 0, 1);
-    const move = THREE.MathUtils.smoothstep(speed, 0.08, 0.58);
-    const boost = transition ? 1 : THREE.MathUtils.smoothstep(speed, 0.66, 1);
+    const speed = THREE.MathUtils.clamp(shipVelocity.length() * (0.84 + intensity * 0.22), 0, 1);
+    const move = THREE.MathUtils.smoothstep(speed, 0.07, 0.52);
+    const boost = transition ? 1 : THREE.MathUtils.smoothstep(speed + Math.max(0, intensity - 1) * 0.18, 0.58, 1);
 
-    this.fadeLoop("idle", this.loopItems.idle.volume * (0.88 - move * 0.42), delta);
-    this.fadeLoop("move", this.loopItems.move.volume * move * (1 - boost * 0.36), delta);
-    this.fadeLoop("boost", this.loopItems.boost.volume * boost, delta);
+    this.fadeLoop("idle", this.loopItems.idle.volume * (0.88 - move * 0.42) * Math.min(1.18, intensity), delta);
+    this.fadeLoop("move", this.loopItems.move.volume * move * (1 - boost * 0.30) * Math.min(1.30, intensity), delta);
+    this.fadeLoop("boost", this.loopItems.boost.volume * boost * Math.min(1.42, intensity), delta);
 
     this.speedCueCooldown = Math.max(0, this.speedCueCooldown - delta);
-    if (!transition && speed > 0.84 && this.speedCueCooldown <= 0) {
+    if (!transition && speed > 0.74 && this.speedCueCooldown <= 0) {
       this.playOneShot("speed");
-      this.speedCueCooldown = 1.4;
+      this.speedCueCooldown = THREE.MathUtils.clamp(1.8 - intensity * 0.44, 0.72, 1.4);
     }
 
     if (transition && !this.transitionWasActive) {
@@ -490,8 +560,26 @@ function playShipOneShot(id) {
   shipEngineAudio.playOneShot(id);
 }
 
+function fadeMissionLoop(id, targetVolume, delta) {
+  const loop = missionAudio.loops[id];
+  if (!loop) return;
+  loop.volume = THREE.MathUtils.lerp(loop.volume, THREE.MathUtils.clamp(targetVolume, 0, 0.12), 1 - Math.pow(0.001, delta));
+}
+
+function currentAudioIntensity() {
+  const mode = SPEED_MODES[speedState.modeIndex];
+  return speedState.currentTuning.audioIntensity * mode.audio * (0.92 + (speedState.currentMultiplier - 1) * 0.24);
+}
+
 function updateShipEngineAudio(shipVelocity, transition, delta) {
-  shipEngineAudio.update(shipVelocity, transition, delta);
+  const intensity = currentAudioIntensity();
+  shipEngineAudio.update(shipVelocity, transition, delta, intensity);
+  if (missionAudio.ready) {
+    playMissionAudio("long_travel_low_rumble");
+    const speedAmount = THREE.MathUtils.clamp(shipVelocity.length() * speedState.currentMultiplier, 0, 1);
+    const rumbleTarget = missionAudioItems.long_travel_low_rumble.volume * (0.42 + speedAmount * 0.58) * Math.min(1.55, intensity);
+    fadeMissionLoop("long_travel_low_rumble", rumbleTarget, delta);
+  }
 }
 
 function playMissionAudio(id) {
@@ -1384,9 +1472,9 @@ const aimAssist = {
   clickPoint: new THREE.Vector2(),
   firePoint: new THREE.Vector2(),
   time: 0,
-  duration: 0.90,
-  fireTime: 0.40,
-  impactTime: 0.60,
+  duration: 1.04,
+  fireTime: 0.54,
+  impactTime: 0.76,
   fired: false,
   impacted: false,
   recoil: 0,
@@ -1404,6 +1492,8 @@ const robotCompanion = {
   message: "RUMBO EN ESPERA",
   panelOpen: false,
   pulse: 0,
+  focus: null,
+  focusTimer: 0,
   lastMissionState: "boot",
   smallCurrent: 0,
   largeCurrent: 0,
@@ -1747,7 +1837,7 @@ function createPlanetLayer() {
 }
 
 function createDebrisField() {
-  for (let i = 0; i < 46; i += 1) {
+  for (let i = 0; i < 24; i += 1) {
     const stageBias = i % 3;
     createOrbitalObject({
       kind: "debris",
@@ -1755,7 +1845,7 @@ function createDebrisField() {
       routeY: WORLD_MIN_Y + random() * (WORLD_HEIGHT + 18),
       radius: 0.045 + random() * 0.16,
       map: asteroidTextureCycle[i % asteroidTextureCycle.length],
-      opacity: 0.20 + random() * 0.28,
+      opacity: 0.14 + random() * 0.20,
       parallax: 0.12 + random() * 0.18,
       stageWeights: [stageBias === 0 ? 1 : 0.62, stageBias === 1 ? 1 : 0.62, stageBias === 2 ? 1 : 0.62],
       spin: (random() > 0.5 ? 1 : -1) * (0.10 + random() * 0.34),
@@ -1809,15 +1899,58 @@ const assetUsageAudit = {
 const proceduralWorld = {
   group: new THREE.Group(),
   chunks: new Map(),
-  chunkSize: 64,
-  visibleRadius: 2,
-  releaseRadius: 3,
-  displayScale: 0.235,
+  chunkSize: 112,
+  visibleRadius: 3,
+  releaseRadius: 4,
+  displayScale: 0.12,
   objects: [],
   audioCooldown: 0,
 };
 const ProceduralWorld = proceduralWorld;
 backgroundScene.add(proceduralWorld.group);
+
+const REGION_CONFIGS = {
+  north: {
+    name: "NORTH_REGION",
+    accent: "#62edff",
+    planetFamilies: ["planet_ocean_large", "planet_gas_far", "moon", "mechanical_moon"],
+    syntheticFamilies: ["synthetic_core", "gravity_node", "orbital_station_body"],
+    density: 1.06,
+    debris: 0.72,
+  },
+  south: {
+    name: "SOUTH_REGION",
+    accent: "#8affc1",
+    planetFamilies: ["planet_dark_giant", "planet_ocean_large", "tech_moon", "asteroid_belt_patch"],
+    syntheticFamilies: ["broken_gate", "relic_fragment_cluster", "gravity_node"],
+    density: 0.96,
+    debris: 0.82,
+  },
+  east: {
+    name: "EAST_REGION",
+    accent: "#a36dff",
+    planetFamilies: ["planet_gas_far", "planet_dark_giant", "mechanical_moon", "tech_moon"],
+    syntheticFamilies: ["orbital_station_body", "synthetic_core", "broken_gate"],
+    density: 1.12,
+    debris: 0.66,
+  },
+  west: {
+    name: "WEST_REGION",
+    accent: "#ff5de1",
+    planetFamilies: ["planet_dark_giant", "planet_gas_far", "moon", "planet_ocean_large"],
+    syntheticFamilies: ["relic_fragment_cluster", "gravity_node", "synthetic_core"],
+    density: 1.08,
+    debris: 0.70,
+  },
+  final: {
+    name: "FINAL_REGION",
+    accent: "#ffffff",
+    planetFamilies: ["planet_ocean_large", "planet_dark_giant", "mechanical_moon"],
+    syntheticFamilies: ["gravity_node", "broken_gate", "orbital_station_body"],
+    density: 1.00,
+    debris: 0.58,
+  },
+};
 
 const proceduralBodyTextures = {
   natural: [
@@ -1862,6 +1995,12 @@ function currentChunkCoords() {
   };
 }
 
+function regionForChunk(chunkX, chunkY) {
+  if (mission01.finalStarted || mission01.finalComplete) return REGION_CONFIGS.final;
+  if (Math.abs(chunkY) >= Math.abs(chunkX)) return chunkY >= 0 ? REGION_CONFIGS.north : REGION_CONFIGS.south;
+  return chunkX >= 0 ? REGION_CONFIGS.east : REGION_CONFIGS.west;
+}
+
 function proceduralStageTint(stageAffinity) {
   if (mission01.finalStarted || stageAffinity === 3) return new THREE.Color("#ffffff");
   if (stageAffinity === 2) return new THREE.Color("#ff5de1");
@@ -1885,11 +2024,11 @@ function makeBodyMaterial({ map, color = 0xffffff, emissive = 0x061426, opacity 
 function createOrbitingShards(group, rand, radius, count, color) {
   for (let i = 0; i < count; i += 1) {
     const shard = new THREE.Mesh(
-      new THREE.TetrahedronGeometry(radius * (0.10 + rand() * 0.09), 0),
+      new THREE.IcosahedronGeometry(radius * (0.08 + rand() * 0.075), 1),
       new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.46 + rand() * 0.24,
+        opacity: 0.20 + rand() * 0.18,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       })
@@ -1903,7 +2042,7 @@ function createOrbitingShards(group, rand, radius, count, color) {
 }
 
 function createSyntheticPoints(rand, radius, color) {
-  const count = 18 + Math.floor(rand() * 16);
+  const count = 8 + Math.floor(rand() * 8);
   const points = [];
   for (let i = 0; i < count; i += 1) {
     const angle = rand() * Math.PI * 2;
@@ -1917,9 +2056,9 @@ function createSyntheticPoints(rand, radius, color) {
     new THREE.PointsMaterial({
       map: starTexture,
       color,
-      size: radius * 0.08,
+      size: radius * 0.060,
       transparent: true,
-      opacity: 0.36,
+      opacity: 0.22,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
@@ -1927,31 +2066,29 @@ function createSyntheticPoints(rand, radius, color) {
 }
 
 function createLineCage(rand, radius, color) {
-  const points = [];
-  const count = 6 + Math.floor(rand() * 4);
+  const group = new THREE.Group();
+  const count = 1 + Math.floor(rand() * 2);
   for (let i = 0; i < count; i += 1) {
-    const a = (i / count) * Math.PI * 2;
-    const b = ((i + 2) / count) * Math.PI * 2;
-    points.push(
-      new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius * 0.62, 0),
-      new THREE.Vector3(Math.cos(b) * radius * 0.82, Math.sin(b) * radius, radius * 0.18)
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(radius * (0.80 + i * 0.18), radius * 0.010, 8, 72),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.16 + i * 0.06,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
     );
+    ring.rotation.set(Math.PI * (0.34 + rand() * 0.18), rand() * Math.PI, rand() * Math.PI);
+    ring.userData.baseOpacity = ring.material.opacity;
+    group.add(ring);
   }
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  return new THREE.LineSegments(
-    geometry,
-    new THREE.LineBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.36,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    })
-  );
+  return group;
 }
 
 function createProceduralBody(kind, chunkX, chunkY, rand, index) {
   const chunkSize = proceduralWorld.chunkSize;
+  const region = regionForChunk(chunkX, chunkY);
   const base = new THREE.Vector3(
     chunkX * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
     chunkY * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
@@ -1959,27 +2096,43 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
   );
   const group = new THREE.Group();
   const stageAffinity = (Math.abs(chunkX) + Math.abs(chunkY) + index) % 4;
-  const tint = proceduralStageTint(stageAffinity);
+  const tint = new THREE.Color(region.accent).lerp(proceduralStageTint(stageAffinity), 0.28);
+  const largePlanet =
+    kind === "planet_far" ||
+    kind === "planet_ocean_large" ||
+    kind === "planet_dark_giant" ||
+    kind === "planet_gas_far";
+  const midPlanet = kind === "planet_mid";
+  const moonLike = kind === "moon" || kind === "tech_moon" || kind === "mechanical_moon";
   const radius =
-    kind === "planet_far"
-      ? 2.0 + rand() * 2.4
-      : kind === "planet_mid"
+    largePlanet
+      ? 2.15 + rand() * 2.65
+      : midPlanet
         ? 1.05 + rand() * 1.25
-        : kind === "moon" || kind === "tech_moon"
-          ? 0.36 + rand() * 0.48
-          : kind === "debris_cluster" || kind === "foreground_shards"
+        : moonLike
+          ? 0.46 + rand() * 0.62
+          : kind === "debris_cluster" || kind === "foreground_shards" || kind === "asteroid_belt_patch"
             ? 0.12 + rand() * 0.22
-            : 0.28 + rand() * 0.42;
-  const naturalMap = proceduralBodyTextures.natural[Math.floor(rand() * proceduralBodyTextures.natural.length)];
+            : 0.38 + rand() * 0.55;
+  const naturalMap =
+    kind === "planet_ocean_large"
+      ? (rand() > 0.5 ? worldTextures.oceanWorld : worldTextures.oceanColor)
+      : kind === "planet_dark_giant"
+        ? (rand() > 0.5 ? worldTextures.darkCrater : worldTextures.networkPlanet)
+        : kind === "planet_gas_far"
+          ? worldTextures.gasGiant
+          : proceduralBodyTextures.natural[Math.floor(rand() * proceduralBodyTextures.natural.length)];
   const syntheticMap = proceduralBodyTextures.synthetic[Math.floor(rand() * proceduralBodyTextures.synthetic.length)];
   const decorative =
     kind === "debris_cluster" ||
     kind === "foreground_shards" ||
-    kind === "moon";
-  const opacity = kind === "planet_far" ? 0.24 + rand() * 0.16 : decorative ? 0.24 + rand() * 0.22 : 0.48 + rand() * 0.30;
+    kind === "moon" ||
+    kind === "asteroid_belt_patch";
+  const opacity = largePlanet ? 0.28 + rand() * 0.18 : decorative ? 0.22 + rand() * 0.20 : 0.50 + rand() * 0.28;
 
   group.userData = {
     kind,
+    region: region.name,
     chunkKey: getChunkKey(chunkX, chunkY),
     base,
     radius,
@@ -1993,9 +2146,9 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
     spin: (rand() > 0.5 ? 1 : -1) * (0.08 + rand() * 0.22),
   };
 
-  if (kind === "planet_far" || kind === "planet_mid" || kind === "moon") {
+  if (largePlanet || midPlanet || kind === "moon") {
     const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, kind === "planet_far" ? 64 : 40, kind === "planet_far" ? 36 : 24),
+      new THREE.SphereGeometry(radius, largePlanet ? 72 : 44, largePlanet ? 42 : 26),
       makeBodyMaterial({
         map: naturalMap,
         color: 0xffffff,
@@ -2019,9 +2172,26 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
       );
       group.add(atmosphere);
     }
-  } else if (kind === "synthetic_core" || kind === "signal_body" || kind === "tech_moon") {
+    if (kind === "planet_ocean_large" || kind === "planet_gas_far") {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(radius * 1.18, radius * 0.012, 8, 96),
+        new THREE.MeshBasicMaterial({
+          color: tint,
+          transparent: true,
+          opacity: 0.12,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+      );
+      ring.rotation.x = Math.PI * (0.38 + rand() * 0.16);
+      ring.rotation.y = rand() * Math.PI;
+      group.add(ring);
+    }
+  } else if (kind === "synthetic_core" || kind === "signal_body" || kind === "tech_moon" || kind === "mechanical_moon" || kind === "orbital_station_body") {
     const core = new THREE.Mesh(
-      kind === "tech_moon" ? new THREE.SphereGeometry(radius, 36, 20) : new THREE.IcosahedronGeometry(radius, 2),
+      kind === "tech_moon" || kind === "mechanical_moon"
+        ? new THREE.SphereGeometry(radius, 38, 22)
+        : new THREE.IcosahedronGeometry(radius, kind === "orbital_station_body" ? 3 : 2),
       makeBodyMaterial({
         map: syntheticMap,
         color: 0xffffff,
@@ -2048,7 +2218,8 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
       ring.rotation.y = rand() * Math.PI;
       group.add(ring);
     }
-    createOrbitingShards(group, rand, radius, 3 + Math.floor(rand() * 4), tint);
+    if (kind === "orbital_station_body") createOrbitingShards(group, rand, radius, 2 + Math.floor(rand() * 3), tint);
+    else createOrbitingShards(group, rand, radius, 2 + Math.floor(rand() * 3), tint);
   } else if (kind === "gravity_node") {
     const node = new THREE.Mesh(
       new THREE.IcosahedronGeometry(radius, 1),
@@ -2084,7 +2255,7 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
       group.add(gate);
     }
     createOrbitingShards(group, rand, radius, 5, tint);
-  } else if (kind === "orbital_relic_fragment") {
+  } else if (kind === "orbital_relic_fragment" || kind === "relic_fragment_cluster") {
     const fragment = new THREE.Mesh(
       new THREE.TetrahedronGeometry(radius, 1),
       makeBodyMaterial({
@@ -2097,12 +2268,13 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
     );
     group.add(fragment);
     group.add(createLineCage(rand, radius * 1.5, tint));
+    createOrbitingShards(group, rand, radius, kind === "relic_fragment_cluster" ? 5 : 3, tint);
   } else {
-    const count = kind === "debris_cluster" ? 2 + Math.floor(rand() * 3) : 1 + Math.floor(rand() * 2);
+    const count = kind === "asteroid_belt_patch" ? 4 + Math.floor(rand() * 4) : kind === "debris_cluster" ? 2 + Math.floor(rand() * 3) : 1 + Math.floor(rand() * 2);
     for (let i = 0; i < count; i += 1) {
       const shardRadius = radius * (0.35 + rand() * 0.65);
       const shard = new THREE.Mesh(
-        i % 2 ? new THREE.TetrahedronGeometry(shardRadius, 0) : createIntegratedAsteroidGeometry(shardRadius),
+        createIntegratedAsteroidGeometry(shardRadius),
         makeBodyMaterial({
           map: i % 3 === 0 ? syntheticMap : naturalMap,
           color: i % 3 === 0 ? tint : 0xffffff,
@@ -2128,27 +2300,22 @@ function spawnChunkObjects(chunkX, chunkY) {
   const key = getChunkKey(chunkX, chunkY);
   if (proceduralWorld.chunks.has(key)) return proceduralWorld.chunks.get(key);
   const rand = seededRandom(chunkX, chunkY, state.stageIndex);
-  const chunk = { key, x: chunkX, y: chunkY, group: new THREE.Group(), objects: [] };
-  const bodyKinds = [
-    "planet_far",
-    "planet_mid",
-    "moon",
-    "synthetic_core",
-    "signal_body",
-    "orbital_relic_fragment",
-    "broken_gate",
-    "tech_moon",
-    "gravity_node",
-    "debris_cluster",
-    "foreground_shards",
-  ];
-  const planetCount = rand() > 0.62 ? 1 : 0;
-  const syntheticCount = rand() > 0.78 ? 2 : rand() > 0.34 ? 1 : 0;
-  const debrisCount = 2 + Math.floor(rand() * 3);
+  const region = regionForChunk(chunkX, chunkY);
+  const chunk = { key, x: chunkX, y: chunkY, region: region.name, group: new THREE.Group(), objects: [] };
+  const density = region.density * speedState.currentTuning.spawnDensity;
+  const planetCount = rand() > 0.72 ? 2 : 1;
+  const syntheticCount = rand() > 0.54 / density ? 2 : 1;
+  const debrisCount = Math.max(1, Math.round((1 + Math.floor(rand() * 3)) * region.debris));
   const selections = [];
-  for (let i = 0; i < planetCount; i += 1) selections.push(bodyKinds[Math.floor(rand() * 3)]);
-  for (let i = 0; i < syntheticCount; i += 1) selections.push(bodyKinds[3 + Math.floor(rand() * 6)]);
-  for (let i = 0; i < debrisCount; i += 1) selections.push(bodyKinds[9 + Math.floor(rand() * 2)]);
+  for (let i = 0; i < planetCount; i += 1) {
+    selections.push(region.planetFamilies[Math.floor(rand() * region.planetFamilies.length)]);
+  }
+  for (let i = 0; i < syntheticCount; i += 1) {
+    selections.push(region.syntheticFamilies[Math.floor(rand() * region.syntheticFamilies.length)]);
+  }
+  for (let i = 0; i < debrisCount; i += 1) {
+    selections.push(rand() > 0.72 ? "asteroid_belt_patch" : rand() > 0.52 ? "foreground_shards" : "debris_cluster");
+  }
 
   selections.forEach((kind, index) => {
     const body = createProceduralBody(kind, chunkX, chunkY, rand, index);
@@ -2463,12 +2630,12 @@ for (let i = 0; i < 420; i += 1) {
 const integratedStreakMaterial = new THREE.LineBasicMaterial({
   color: 0x4bdcff,
   transparent: true,
-  opacity: 0.018,
+  opacity: 0.006,
   blending: THREE.AdditiveBlending,
 });
-for (let i = 0; i < 26; i += 1) {
+for (let i = 0; i < 10; i += 1) {
   const geometry = new THREE.BufferGeometry();
-  const length = 0.46 + random() * 0.96;
+  const length = 0.22 + random() * 0.44;
   geometry.setAttribute("position", new THREE.Float32BufferAttribute([0, -length, 0, 0, length, 0], 3));
   const line = new THREE.Line(geometry, integratedStreakMaterial.clone());
   line.position.set((random() - 0.5) * 13, (random() - 0.5) * 9, -2 - random() * 12);
@@ -3000,10 +3167,11 @@ function makeRobotMaterial({ color, emissive = 0x000000, emissiveIntensity = 0, 
   });
 }
 
-function makeRobotLine(points, color = 0x38215c, opacity = 0.86) {
-  const line = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineBasicMaterial({
+function makeRobotTube(points, color = 0x38215c, opacity = 0.90, radius = 0.0028) {
+  const curve = new THREE.CatmullRomCurve3(points);
+  const mesh = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 18, radius, 8, false),
+    new THREE.MeshBasicMaterial({
       color,
       transparent: true,
       opacity,
@@ -3011,8 +3179,37 @@ function makeRobotLine(points, color = 0x38215c, opacity = 0.86) {
       depthTest: false,
     })
   );
-  line.renderOrder = 53;
-  return line;
+  mesh.renderOrder = 55;
+  return mesh;
+}
+
+function makeRobotArc(cx, cy, radius, color = 0x45206e, opacity = 0.94) {
+  const points = [];
+  for (let i = 0; i <= 12; i += 1) {
+    const a = Math.PI * (0.10 + (i / 12) * 0.80);
+    points.push(new THREE.Vector3(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius * 0.76, 0.086));
+  }
+  return makeRobotTube(points, color, opacity, 0.0032);
+}
+
+function makeRobotCapsule(length, radius, color, opacity = 1) {
+  const capsule = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, length, 14),
+    new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.20,
+      roughness: 0.42,
+      metalness: 0.06,
+      transparent: opacity < 1,
+      opacity,
+      depthWrite: false,
+      depthTest: false,
+    })
+  );
+  capsule.rotation.z = Math.PI * 0.5;
+  capsule.renderOrder = 55;
+  return capsule;
 }
 
 const robotModelParts = {
@@ -3028,9 +3225,9 @@ const robotBodyMaterial = makeRobotMaterial({
   roughness: 0.38,
 });
 const robotFaceMaterial = makeRobotMaterial({
-  color: 0xded9ff,
-  emissive: 0x3b2e74,
-  emissiveIntensity: 0.10,
+  color: 0xf8f5ff,
+  emissive: 0x7054bc,
+  emissiveIntensity: 0.12,
   roughness: 0.42,
 });
 const robotAccentMaterial = makeRobotMaterial({
@@ -3046,6 +3243,19 @@ const robotTipMaterial = makeRobotMaterial({
   emissiveIntensity: 0.72,
   roughness: 0.34,
 });
+const robotLensMaterial = makeRobotMaterial({
+  color: 0xf7efff,
+  emissive: 0xb18cff,
+  emissiveIntensity: 0.20,
+  roughness: 0.28,
+  opacity: 0.94,
+});
+const robotMouthMaterial = makeRobotMaterial({
+  color: 0x596174,
+  emissive: 0x161b2c,
+  emissiveIntensity: 0.16,
+  roughness: 0.34,
+});
 const robotGlowMaterial = new THREE.MeshBasicMaterial({
   color: 0x74efff,
   transparent: true,
@@ -3055,84 +3265,103 @@ const robotGlowMaterial = new THREE.MeshBasicMaterial({
   depthTest: false,
 });
 
-const robotBody = new THREE.Mesh(new THREE.SphereGeometry(0.080, 36, 24), robotBodyMaterial);
-robotBody.scale.set(1.05, 1.12, 0.86);
+const robotBody = new THREE.Mesh(new THREE.SphereGeometry(0.090, 48, 32), robotBodyMaterial);
+robotBody.scale.set(1.12, 1.03, 0.92);
 robotBody.renderOrder = 52;
 robotHudModel.add(robotBody);
 robotModelParts.body.push(robotBody);
 
-const robotFace = new THREE.Mesh(new THREE.SphereGeometry(0.064, 32, 18), robotFaceMaterial);
-robotFace.position.set(0, 0.004, 0.038);
-robotFace.scale.set(1.08, 0.92, 0.30);
+const robotFace = new THREE.Mesh(new THREE.SphereGeometry(0.072, 40, 24), robotFaceMaterial);
+robotFace.position.set(0, 0.003, 0.045);
+robotFace.scale.set(1.02, 0.86, 0.22);
 robotFace.renderOrder = 53;
 robotHudModel.add(robotFace);
 robotModelParts.body.push(robotFace);
 
-const robotInnerGlow = new THREE.Mesh(new THREE.SphereGeometry(0.058, 28, 18), robotGlowMaterial);
-robotInnerGlow.position.set(0, 0.006, 0.022);
-robotInnerGlow.scale.set(1.05, 0.92, 0.24);
+const robotInnerGlow = new THREE.Mesh(new THREE.SphereGeometry(0.060, 32, 20), robotGlowMaterial);
+robotInnerGlow.position.set(0, 0.006, 0.058);
+robotInnerGlow.scale.set(1.06, 0.86, 0.16);
 robotInnerGlow.renderOrder = 52;
 robotHudModel.add(robotInnerGlow);
 robotModelParts.glow.push(robotInnerGlow);
 
-for (const x of [-0.030, 0.030]) {
+for (const x of [-0.037, 0.037]) {
+  const lens = new THREE.Mesh(new THREE.SphereGeometry(0.031, 30, 16), robotLensMaterial);
+  lens.position.set(x, 0.002, 0.077);
+  lens.scale.set(1.02, 0.98, 0.16);
+  lens.renderOrder = 54;
+  robotHudModel.add(lens);
+
   const glasses = new THREE.Mesh(
-    new THREE.TorusGeometry(0.020, 0.0026, 8, 48),
+    new THREE.TorusGeometry(0.031, 0.0039, 10, 64),
     robotAccentMaterial
   );
-  glasses.position.set(x, 0.010, 0.071);
+  glasses.position.set(x, 0.002, 0.084);
   glasses.renderOrder = 54;
   robotHudModel.add(glasses);
   robotModelParts.accent.push(glasses);
 
-  const eye = makeRobotLine(
-    [
-      new THREE.Vector3(x - 0.010, 0.009, 0.075),
-      new THREE.Vector3(x - 0.004, 0.005, 0.076),
-      new THREE.Vector3(x + 0.004, 0.005, 0.076),
-      new THREE.Vector3(x + 0.010, 0.009, 0.075),
-    ],
-    0x4d357f,
-    0.90
+  const innerRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.025, 0.0015, 8, 56),
+    new THREE.MeshBasicMaterial({
+      color: 0x74efff,
+      transparent: true,
+      opacity: 0.42,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    })
   );
-  robotHudModel.add(eye);
+  innerRing.position.copy(glasses.position);
+  innerRing.renderOrder = 55;
+  robotHudModel.add(innerRing);
+  robotModelParts.glow.push(innerRing);
+
+  robotHudModel.add(makeRobotArc(x, -0.007, 0.014, 0x4c2378, 0.96));
 }
 
-const bridge = makeRobotLine(
-  [new THREE.Vector3(-0.010, 0.010, 0.073), new THREE.Vector3(0.010, 0.010, 0.073)],
-  0x8065ff,
-  0.78
-);
+const bridge = makeRobotCapsule(0.020, 0.0021, 0x8065ff, 0.92);
+bridge.position.set(0, 0.004, 0.084);
 robotHudModel.add(bridge);
+robotModelParts.accent.push(bridge);
 
-const mouth = makeRobotLine(
-  [
-    new THREE.Vector3(-0.014, -0.022, 0.073),
-    new THREE.Vector3(-0.004, -0.027, 0.075),
-    new THREE.Vector3(0.006, -0.026, 0.075),
-    new THREE.Vector3(0.016, -0.020, 0.073),
-  ],
-  0x4d357f,
-  0.72
-);
+const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.018, 20, 12), robotMouthMaterial);
+mouth.position.set(0, -0.039, 0.081);
+mouth.scale.set(1.24, 0.58, 0.16);
+mouth.renderOrder = 54;
 robotHudModel.add(mouth);
+for (let i = 0; i < 3; i += 1) {
+  const slat = makeRobotCapsule(0.022 - i * 0.003, 0.0015, 0x202639, 0.92);
+  slat.position.set(0, -0.034 - i * 0.006, 0.087);
+  robotHudModel.add(slat);
+}
 
 for (const side of [-1, 1]) {
-  const sideDot = new THREE.Mesh(new THREE.SphereGeometry(0.010, 16, 10), robotAccentMaterial);
-  sideDot.position.set(side * 0.072, -0.004, 0.010);
+  const sideDot = new THREE.Mesh(new THREE.SphereGeometry(0.0085, 18, 12), robotAccentMaterial);
+  sideDot.scale.set(0.82, 1.16, 0.70);
+  sideDot.position.set(side * 0.092, -0.006, 0.034);
   sideDot.renderOrder = 53;
   robotHudModel.add(sideDot);
   robotModelParts.accent.push(sideDot);
 
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.004, 0.062, 12), robotAccentMaterial);
-  stem.position.set(side * 0.045, 0.073, 0.002);
-  stem.rotation.z = side * -0.34;
+  const antennaBase = new THREE.Mesh(new THREE.SphereGeometry(0.014, 18, 10), robotAccentMaterial);
+  antennaBase.position.set(side * 0.054, 0.069, 0.016);
+  antennaBase.scale.set(1.20, 0.76, 0.72);
+  antennaBase.renderOrder = 53;
+  robotHudModel.add(antennaBase);
+  robotModelParts.accent.push(antennaBase);
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.005, 0.058, 14), robotAccentMaterial);
+  stem.position.set(side * 0.058, 0.096, 0.014);
+  stem.rotation.z = side * -0.42;
+  stem.rotation.x = side * 0.10;
   stem.renderOrder = 52;
   robotHudModel.add(stem);
   robotModelParts.accent.push(stem);
 
-  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.010, 16, 10), robotTipMaterial);
-  tip.position.set(side * 0.056, 0.108, 0.002);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.012, 18, 12), robotTipMaterial);
+  tip.position.set(side * 0.071, 0.123, 0.014);
+  tip.scale.set(1.04, 0.92, 0.92);
   tip.renderOrder = 53;
   robotHudModel.add(tip);
 }
@@ -3162,12 +3391,107 @@ function positionHudSprites() {
   robotHudModel.scale.setScalar(robotSize / 0.16);
 }
 
+function robotTutorialContent(missionState = mission01.state) {
+  if (robotCompanion.focus === "speed" && robotCompanion.focusTimer > 0) {
+    return {
+      label: "COMPANION / VELOCIDAD",
+      goal: `Velocidad ${SPEED_MODES[speedState.modeIndex].label} activa.`,
+      action: "Usá el control de velocidad para alternar crucero, impulso y warp corto.",
+      tip: "Más velocidad acelera el viaje, pero reduce margen de reacción.",
+    };
+  }
+
+  if (!mission01.started) {
+    return {
+      label: "COMPANION / SISTEMA ONLINE",
+      goal: "Iniciá la misión para recuperar las gemas de ruta.",
+      action: "Mové la nave con WASD o flechas.",
+      tip: "Clickeá objetivos marcados para activar autoaim.",
+    };
+  }
+
+  if (mission01.finalSignalAcquired || mission01.finalComplete) {
+    return {
+      label: "COMPANION / FINAL",
+      goal: "Gemas 3/3. Ruta estabilizada.",
+      action: mission01.finalComplete ? "Misión completa." : "Activá la señal final para estabilizar la ruta.",
+      tip: "La nave conserva el rumbo final; no vuelve al Sector 01.",
+    };
+  }
+
+  if (mission01.gems >= 3 || mission01.finalStarted) {
+    return {
+      label: "COMPANION / FINAL",
+      goal: "Gemas 3/3.",
+      action: "Activá la señal final para estabilizar la ruta.",
+      tip: "Usá velocidad x2 o x3 para acercarte a la zona final.",
+    };
+  }
+
+  if (missionState === "small_asteroids") {
+    return {
+      label: "COMPANION / FRAGMENTOS",
+      goal: `Recuperá ${mission01.smallRequired} fragmentos de señal.`,
+      action: "Usá el astronauta para destruir fragmentos pequeños.",
+      tip: "Clickeá cerca del fragmento: el autoaim corrige la orientación.",
+    };
+  }
+
+  if (missionState === "large_obstacle") {
+    return {
+      label: "COMPANION / NÚCLEOS",
+      goal: `Rompé ${mission01.largeRequired} núcleo${mission01.largeRequired === 1 ? "" : "s"} inestable${mission01.largeRequired === 1 ? "" : "s"}.`,
+      action: "Volvé a la nave y usá disparo pesado.",
+      tip: "Los núcleos necesitan más impacto.",
+    };
+  }
+
+  if (missionState === "relic") {
+    return {
+      label: "COMPANION / RELIQUIA",
+      goal: "Activá la reliquia liberada.",
+      action: "Acercate con el astronauta y tocá la señal.",
+      tip: "La reliquia queda visible hasta que el astronauta la active.",
+    };
+  }
+
+  if (missionState === "unlocked") {
+    return {
+      label: "COMPANION / RUMBO",
+      goal: "Nuevo sector detectado.",
+      action: "Seguí el indicador de rumbo hasta la próxima zona.",
+      tip: `Gemas ${mission01.gems}/3. Podés subir velocidad para viajar más rápido.`,
+    };
+  }
+
+  return {
+    label: "COMPANION / RUMBO",
+    goal: "Rumbo activo.",
+    action: "Explorá el espacio y seguí los marcadores de zona.",
+    tip: "El control de velocidad cambia el ritmo del viaje y el audio.",
+  };
+}
+
 function updateRobotPanel() {
-  if (!robotPanel || !robotStateLabel || !robotMessage || !robotSmallCounter || !robotLargeCounter || !robotRelicCounter) {
+  if (
+    !robotPanel ||
+    !robotStateLabel ||
+    !robotGoal ||
+    !robotAction ||
+    !robotTip ||
+    !robotMessage ||
+    !robotSmallCounter ||
+    !robotLargeCounter ||
+    !robotRelicCounter
+  ) {
     return;
   }
+  const tutorial = robotTutorialContent(robotCompanion.lastMissionState);
   robotPanel.hidden = !robotCompanion.panelOpen;
-  robotStateLabel.textContent = `COMPANION / ${robotCompanion.state.toUpperCase()}`;
+  robotStateLabel.textContent = tutorial.label;
+  robotGoal.textContent = tutorial.goal;
+  robotAction.textContent = tutorial.action;
+  robotTip.textContent = tutorial.tip;
   robotMessage.textContent = robotCompanion.message;
   robotSmallCounter.textContent = `${robotCompanion.smallCurrent}/${mission01.smallRequired}`;
   robotLargeCounter.textContent = `${robotCompanion.largeCurrent}/${mission01.largeRequired}`;
@@ -3194,6 +3518,11 @@ function setRobotCompanionState(stateName, message) {
 }
 
 function syncRobotCompanion(missionState = mission01.state) {
+  if (robotCompanion.lastMissionState !== missionState && robotCompanion.focus !== "speed") {
+    robotCompanion.focus = null;
+    robotCompanion.focusTimer = 0;
+  }
+  robotCompanion.lastMissionState = missionState;
   robotCompanion.smallCurrent = mission01.smallDestroyed;
   robotCompanion.largeCurrent = mission01.largeDestroyed;
   robotCompanion.relicCurrent = mission01.relicTouched ? 1 : 0;
@@ -3247,6 +3576,11 @@ function toggleRobotPanel() {
 
 function updateRobotCompanion(delta, elapsed) {
   robotCompanion.pulse = Math.max(0, robotCompanion.pulse - delta * 2.4);
+  if (robotCompanion.focusTimer > 0) {
+    robotCompanion.focusTimer = Math.max(0, robotCompanion.focusTimer - delta);
+    if (robotCompanion.focusTimer <= 0) robotCompanion.focus = null;
+    if (robotCompanion.panelOpen) updateRobotPanel();
+  }
   const bob = Math.sin(elapsed * 2.2) * 0.014;
   const pulse = robotCompanion.pulse;
   const pointerDelta = input.aimPoint.clone().sub(new THREE.Vector2(robotGroup.position.x, robotGroup.position.y));
@@ -3306,14 +3640,15 @@ function beginAimAssistTarget(target, clickPoint) {
   aimAssist.orientationAngle = shooter === "astronaut" ? astronautGroup.rotation.z : shipGroup.rotation.z;
   aimAssist.angularVelocity = 0;
   aimAssist.targetRotation = aimAssist.orientationAngle;
-  aimAssist.baseDirection = "right";
+  aimAssist.baseDirection = state.direction !== "idle" ? state.direction : "right";
   aimAssist.played = { click: true };
   aimReticle.visible = true;
   aimClickPulse.visible = true;
   aimVignette.visible = true;
   aimField.visible = true;
   aimRotationStreaks.visible = true;
-  aimGuideLine.visible = true;
+  aimGuideLine.visible = false;
+  aimGuideLine.material.opacity = 0;
   playMissionAudio("aim_click_ping");
 }
 
@@ -3344,7 +3679,8 @@ function beginAimAssistRelic(clickPoint) {
   aimVignette.visible = true;
   aimField.visible = true;
   aimRotationStreaks.visible = true;
-  aimGuideLine.visible = true;
+  aimGuideLine.visible = false;
+  aimGuideLine.material.opacity = 0;
   playMissionAudio("aim_click_ping");
 }
 
@@ -3382,16 +3718,17 @@ function updateAimAssist(delta, elapsed) {
   const aimVector = targetPoint.clone().sub(origin);
   const aimAngle = Math.atan2(aimVector.y, aimVector.x);
   const aimDirection = aimVector.lengthSq() > 0.0001 ? aimVector.clone().normalize() : new THREE.Vector2(1, 0);
-  const baseDirection = directionFromAngle(aimAngle);
+  const settledDirection = directionFromAngle(aimAngle);
+  const baseDirection = t < 0.24 ? aimAssist.baseDirection : settledDirection;
   const baseAngle = directionAngles[baseDirection] ?? 0;
   const desiredRotation = normalizeAngle(aimAngle - baseAngle);
   const orientationIn = THREE.MathUtils.smoothstep(t, 0.10, 0.30);
-  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, 0.66, 0.88);
+  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, 0.76, 0.98);
   const orientation = orientationIn * orientationOut;
   const angularDelta = shortestAngle(aimAssist.orientationAngle, desiredRotation);
-  aimAssist.angularVelocity += angularDelta * 24 * delta;
-  aimAssist.angularVelocity *= Math.pow(0.84, delta * 60);
-  aimAssist.angularVelocity = THREE.MathUtils.clamp(aimAssist.angularVelocity, -8.5, 8.5);
+  aimAssist.angularVelocity += angularDelta * 19.5 * delta;
+  aimAssist.angularVelocity *= Math.pow(0.85, delta * 60);
+  aimAssist.angularVelocity = THREE.MathUtils.clamp(aimAssist.angularVelocity, -6.6, 6.6);
   aimAssist.orientationAngle = normalizeAngle(aimAssist.orientationAngle + aimAssist.angularVelocity * delta);
   aimAssist.targetRotation = desiredRotation;
   aimAssist.baseDirection = baseDirection;
@@ -3428,8 +3765,8 @@ function updateAimAssist(delta, elapsed) {
   }
   if (!aimAssist.played.orient && t >= 0.12) {
     aimAssist.played.orient = true;
-    playAudioEvent("zero_g_orientation_spray");
-    spawnOrientationSpray(origin, aimDirection, aimAssist.shooter);
+    playAudioEvent("zero_g_rotate_whoosh");
+    spawnOrientationBurst(origin, aimDirection, aimAssist.shooter);
   }
 
   aimReticle.position.set(targetPoint.x, targetPoint.y, 0.18);
@@ -3446,12 +3783,12 @@ function updateAimAssist(delta, elapsed) {
   aimField.material.rotation = -elapsed * 0.16;
 
   aimRotationStreaks.position.set(origin.x, origin.y, 0.17);
-  aimRotationStreaks.scale.setScalar(0.42 + progress * 0.18);
+  aimRotationStreaks.scale.setScalar(0.28 + orientation * 0.20);
   aimRotationStreaks.material.rotation = aimAngle + elapsed * (aimAssist.shooter === "ship" ? -0.7 : 0.9);
-  aimRotationStreaks.material.opacity = 0.30 * Math.sin(Math.PI * Math.min(1, progress));
+  aimRotationStreaks.material.opacity = 0.18 * orientation;
 
-  placeBeamSprite(aimGuideLine, origin, targetPoint);
-  aimGuideLine.material.opacity = 0.25 * (1 - THREE.MathUtils.smoothstep(progress, 0.60, 0.96));
+  aimGuideLine.visible = false;
+  aimGuideLine.material.opacity = 0;
 
   const alignmentError = Math.abs(shortestAngle(aimAssist.orientationAngle, aimAssist.targetRotation));
   if (!aimAssist.fired && t >= aimAssist.fireTime && (alignmentError < 0.18 || t >= aimAssist.fireTime + 0.16)) {
@@ -3464,7 +3801,7 @@ function updateAimAssist(delta, elapsed) {
     playAudioEvent("fire_release");
     playAudioEvent("micro_thruster_burst");
     playMissionAudio(aimAssist.shooter === "ship" ? "ship_heavy_fire_cue" : "astronaut_tool_fire_cue");
-    spawnOrientationSpray(origin, aimDirection, aimAssist.shooter);
+    spawnOrientationBurst(origin, aimDirection, aimAssist.shooter);
     if (aimAssist.kind === "target" && aimAssist.target) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
     if (aimAssist.shooter === "astronaut") triggerAstronautAction();
   }
@@ -3607,6 +3944,57 @@ function astronautViewFromAimDirection(direction) {
     down_left: "front_left",
     down_right: "front_right",
   }[direction] || "front_right";
+}
+
+function targetStageTuning() {
+  if (mission01.finalStarted || mission01.finalComplete) return STAGE_TUNING[3];
+  return STAGE_TUNING[THREE.MathUtils.clamp(state.stageIndex, 0, STAGE_TUNING.length - 2)];
+}
+
+function updateSpeedButton() {
+  if (!speedButton) return;
+  const mode = SPEED_MODES[speedState.modeIndex];
+  speedButton.textContent = `VELOCIDAD ${mode.label}`;
+  speedButton.dataset.speed = String(speedState.modeIndex + 1);
+}
+
+function cycleSpeedMode() {
+  speedState.modeIndex = (speedState.modeIndex + 1) % SPEED_MODES.length;
+  speedState.notificationTime = 6;
+  robotCompanion.focus = "speed";
+  robotCompanion.focusTimer = 6;
+  robotCompanion.pulse = 1;
+  updateSpeedButton();
+  updateRobotPanel();
+  playAudioEvent("speed_whoosh");
+  playAudioEvent("route_detected_ping");
+}
+
+function updateSpeedState(delta) {
+  const target = targetStageTuning();
+  for (const key of Object.keys(target)) {
+    if (typeof target[key] !== "number") continue;
+    speedState.currentTuning[key] = THREE.MathUtils.lerp(
+      speedState.currentTuning[key] ?? target[key],
+      target[key],
+      1 - Math.pow(0.001, delta)
+    );
+  }
+  speedState.currentTuning.label = target.label;
+  const mode = SPEED_MODES[speedState.modeIndex];
+  const shiftBoost = input.keys.has("Shift") ? 1.14 : 1;
+  const targetMultiplier = mode.multiplier * shiftBoost;
+  speedState.currentMultiplier = THREE.MathUtils.lerp(
+    speedState.currentMultiplier,
+    targetMultiplier,
+    1 - Math.pow(0.001, delta)
+  );
+  speedState.visualMultiplier = THREE.MathUtils.lerp(
+    speedState.visualMultiplier,
+    mode.multiplier * mode.streaks * speedState.currentTuning.speedLines,
+    1 - Math.pow(0.002, delta)
+  );
+  speedState.notificationTime = Math.max(0, speedState.notificationTime - delta);
 }
 
 function updateStageHud() {
@@ -3895,7 +4283,7 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
       ((routeScroll + elapsed * (0.25 + speed * 1.25) * (0.9 + depth * 1.2)) % 11.5);
     if (line.position.y < -5.75) line.position.y += 11.5;
     line.scale.y = 0.48 + (speed + ascentEnergy) * (0.7 + depth * 1.3);
-    line.material.opacity = Math.max(0, (speed + ascentEnergy - 0.12) * (0.006 + depth * 0.016));
+    line.material.opacity = Math.max(0, (speed + ascentEnergy - 0.18) * (0.002 + depth * 0.006));
     line.material.color.lerpColors(
       premiumBgColor.cyan,
       premiumBgColor.magenta,
@@ -4013,33 +4401,33 @@ function spawnMuzzle(point, shooter) {
   activeImpacts.push(sprite);
 }
 
-function spawnOrientationSpray(origin, aimDirection, shooter) {
+function spawnOrientationBurst(origin, aimDirection, shooter) {
   const side = new THREE.Vector2(-aimDirection.y, aimDirection.x);
-  const frameSet = fxFrames.thruster.length ? fxFrames.thruster : fxFrames.speed;
-  const count = shooter === "ship" ? 7 : 5;
+  const frameSet = fxFrames.speed.length ? fxFrames.speed : fxFrames.thruster;
+  const count = shooter === "ship" ? 3 : 2;
   for (let i = 0; i < count; i += 1) {
     const frame = frameSet[i % frameSet.length];
     const sprite = makeSprite(frame, {
-      opacity: shooter === "ship" ? 0.36 : 0.30,
+      opacity: shooter === "ship" ? 0.18 : 0.14,
       blending: THREE.AdditiveBlending,
       renderOrder: 33,
       depthTest: false,
     });
-    const lateral = (i - (count - 1) * 0.5) * (shooter === "ship" ? 0.030 : 0.020);
-    const backward = aimDirection.clone().multiplyScalar(shooter === "ship" ? -0.14 : -0.08);
+    const lateral = (i - (count - 1) * 0.5) * (shooter === "ship" ? 0.018 : 0.012);
+    const backward = aimDirection.clone().multiplyScalar(shooter === "ship" ? -0.085 : -0.050);
     sprite.position.set(
       origin.x + side.x * lateral + backward.x,
       origin.y + side.y * lateral + backward.y,
       0.12
     );
-    sprite.material.rotation = Math.atan2(-aimDirection.y, -aimDirection.x) + (i % 2 ? 0.16 : -0.16);
-    scaleSprite(sprite, shooter === "ship" ? 0.16 + i * 0.010 : 0.10 + i * 0.006);
+    sprite.material.rotation = Math.atan2(-aimDirection.y, -aimDirection.x) + (i % 2 ? 0.08 : -0.08);
+    scaleSprite(sprite, shooter === "ship" ? 0.070 + i * 0.008 : 0.050 + i * 0.006);
     sprite.userData = {
       time: 0,
-      duration: shooter === "ship" ? 0.40 : 0.32,
-      spray: true,
+      duration: shooter === "ship" ? 0.18 : 0.14,
+      burst: true,
       strong: shooter === "ship",
-      drift: new THREE.Vector2(backward.x * 0.55 + side.x * lateral * 1.8, backward.y * 0.55 + side.y * lateral * 1.8),
+      drift: new THREE.Vector2(backward.x * 0.34 + side.x * lateral * 0.7, backward.y * 0.34 + side.y * lateral * 0.7),
       baseScale: sprite.scale.x,
       baseOpacity: sprite.material.opacity,
     };
@@ -4332,7 +4720,7 @@ function updateInteractionFx(delta) {
     const impact = activeImpacts[i];
     impact.userData.time += delta;
     const t = impact.userData.time / impact.userData.duration;
-    if (impact.userData.spray) {
+    if (impact.userData.burst) {
       impact.position.x += impact.userData.drift.x * delta;
       impact.position.y += impact.userData.drift.y * delta;
       impact.scale.setScalar(impact.userData.baseScale * (1 + t * (impact.userData.strong ? 1.8 : 1.25)));
@@ -4648,6 +5036,11 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
 window.addEventListener("keydown", (event) => {
   ensureMissionAudio();
   input.keys.add(event.key);
+  if (event.key === "v" || event.key === "V") {
+    event.preventDefault();
+    cycleSpeedMode();
+    return;
+  }
   if (event.key === "Escape") {
     event.preventDefault();
     if (gameMenu && !gameMenu.hidden) hideMenu();
@@ -4733,6 +5126,11 @@ stageButton.addEventListener("click", () => {
   else startStageTransition();
 });
 
+speedButton?.addEventListener("click", () => {
+  ensureMissionAudio();
+  cycleSpeedMode();
+});
+
 menuActions?.addEventListener("click", (event) => {
   const button = event.target?.closest?.("button[data-action]");
   if (!button) return;
@@ -4779,13 +5177,16 @@ function animateBackdrop(delta, elapsed, travelVelocity) {
     star.material.opacity = 0.08 + Math.sin(elapsed * 1.4 + depth * 12) * 0.025 + depth * 0.08;
   }
 
-  const speedAmount = Math.min(1, travelVelocity.length());
+  const speedAmount = Math.min(1.35, travelVelocity.length() * (0.82 + speedState.visualMultiplier * 0.12));
   for (const line of speedLines.children) {
     const size = line.userData.size;
     line.position.x = line.userData.x * viewport.aspect + input.smoothPointer.x * 0.012;
     line.position.y = line.userData.y;
-    line.scale.set(size * (1 + speedAmount * 0.32), size * 0.22, 1);
-    line.material.opacity = (0.025 + speedAmount * 0.08) * (0.8 + Math.sin(elapsed * 2 + size * 9) * 0.2);
+    line.scale.set(size * (1 + speedAmount * 0.58), size * 0.20, 1);
+    line.material.opacity =
+      (0.018 + speedAmount * 0.072) *
+      speedState.currentTuning.speedLines *
+      (0.8 + Math.sin(elapsed * 2 + size * 9) * 0.2);
   }
 
   for (const sprite of spaceObjects.children) {
@@ -4854,6 +5255,7 @@ function animate() {
   if (hitStopped) aimAssist.hitStop = Math.max(0, aimAssist.hitStop - rawDelta);
   const finalSlow = mission01.finalStarted && !mission01.finalComplete && mission01.finalTime < 2.4;
   const delta = rawDelta * (hitStopped ? 0.04 : aimAssist.active ? 0.40 : finalSlow ? 0.48 : 1);
+  updateSpeedState(rawDelta);
 
   const keyX = keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
   const keyY = keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
@@ -4861,21 +5263,25 @@ function animate() {
   if (targetVelocity.length() > 1) targetVelocity.normalize();
 
   input.smoothPointer.set(0, 0);
-  input.velocity.lerp(targetVelocity, 1 - Math.pow(0.004, delta));
+  input.velocity.lerp(targetVelocity, 1 - Math.pow(0.004, delta * speedState.currentTuning.acceleration));
 
   const shipVelocity = state.controlMode === "ship" ? input.velocity : new THREE.Vector2();
+  const travelVelocity = shipVelocity.clone().multiplyScalar(speedState.visualMultiplier);
 
   if (state.controlMode === "ship") {
     setDirection(input.debugDirection || resolveDirection(input.velocity.x, input.velocity.y));
 
-    const moveSpeed = state.transition ? 0.18 : 0.74;
+    const controlSpeed =
+      (state.transition ? 0.18 : 0.74) *
+      speedState.currentTuning.shipMaxSpeed *
+      (0.90 + (speedState.currentMultiplier - 1) * 0.18);
     state.position.x = THREE.MathUtils.clamp(
-      state.position.x + input.velocity.x * moveSpeed * delta,
+      state.position.x + input.velocity.x * controlSpeed * delta,
       -viewport.aspect + 0.42,
       viewport.aspect - 0.42
     );
     state.position.y = THREE.MathUtils.clamp(
-      state.position.y + input.velocity.y * moveSpeed * delta,
+      state.position.y + input.velocity.y * controlSpeed * delta,
       -0.64,
       0.64
     );
@@ -4886,7 +5292,10 @@ function animate() {
       ascentIntent,
       1 - Math.pow(0.006, delta)
     );
-    const worldMoveSpeed = state.transition ? 0.72 : 1.72;
+    const worldMoveSpeed =
+      (state.transition ? 0.72 : 1.72) *
+      speedState.currentTuning.worldMoveSpeed *
+      speedState.currentMultiplier;
     state.worldOffset.x += input.velocity.x * worldMoveSpeed * delta;
     state.worldOffset.y += input.velocity.y * worldMoveSpeed * 1.18 * delta;
     state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
@@ -4902,17 +5311,17 @@ function animate() {
 
   backgroundUniforms.uTime.value = elapsed;
   backgroundUniforms.uThrust.value =
-    shipVelocity.length() + (state.controlMode === "astronaut" ? input.velocity.length() * 0.22 : 0);
+    travelVelocity.length() + (state.controlMode === "astronaut" ? input.velocity.length() * 0.22 : 0);
   backgroundUniforms.uRouteProgress.value = state.routeProgress;
   backgroundUniforms.uPointer.value.copy(input.smoothPointer);
   backgroundUniforms.uWorldOffset.value.copy(state.worldOffset);
 
-  updateIntegratedBackground(delta, elapsed, shipVelocity);
-  updateChunkObjects(delta, elapsed, shipVelocity);
-  updateOrbitalObjects(delta, elapsed, shipVelocity);
+  updateIntegratedBackground(delta, elapsed, travelVelocity);
+  updateChunkObjects(delta, elapsed, travelVelocity);
+  updateOrbitalObjects(delta, elapsed, travelVelocity);
   updateMissionZones(delta, elapsed);
-  updateShipEngineAudio(shipVelocity, state.transition, rawDelta);
-  updateShipFx(elapsed, shipVelocity);
+  updateShipEngineAudio(travelVelocity, state.transition, rawDelta);
+  updateShipFx(elapsed, travelVelocity);
   updateTransition(delta, elapsed);
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(delta);
@@ -4930,8 +5339,13 @@ function animate() {
 }
 
 updateStageHud();
+updateSpeedButton();
 updateMissionHud("TOMA EL CONTROL", "CLICK O ENTER PARA INICIAR", "SECTOR INICIAL");
 syncRobotCompanion("boot");
+if (params.get("robotPanel") === "1") {
+  robotCompanion.panelOpen = true;
+  updateRobotPanel();
+}
 window.addEventListener("resize", resize);
 resize();
 showMenu("title_menu");
@@ -4941,5 +5355,22 @@ if (params.get("autoStage") === "1") {
 if (params.get("autoMission") === "1") {
   hideMenu();
   window.setTimeout(startMission01, 350);
+}
+if (params.get("autoAim")) {
+  hideMenu();
+  window.setTimeout(() => {
+    if (!mission01.started) startMission01();
+    const mode = params.get("autoAim");
+    if (mode === "ship") {
+      completeSmallMissionTargets();
+      window.setTimeout(() => {
+        const target = mission01.largeObstacles.find((obstacle) => obstacle.userData.active && !obstacle.userData.destroyed);
+        if (target) fireAtTarget(target);
+      }, 360);
+      return;
+    }
+    const target = mission01.smallAsteroids.find((asteroid) => asteroid.userData.active && !asteroid.userData.destroyed);
+    if (target) fireAtTarget(target);
+  }, 1150);
 }
 animate();

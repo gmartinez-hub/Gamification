@@ -18,10 +18,20 @@
     </div>
     <div class="hud" aria-label="Controles de stage">
       <div id="stageLabel" class="stage-label">Sector 1</div>
+      <button id="speedButton" class="speed-button" type="button">VELOCIDAD x1</button>
       <button id="stageButton" class="stage-button" type="button">Sector 1 -> Sector 2</button>
     </div>
     <div id="robotPanel" class="robot-panel" aria-label="Robot companion" hidden>
-      <div id="robotStateLabel" class="robot-state-label">COMPANION</div>
+      <div id="robotStateLabel" class="robot-state-label">COMPANION / SISTEMA ONLINE</div>
+      <div class="robot-tutorial-block">
+        <span>Objetivo actual</span>
+        <strong id="robotGoal">Iniciá la misión para recuperar las gemas de ruta.</strong>
+      </div>
+      <div class="robot-tutorial-block">
+        <span>Qué hacer</span>
+        <strong id="robotAction">Mové la nave con WASD o flechas.</strong>
+      </div>
+      <div id="robotTip" class="robot-tip">Clickeá objetivos marcados para activar autoaim.</div>
       <div id="robotMessage" class="robot-message">RUMBO EN ESPERA</div>
       <div class="robot-counters" aria-label="Objetivos pendientes">
         <div><span>FRAGMENTOS</span><strong id="robotSmallCounter">0/3</strong></div>
@@ -41,6 +51,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="./src/main.js?v=iteration-4-final-v2"></script>
+    <script type="module" src="./src/main.js?v=next-release-v1"></script>
   </body>
 </html>

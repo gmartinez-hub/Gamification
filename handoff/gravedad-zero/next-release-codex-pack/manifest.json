@@ -1,0 +1,49 @@
+{
+  "name": "gravedad-zero-next-release-codex-pack",
+  "purpose": "next release instructions for companion, tutorial, autoaim, speed progression, audio, larger procedural world, and asset usage",
+  "source_of_truth": "handoff/gravedad-zero/next-release-codex-pack/",
+  "visual_references": [
+    "01_companion_reference_correct.png",
+    "02_autoaim_concept_clean.png",
+    "03_world_scale_more_planets_concept.png",
+    "04_current_bad_line_artifacts.png",
+    "05_current_latest_gameplay_reference.png",
+    "06_current_latest_companion_closeup.png"
+  ],
+  "must_include": [
+    "companion_matches_reference_01",
+    "companion_tutorial_panel",
+    "autoaim_model_rotation",
+    "remove_bad_spray_and_line_artifacts",
+    "speed_button",
+    "stage_speed_progression",
+    "audio_music_speed_intensity",
+    "larger_procedural_world",
+    "three_minutes_per_direction",
+    "new_planets_and_synthetic_bodies",
+    "existing_assets_usage",
+    "qa_evidence"
+  ],
+  "automatic_failures": [
+    "companion_deformed_or_wrong_identity",
+    "robot_shadow_or_base",
+    "autoaim_without_model_rotation",
+    "bad_spray_still_visible",
+    "line_artifacts_like_reference_04",
+    "map_still_small",
+    "no_speed_control",
+    "no_stage_speed_progression",
+    "companion_no_tutorial",
+    "no_new_planets_or_bodies"
+  ],
+  "asset_packs_to_reference": [
+    "three_space_assets_bundle_v2.zip",
+    "three_space_assets_v1.zip",
+    "gravedad_zero_unlock_asset_pack_v1.zip",
+    "gravedad_zero_mission_01_completion_pack_v1.zip",
+    "gravedad_zero_astronaut_projectiles_pack_v1.zip",
+    "gravedad_zero_aim_assist_fx_contracts_pack_v1.zip",
+    "gravedad_zero_robot_companion_hud_pack_v1.zip",
+    "nave_three_audio_pack_v2_refined.zip"
+  ]
+}

@@ -27,7 +27,8 @@ body {
 }
 
 .stage-label,
-.stage-button {
+.stage-button,
+.speed-button {
   border: 1px solid rgba(118, 154, 255, 0.42);
   background: rgba(10, 15, 38, 0.66);
   box-shadow: 0 14px 36px rgba(7, 11, 32, 0.32);
@@ -44,7 +45,8 @@ body {
   text-align: center;
 }
 
-.stage-button {
+.stage-button,
+.speed-button {
   min-height: 38px;
   border-radius: 999px;
   padding: 0 15px;
@@ -54,9 +56,24 @@ body {
   pointer-events: auto;
 }
 
-.stage-button:hover {
+.stage-button:hover,
+.speed-button:hover {
   border-color: rgba(62, 217, 255, 0.66);
   background: rgba(21, 31, 70, 0.76);
+}
+
+.speed-button {
+  min-width: 118px;
+}
+
+.speed-button[data-speed="2"] {
+  border-color: rgba(255, 114, 223, 0.52);
+  background: rgba(36, 18, 62, 0.70);
+}
+
+.speed-button[data-speed="3"] {
+  border-color: rgba(255, 196, 112, 0.58);
+  background: rgba(56, 28, 24, 0.72);
 }
 
 .stage-button:disabled {
@@ -66,11 +83,11 @@ body {
 
 .robot-panel {
   position: fixed;
-  top: 108px;
+  top: 116px;
   right: 18px;
   z-index: 12;
-  width: min(254px, calc(100vw - 36px));
-  padding: 13px 14px 12px;
+  width: min(278px, calc(100vw - 36px));
+  padding: 13px 14px 13px;
   border: 1px solid rgba(86, 230, 255, 0.32);
   border-radius: 8px;
   background: rgba(3, 5, 12, 0.82);
@@ -92,10 +109,41 @@ body {
   line-height: 1;
 }
 
-.robot-message {
-  margin-top: 8px;
+.robot-tutorial-block {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.robot-tutorial-block span {
+  color: rgba(126, 234, 255, 0.72);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.robot-tutorial-block strong {
   color: #ffffff;
   font-size: 13px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.robot-tip {
+  margin-top: 10px;
+  border-left: 2px solid rgba(255, 114, 223, 0.60);
+  padding-left: 9px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.28;
+}
+
+.robot-message {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.25;
 }
@@ -103,7 +151,7 @@ body {
 .robot-counters {
   display: grid;
   gap: 7px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .robot-counters div {
@@ -351,6 +399,9 @@ body {
   .hud {
     right: 14px;
     bottom: 14px;
+    max-width: calc(100vw - 28px);
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .mission-hud {
@@ -362,7 +413,7 @@ body {
   .robot-panel {
     top: 92px;
     right: 14px;
-    width: min(230px, calc(100vw - 28px));
+    width: min(250px, calc(100vw - 28px));
   }
 
   .game-menu {
