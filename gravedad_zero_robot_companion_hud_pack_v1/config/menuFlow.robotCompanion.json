@@ -1,0 +1,44 @@
+{
+  "version": "menu-flow-with-robot-companion-v1",
+  "screens": {
+    "title_menu": {
+      "robotState": "idle",
+      "title": "GRAVEDAD ZERO",
+      "subtitle": "RUTA DESCONOCIDA",
+      "cta": [
+        "INICIAR MISIÓN",
+        "CONTROLES"
+      ]
+    },
+    "mission_briefing": {
+      "robotState": "ready",
+      "title": "MISSION 01",
+      "subtitle": "CAMPO INESTABLE",
+      "objectives": [
+        "3 ASTEROIDES CHICOS",
+        "1 OBSTÁCULO MAYOR",
+        "ACTIVA LA RELIQUIA"
+      ]
+    },
+    "stage_status": {
+      "robotState": "hint",
+      "title": "STAGE STATUS",
+      "currentStage": 1,
+      "items": [
+        "ASTRONAUTA",
+        "NAVE",
+        "RELIQUIA"
+      ]
+    },
+    "controls": {
+      "robotState": "idle",
+      "title": "CONTROLES",
+      "items": [
+        "MOUSE / AUTO TARGET",
+        "CLICK / DISPARO",
+        "SHIFT / SLOW MOTION",
+        "ESC / PAUSA"
+      ]
+    }
+  }
+}

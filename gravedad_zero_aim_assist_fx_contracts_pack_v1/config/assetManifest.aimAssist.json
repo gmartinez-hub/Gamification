@@ -1,0 +1,15 @@
+{
+  "version": "aim-assist-vfx-manifest-v1",
+  "assets": {
+    "targetLockReticle": "assets/vfx/aim_assist/target_lock_reticle.png",
+    "targetLockReticleAtlas": "assets/vfx/aim_assist/target_lock_reticle_atlas_4x4.png",
+    "aimTransitionRingAtlas": "assets/vfx/aim_assist/aim_transition_ring_atlas_4x4.png",
+    "clickPulseAtlas": "assets/vfx/aim_assist/click_pulse_atlas_4x4.png",
+    "slowMotionVignette": "assets/vfx/aim_assist/slow_motion_vignette_overlay.png",
+    "zeroGRotationStreaks": "assets/vfx/aim_assist/zero_g_rotation_streaks_overlay.png",
+    "aimAssistLine": "assets/vfx/aim_assist/aim_assist_line.png",
+    "focusWarpAtlas": "assets/vfx/aim_assist/focus_warp_atlas_4x4.png",
+    "timeDilationField": "assets/vfx/aim_assist/time_dilation_field.png",
+    "fireReleaseFlash": "assets/vfx/projectiles/fire_release_flash.png"
+  }
+}

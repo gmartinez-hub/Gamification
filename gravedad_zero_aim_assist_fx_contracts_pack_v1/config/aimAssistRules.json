@@ -1,0 +1,73 @@
+{
+  "version": "aim-assist-slow-motion-v1",
+  "interactionModel": "mouse_auto_target",
+  "recommendation": "Auto-target con mouse + slow motion + orientación en cero gravedad. No producir 9 filas completas de shoot hasta validar QA visual.",
+  "validTargetsByPhase": {
+    "astronaut_phase": [
+      "small_asteroid"
+    ],
+    "large_obstacle_phase": [
+      "large_obstacle"
+    ],
+    "relic_phase": [
+      "relic"
+    ]
+  },
+  "timing": {
+    "timeScaleDuringAim": 0.38,
+    "aimEnterDuration": 0.18,
+    "orientDuration": 0.24,
+    "fireCueTime": 0.32,
+    "impactCueTime": 0.48,
+    "exitDuration": 0.22,
+    "maxTotalDuration": 0.78
+  },
+  "sequence": [
+    {
+      "t": 0,
+      "event": "pointer_click_target",
+      "visual": "click_pulse",
+      "audio": "aim_click_ping"
+    },
+    {
+      "t": 0.04,
+      "event": "target_acquired",
+      "visual": "target_lock_reticle",
+      "audio": "aim_lock_confirm"
+    },
+    {
+      "t": 0.08,
+      "event": "enter_slow_motion",
+      "visual": "slow_motion_vignette + time_dilation_field",
+      "audio": "slow_motion_enter"
+    },
+    {
+      "t": 0.12,
+      "event": "zero_g_orient_to_target",
+      "visual": "zero_g_rotation_streaks",
+      "audio": "zero_g_rotate_whoosh"
+    },
+    {
+      "t": 0.32,
+      "event": "fire_release",
+      "visual": "fire_release_flash + projectile",
+      "audio": "fire_release_snap"
+    },
+    {
+      "t": 0.48,
+      "event": "impact",
+      "visual": "impact atlas",
+      "audio": "mission impact sound"
+    },
+    {
+      "t": 0.6,
+      "event": "exit_slow_motion",
+      "visual": "focus warp out",
+      "audio": "slow_motion_exit_snap"
+    }
+  ],
+  "fallback": {
+    "ifNoValidTarget": "invalid_target_blip + subtle pulse, no slow motion",
+    "ifTargetOutOfRange": "move actor toward target or no-fire feedback"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "version": "robot-companion-states-v1",
+  "defaultState": "idle",
+  "assets": {
+    "idle": "assets/ui/robot_companion/robot_idle.png",
+    "ready": "assets/ui/robot_companion/robot_ready.png",
+    "alert": "assets/ui/robot_companion/robot_alert.png",
+    "stage_clear": "assets/ui/robot_companion/robot_stage_clear.png",
+    "hint": "assets/ui/robot_companion/robot_hint.png",
+    "shadow": "assets/ui/robot_companion/robot_shadow.png",
+    "glow_cyan": "assets/ui/robot_companion/robot_glow_cyan.png",
+    "glow_magenta": "assets/ui/robot_companion/robot_glow_magenta.png"
+  },
+  "states": {
+    "idle": {
+      "asset": "idle",
+      "bob": true,
+      "glow": "soft",
+      "message": "RUTA DESCONOCIDA"
+    },
+    "ready": {
+      "asset": "ready",
+      "bob": true,
+      "glow": "cyan",
+      "message": "MISSION START"
+    },
+    "alert": {
+      "asset": "alert",
+      "bob": true,
+      "glow": "magenta",
+      "message": "OBSTÁCULO DETECTADO"
+    },
+    "hint": {
+      "asset": "hint",
+      "bob": true,
+      "glow": "cyan",
+      "message": "TOCA EL COMPANION PARA VER OBJETIVOS"
+    },
+    "stage_clear": {
+      "asset": "stage_clear",
+      "bob": true,
+      "glow": "cyan_magenta",
+      "message": "STAGE UNLOCKED"
+    }
+  }
+}

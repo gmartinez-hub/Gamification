@@ -7,6 +7,20 @@ const missionTitle = document.querySelector("#missionTitle");
 const missionSubtitle = document.querySelector("#missionSubtitle");
 const missionStatus = document.querySelector("#missionStatus");
 const missionProgress = document.querySelector("#missionProgress");
+const robotPanel = document.querySelector("#robotPanel");
+const robotStateLabel = document.querySelector("#robotStateLabel");
+const robotMessage = document.querySelector("#robotMessage");
+const robotSmallCounter = document.querySelector("#robotSmallCounter");
+const robotLargeCounter = document.querySelector("#robotLargeCounter");
+const robotRelicCounter = document.querySelector("#robotRelicCounter");
+const gameMenu = document.querySelector("#gameMenu");
+const menuEyebrow = document.querySelector("#menuEyebrow");
+const menuTitle = document.querySelector("#menuTitle");
+const menuSubtitle = document.querySelector("#menuSubtitle");
+const menuBody = document.querySelector("#menuBody");
+const menuActions = document.querySelector("#menuActions");
+const startMissionButton = document.querySelector("#startMissionButton");
+const controlsButton = document.querySelector("#controlsButton");
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -187,6 +201,24 @@ const missionFxTextures = {
   relicScanlines: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_scanlines_overlay.png"),
   stageUnlockFlash: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/vfx/stage_unlock/stage_unlock_flash_glow.png"),
   energyBeam: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/vfx/stage_unlock/energy_transfer_beam_vertical.png"),
+  targetLockReticle: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/target_lock_reticle.png"),
+  clickPulse: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/click_pulse_atlas_4x4.png"),
+  slowMotionVignette: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/slow_motion_vignette_overlay.png"),
+  timeDilationField: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/time_dilation_field.png"),
+  zeroGRotationStreaks: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/zero_g_rotation_streaks_overlay.png"),
+  aimAssistLine: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/aim_assist_line.png"),
+  fireReleaseFlash: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/projectiles/fire_release_flash.png"),
+};
+
+const robotFxTextures = {
+  idle: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_idle.png"),
+  ready: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_ready.png"),
+  alert: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_alert.png"),
+  hint: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_hint.png"),
+  stage_clear: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_stage_clear.png"),
+  glowCyan: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_glow_cyan.png"),
+  glowMagenta: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_glow_magenta.png"),
+  shadow: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_shadow.png"),
 };
 
 const missionAudioItems = {
@@ -202,6 +234,62 @@ const missionAudioItems = {
   relic_touch: { file: "astronaut_touch_relic_11.wav", volume: 0.24 },
   energy_transfer: { file: "energy_transfer_to_ship_12.wav", volume: 0.30 },
   stage_unlocked: { file: "stage_unlocked_arcade_13.wav", volume: 0.34 },
+  aim_click_ping: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/aim_click_ping_01.wav",
+    volume: 0.25,
+  },
+  aim_lock_confirm: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/aim_lock_confirm_02.wav",
+    volume: 0.28,
+  },
+  slow_motion_enter: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/slow_motion_enter_03.wav",
+    volume: 0.24,
+  },
+  zero_g_rotate_whoosh: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/zero_g_rotate_whoosh_04.wav",
+    volume: 0.24,
+  },
+  fire_release_snap: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/fire_release_snap_05.wav",
+    volume: 0.28,
+  },
+  astronaut_tool_fire_cue: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/astronaut_tool_fire_cue_06.wav",
+    volume: 0.30,
+  },
+  ship_heavy_fire_cue: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/ship_heavy_fire_cue_07.wav",
+    volume: 0.34,
+  },
+  invalid_target_blip: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/invalid_target_blip_08.wav",
+    volume: 0.18,
+  },
+  slow_motion_exit_snap: {
+    path: "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/audio/slow_motion_exit_snap_09.wav",
+    volume: 0.22,
+  },
+  robot_open_hint: {
+    path: "gravedad_zero_robot_companion_hud_pack_v1/assets/audio/robot_open_hint_01.wav",
+    volume: 0.24,
+  },
+  robot_close_hint: {
+    path: "gravedad_zero_robot_companion_hud_pack_v1/assets/audio/robot_close_hint_02.wav",
+    volume: 0.18,
+  },
+  robot_alert_ping: {
+    path: "gravedad_zero_robot_companion_hud_pack_v1/assets/audio/robot_alert_ping_03.wav",
+    volume: 0.24,
+  },
+  robot_stage_clear: {
+    path: "gravedad_zero_robot_companion_hud_pack_v1/assets/audio/robot_stage_clear_chime_04.wav",
+    volume: 0.28,
+  },
+  robot_item_update: {
+    path: "gravedad_zero_robot_companion_hud_pack_v1/assets/audio/robot_item_update_05.wav",
+    volume: 0.18,
+  },
 };
 
 const missionAudio = {
@@ -223,10 +311,11 @@ function ensureMissionAudio() {
 function playMissionAudio(id) {
   const item = missionAudioItems[id];
   if (!item || !missionAudio.ready) return null;
+  const source = item.path || `gravedad_zero_mission_01_completion_pack_v1/assets/audio/${item.file}`;
 
   if (item.loop) {
     if (!missionAudio.loops[id]) {
-      const loop = new Audio(missionAssetUrl(`gravedad_zero_mission_01_completion_pack_v1/assets/audio/${item.file}`));
+      const loop = new Audio(missionAssetUrl(source));
       loop.loop = true;
       loop.volume = item.volume;
       missionAudio.loops[id] = loop;
@@ -235,7 +324,7 @@ function playMissionAudio(id) {
     return missionAudio.loops[id];
   }
 
-  const audio = new Audio(missionAssetUrl(`gravedad_zero_mission_01_completion_pack_v1/assets/audio/${item.file}`));
+  const audio = new Audio(missionAssetUrl(source));
   audio.volume = item.volume;
   audio.play().catch(() => {});
   return audio;
@@ -254,6 +343,61 @@ function updateMissionHud(status, progress = "", subtitle = "") {
   if (subtitle) missionSubtitle.textContent = subtitle;
   missionStatus.textContent = status;
   missionProgress.textContent = progress;
+}
+
+function renderMenu(screenName) {
+  const screen = menuScreens[screenName] || menuScreens.title_menu;
+  if (!gameMenu || !menuEyebrow || !menuTitle || !menuSubtitle || !menuBody || !menuActions) return;
+  gameMenu.dataset.screen = screenName;
+  menuEyebrow.textContent = screen.eyebrow;
+  menuTitle.textContent = screen.title;
+  menuSubtitle.textContent = screen.subtitle;
+  menuBody.replaceChildren(
+    ...screen.body.map((item) => {
+      const row = document.createElement("div");
+      row.textContent = item;
+      return row;
+    })
+  );
+  menuActions.replaceChildren(
+    ...screen.actions.map(([label, action, className]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.dataset.action = action;
+      if (className) button.classList.add(className);
+      return button;
+    })
+  );
+}
+
+function showMenu(screenName = "title_menu") {
+  renderMenu(screenName);
+  if (gameMenu) gameMenu.hidden = false;
+}
+
+function hideMenu() {
+  if (gameMenu) gameMenu.hidden = true;
+}
+
+function handleMenuAction(action) {
+  ensureMissionAudio();
+  if (action === "start") {
+    hideMenu();
+    startMission01();
+    return;
+  }
+  if (action === "controls") {
+    showMenu("controls");
+    return;
+  }
+  if (action === "title") {
+    showMenu("title_menu");
+    return;
+  }
+  if (action === "resume") {
+    hideMenu();
+  }
 }
 
 const stageDisplayName = {
@@ -872,6 +1016,83 @@ const mission01 = {
   relicTouched: false,
   unlockStarted: false,
   revealTime: 0,
+  relicDestroyTime: 0,
+};
+
+const aimAssist = {
+  active: false,
+  target: null,
+  shooter: null,
+  clickPoint: new THREE.Vector2(),
+  firePoint: new THREE.Vector2(),
+  time: 0,
+  duration: 0.72,
+  fireTime: 0.32,
+  impactTime: 0.48,
+  fired: false,
+  impacted: false,
+};
+
+const robotCompanion = {
+  state: "idle",
+  message: "RUTA DESCONOCIDA",
+  panelOpen: false,
+  pulse: 0,
+  lastMissionState: "boot",
+  smallCurrent: 0,
+  largeCurrent: 0,
+  relicCurrent: 0,
+};
+
+const menuScreens = {
+  title_menu: {
+    eyebrow: "RUTA DESCONOCIDA",
+    title: "GRAVEDAD ZERO",
+    subtitle: "TOMA EL CONTROL",
+    body: [],
+    actions: [
+      ["INICIAR MISIÓN", "start"],
+      ["CONTROLES", "controls", "secondary"],
+    ],
+  },
+  mission_briefing: {
+    eyebrow: "MISSION 01",
+    title: "CAMPO INESTABLE",
+    subtitle: "RUTA DESCONOCIDA",
+    body: ["3 ASTEROIDES CHICOS", "1 OBSTÁCULO MAYOR", "ACTIVA LA RELIQUIA"],
+    actions: [["INICIAR MISIÓN", "start"]],
+  },
+  controls: {
+    eyebrow: "GRAVEDAD ZERO",
+    title: "CONTROLES",
+    subtitle: "AUTO TARGET",
+    body: ["WASD / FLECHAS", "CLICK / DISPARO", "ESC / PAUSA"],
+    actions: [
+      ["VOLVER", "title", "secondary"],
+      ["INICIAR MISIÓN", "start"],
+    ],
+  },
+  pause: {
+    eyebrow: "GRAVEDAD ZERO",
+    title: "PAUSA",
+    subtitle: "RUTA DESCONOCIDA",
+    body: ["MISSION 01", "OBJETIVOS EN CURSO"],
+    actions: [["CONTINUAR", "resume"]],
+  },
+  stage_unlocked: {
+    eyebrow: "GRAVEDAD ZERO",
+    title: "STAGE UNLOCKED",
+    subtitle: "NUEVA RUTA ABIERTA",
+    body: ["MISSION COMPLETE", "STAGE 2"],
+    actions: [["CONTINUAR", "resume"]],
+  },
+  mission_complete: {
+    eyebrow: "GRAVEDAD ZERO",
+    title: "MISSION COMPLETE",
+    subtitle: "STAGE 2",
+    body: ["ASTRONAUTA", "NAVE", "RELIQUIA"],
+    actions: [["CONTINUAR", "resume"]],
+  },
 };
 
 [
@@ -1428,6 +1649,57 @@ const energyBeam = makeMissionSprite(missionFxTextures.energyBeam, { opacity: 0.
 energyBeam.visible = false;
 scene.add(energyBeam);
 
+const aimReticle = makeMissionSprite(missionFxTextures.targetLockReticle, { opacity: 0.0, renderOrder: 47 });
+aimReticle.visible = false;
+scene.add(aimReticle);
+
+const aimClickPulse = makeMissionSprite(missionFxTextures.clickPulse, { opacity: 0.0, renderOrder: 46 });
+aimClickPulse.visible = false;
+scene.add(aimClickPulse);
+
+const aimVignette = makeMissionSprite(missionFxTextures.slowMotionVignette, { opacity: 0.0, renderOrder: 44 });
+aimVignette.visible = false;
+scene.add(aimVignette);
+
+const aimField = makeMissionSprite(missionFxTextures.timeDilationField, { opacity: 0.0, renderOrder: 45 });
+aimField.visible = false;
+scene.add(aimField);
+
+const aimRotationStreaks = makeMissionSprite(missionFxTextures.zeroGRotationStreaks, { opacity: 0.0, renderOrder: 46 });
+aimRotationStreaks.visible = false;
+scene.add(aimRotationStreaks);
+
+const aimGuideLine = makeMissionSprite(missionFxTextures.aimAssistLine, { opacity: 0.0, renderOrder: 46 });
+aimGuideLine.visible = false;
+aimGuideLine.userData.thickness = 0.026;
+scene.add(aimGuideLine);
+
+const fireReleaseFlash = makeMissionSprite(missionFxTextures.fireReleaseFlash, { opacity: 0.0, renderOrder: 48 });
+fireReleaseFlash.visible = false;
+scene.add(fireReleaseFlash);
+
+const robotGroup = new THREE.Group();
+robotGroup.renderOrder = 52;
+scene.add(robotGroup);
+
+const robotShadow = makeMissionSprite(robotFxTextures.shadow, {
+  opacity: 0.34,
+  renderOrder: 50,
+  blending: THREE.NormalBlending,
+});
+robotShadow.position.set(0.012, -0.065, -0.01);
+robotGroup.add(robotShadow);
+
+const robotGlow = makeMissionSprite(robotFxTextures.glowCyan, { opacity: 0.34, renderOrder: 51 });
+robotGroup.add(robotGlow);
+
+const robotSprite = makeMissionSprite(robotFxTextures.idle, {
+  opacity: 0.96,
+  renderOrder: 52,
+  blending: THREE.NormalBlending,
+});
+robotGroup.add(robotSprite);
+
 function setSpriteAsset(sprite, asset) {
   sprite.material.map = asset.texture;
   sprite.userData.aspect = asset.aspect;
@@ -1436,6 +1708,266 @@ function setSpriteAsset(sprite, asset) {
 
 function scaleSprite(sprite, width) {
   sprite.scale.set(width, width / sprite.userData.aspect, 1);
+}
+
+function positionHudSprites() {
+  const fullscreenWidth = viewport.aspect * 2.08;
+  aimVignette.position.set(0, 0, 0.18);
+  aimVignette.scale.set(fullscreenWidth, 2.08, 1);
+  aimField.position.set(0, 0, 0.19);
+  aimField.scale.set(Math.min(1.46, viewport.aspect * 1.04), Math.min(1.46, viewport.aspect * 1.04), 1);
+  const robotSize = viewport.aspect < 0.75 ? 0.18 : 0.16;
+  robotGroup.position.set(viewport.aspect - robotSize * 0.90 - 0.055, 0.77, 0.22);
+  robotSprite.scale.set(robotSize, robotSize, 1);
+  robotGlow.scale.set(robotSize * 1.72, robotSize * 1.72, 1);
+  robotShadow.scale.set(robotSize * 1.18, robotSize * 0.62, 1);
+}
+
+function updateRobotPanel() {
+  if (!robotPanel || !robotStateLabel || !robotMessage || !robotSmallCounter || !robotLargeCounter || !robotRelicCounter) {
+    return;
+  }
+  robotPanel.hidden = !robotCompanion.panelOpen;
+  robotStateLabel.textContent = `COMPANION / ${robotCompanion.state.toUpperCase()}`;
+  robotMessage.textContent = robotCompanion.message;
+  robotSmallCounter.textContent = `${robotCompanion.smallCurrent}/${mission01.smallRequired}`;
+  robotLargeCounter.textContent = `${robotCompanion.largeCurrent}/1`;
+  robotRelicCounter.textContent = `${robotCompanion.relicCurrent}/1`;
+}
+
+function setRobotCompanionState(stateName, message) {
+  const nextState = robotFxTextures[stateName] ? stateName : "idle";
+  const changed = robotCompanion.state !== nextState;
+  robotCompanion.state = nextState;
+  robotCompanion.message = message || robotCompanion.message;
+  robotCompanion.pulse = changed ? 1 : Math.max(robotCompanion.pulse, 0.28);
+  robotSprite.material.map = robotFxTextures[nextState];
+  robotGlow.material.map = nextState === "alert" ? robotFxTextures.glowMagenta : robotFxTextures.glowCyan;
+  robotSprite.material.needsUpdate = true;
+  robotGlow.material.needsUpdate = true;
+  if (changed && nextState === "alert") playMissionAudio("robot_alert_ping");
+  if (changed && nextState === "stage_clear") playMissionAudio("robot_stage_clear");
+  updateRobotPanel();
+}
+
+function syncRobotCompanion(missionState = mission01.state) {
+  robotCompanion.smallCurrent = mission01.smallDestroyed;
+  robotCompanion.largeCurrent = mission01.largeObstacle?.userData.destroyed ? 1 : 0;
+  robotCompanion.relicCurrent = mission01.relicTouched ? 1 : 0;
+
+  if (!mission01.started) {
+    setRobotCompanionState("idle", "RUTA DESCONOCIDA");
+    return;
+  }
+
+  if (missionState === "small_asteroids") {
+    const remaining = Math.max(0, mission01.smallRequired - mission01.smallDestroyed);
+    setRobotCompanionState("ready", `FALTAN ${remaining} ASTEROIDES`);
+    return;
+  }
+
+  if (missionState === "large_obstacle") {
+    setRobotCompanionState("alert", "OBSTÁCULO MAYOR DETECTADO");
+    return;
+  }
+
+  if (missionState === "relic") {
+    setRobotCompanionState("hint", "SEÑAL LIBERADA. TOCÁ LA RELIQUIA");
+    return;
+  }
+
+  if (missionState === "unlocked") {
+    setRobotCompanionState("stage_clear", "STAGE UNLOCKED");
+    return;
+  }
+
+  setRobotCompanionState("ready", "MISSION START");
+}
+
+function isRobotCompanionHit(point) {
+  const robotPoint = new THREE.Vector2(robotGroup.position.x, robotGroup.position.y);
+  return point.distanceTo(robotPoint) < (viewport.aspect < 0.75 ? 0.18 : 0.15);
+}
+
+function toggleRobotPanel() {
+  robotCompanion.panelOpen = !robotCompanion.panelOpen;
+  playMissionAudio(robotCompanion.panelOpen ? "robot_open_hint" : "robot_close_hint");
+  robotCompanion.pulse = 1;
+  updateRobotPanel();
+}
+
+function updateRobotCompanion(delta, elapsed) {
+  robotCompanion.pulse = Math.max(0, robotCompanion.pulse - delta * 2.4);
+  const bob = Math.sin(elapsed * 2.2) * 0.014;
+  const pulse = robotCompanion.pulse;
+  robotSprite.position.y = bob;
+  robotSprite.rotation.z = Math.sin(elapsed * 1.35) * 0.035;
+  robotSprite.material.opacity = 0.92 + Math.sin(elapsed * 2.8) * 0.04;
+  robotGlow.position.y = bob * 0.55;
+  robotGlow.scale.multiplyScalar(1);
+  robotGlow.material.opacity =
+    robotCompanion.state === "alert"
+      ? 0.38 + Math.sin(elapsed * 7.2) * 0.12 + pulse * 0.18
+      : 0.26 + Math.sin(elapsed * 3.0) * 0.08 + pulse * 0.16;
+  const baseScale = viewport.aspect < 0.75 ? 0.18 : 0.16;
+  robotSprite.scale.setScalar(baseScale * (1 + pulse * 0.10));
+}
+
+function validTargetForMissionPhase(target) {
+  if (!target?.userData?.missionRole || !mission01.started) return false;
+  if (target.userData.missionRole === "small") return mission01.state === "small_asteroids";
+  if (target.userData.missionRole === "large") return mission01.state === "large_obstacle";
+  return false;
+}
+
+function showInvalidAim(point) {
+  if (aimAssist.active) return;
+  playMissionAudio("invalid_target_blip");
+  spawnImpact(point, false);
+}
+
+function beginAimAssistTarget(target, clickPoint) {
+  if (!validTargetForMissionPhase(target) || aimAssist.active || state.transition) {
+    showInvalidAim(clickPoint);
+    return;
+  }
+
+  const shooter = shooterForTarget(target);
+  if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
+  if (shooter === "ship") enterShipMode();
+
+  aimAssist.active = true;
+  aimAssist.kind = "target";
+  aimAssist.target = target;
+  aimAssist.shooter = shooter;
+  aimAssist.clickPoint.copy(clickPoint);
+  aimAssist.firePoint.copy(backgroundObjectScreenPoint(target, new THREE.Vector2()));
+  aimAssist.time = 0;
+  aimAssist.fired = false;
+  aimAssist.impacted = false;
+  aimAssist.played = { click: true };
+  aimReticle.visible = true;
+  aimClickPulse.visible = true;
+  aimVignette.visible = true;
+  aimField.visible = true;
+  aimRotationStreaks.visible = true;
+  aimGuideLine.visible = true;
+  playMissionAudio("aim_click_ping");
+}
+
+function beginAimAssistRelic(clickPoint) {
+  if (mission01.relicState !== "collectible" || aimAssist.active || state.transition) {
+    showInvalidAim(clickPoint);
+    return;
+  }
+  enterAstronautMode();
+  aimAssist.active = true;
+  aimAssist.kind = "relic";
+  aimAssist.target = null;
+  aimAssist.shooter = "astronaut";
+  aimAssist.clickPoint.copy(clickPoint);
+  aimAssist.firePoint.set(relicGroup.position.x, relicGroup.position.y);
+  aimAssist.time = 0;
+  aimAssist.fired = false;
+  aimAssist.impacted = false;
+  aimAssist.played = { click: true };
+  aimReticle.visible = true;
+  aimClickPulse.visible = true;
+  aimVignette.visible = true;
+  aimField.visible = true;
+  aimRotationStreaks.visible = true;
+  aimGuideLine.visible = true;
+  playMissionAudio("aim_click_ping");
+}
+
+function clearAimAssistSprites() {
+  aimReticle.visible = false;
+  aimClickPulse.visible = false;
+  aimVignette.visible = false;
+  aimField.visible = false;
+  aimRotationStreaks.visible = false;
+  aimGuideLine.visible = false;
+  fireReleaseFlash.visible = false;
+  aimAssist.active = false;
+  aimAssist.target = null;
+}
+
+function updateAimAssist(delta, elapsed) {
+  if (!aimAssist.active) return;
+  aimAssist.time += delta;
+  const t = aimAssist.time;
+  const progress = THREE.MathUtils.clamp(t / aimAssist.duration, 0, 1);
+  const targetPoint =
+    aimAssist.kind === "target" && aimAssist.target
+      ? backgroundObjectScreenPoint(aimAssist.target, new THREE.Vector2()).clone()
+      : aimAssist.firePoint.clone();
+  aimAssist.firePoint.copy(targetPoint);
+  const origin = aimAssist.shooter === "astronaut" ? astronautState.position : state.position;
+
+  if (!aimAssist.played.lock && t >= 0.04) {
+    aimAssist.played.lock = true;
+    playMissionAudio("aim_lock_confirm");
+  }
+  if (!aimAssist.played.slow && t >= 0.08) {
+    aimAssist.played.slow = true;
+    playMissionAudio("slow_motion_enter");
+  }
+  if (!aimAssist.played.orient && t >= 0.12) {
+    aimAssist.played.orient = true;
+    playMissionAudio("zero_g_rotate_whoosh");
+  }
+
+  aimReticle.position.set(targetPoint.x, targetPoint.y, 0.18);
+  aimReticle.scale.setScalar(0.16 + Math.sin(elapsed * 9.0) * 0.015 + progress * 0.04);
+  aimReticle.material.rotation = elapsed * 0.9;
+  aimReticle.material.opacity = 0.82 * (1 - THREE.MathUtils.smoothstep(progress, 0.72, 1));
+
+  aimClickPulse.position.set(aimAssist.clickPoint.x, aimAssist.clickPoint.y, 0.17);
+  aimClickPulse.scale.setScalar(0.12 + progress * 0.42);
+  aimClickPulse.material.opacity = Math.max(0, 0.70 * (1 - progress * 1.3));
+
+  aimVignette.material.opacity = 0.26 * Math.sin(Math.PI * Math.min(1, progress));
+  aimField.material.opacity = 0.20 * Math.sin(Math.PI * Math.min(1, progress));
+  aimField.material.rotation = -elapsed * 0.16;
+
+  aimRotationStreaks.position.set(origin.x, origin.y, 0.17);
+  aimRotationStreaks.scale.setScalar(0.42 + progress * 0.18);
+  aimRotationStreaks.material.rotation = elapsed * (aimAssist.shooter === "ship" ? -0.7 : 0.9);
+  aimRotationStreaks.material.opacity = 0.30 * Math.sin(Math.PI * Math.min(1, progress));
+
+  placeBeamSprite(aimGuideLine, origin, targetPoint);
+  aimGuideLine.material.opacity = 0.25 * (1 - THREE.MathUtils.smoothstep(progress, 0.60, 0.96));
+
+  if (!aimAssist.fired && t >= aimAssist.fireTime) {
+    aimAssist.fired = true;
+    fireReleaseFlash.visible = true;
+    fireReleaseFlash.position.set(origin.x, origin.y, 0.19);
+    fireReleaseFlash.scale.setScalar(aimAssist.shooter === "ship" ? 0.28 : 0.18);
+    fireReleaseFlash.material.opacity = 0.82;
+    playMissionAudio("fire_release_snap");
+    playMissionAudio(aimAssist.shooter === "ship" ? "ship_heavy_fire_cue" : "astronaut_tool_fire_cue");
+    if (aimAssist.kind === "target" && aimAssist.target) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
+    if (aimAssist.shooter === "astronaut") triggerAstronautAction();
+  }
+
+  if (fireReleaseFlash.visible) {
+    fireReleaseFlash.scale.multiplyScalar(1 + delta * 2.2);
+    fireReleaseFlash.material.opacity = Math.max(0, fireReleaseFlash.material.opacity - delta * 4.6);
+    if (fireReleaseFlash.material.opacity <= 0.01) fireReleaseFlash.visible = false;
+  }
+
+  if (!aimAssist.impacted && t >= aimAssist.impactTime) {
+    aimAssist.impacted = true;
+    if (aimAssist.kind === "target" && aimAssist.target) damageTarget(aimAssist.target, aimAssist.shooter);
+    if (aimAssist.kind === "relic") touchMissionRelic();
+  }
+
+  if (!aimAssist.played.exit && t >= 0.60) {
+    aimAssist.played.exit = true;
+    playMissionAudio("slow_motion_exit_snap");
+  }
+
+  if (t >= aimAssist.duration) clearAimAssistSprites();
 }
 
 function stageWidth(stage, direction) {
@@ -1930,16 +2462,34 @@ function setMissionTargetsActive(targets, active) {
 
 function startMission01() {
   if (mission01.started) return;
+  hideMenu();
   mission01.started = true;
   mission01.state = "small_asteroids";
   mission01.smallDestroyed = 0;
   mission01.relicTouched = false;
   mission01.unlockStarted = false;
+  mission01.relicState = "hidden";
+  mission01.revealTime = 0;
+  mission01.relicDestroyTime = 0;
+  relicGroup.visible = false;
+  energyBeam.visible = false;
+  unlockFlash.visible = false;
   if (state.stageIndex !== 0) applyStage(0);
   setMissionTargetsActive(mission01.smallAsteroids, true);
-  if (mission01.largeObstacle) mission01.largeObstacle.userData.active = false;
+  for (const target of mission01.smallAsteroids) {
+    target.userData.destroyed = false;
+    target.userData.destroyTime = 0;
+    target.userData.hp = target.userData.maxHp;
+  }
+  if (mission01.largeObstacle) {
+    mission01.largeObstacle.userData.active = false;
+    mission01.largeObstacle.userData.destroyed = false;
+    mission01.largeObstacle.userData.destroyTime = 0;
+    mission01.largeObstacle.userData.hp = mission01.largeObstacle.userData.maxHp;
+  }
   updateMissionHud("MISSION START", "3 SEÑALES MENORES", "RUTA DESCONOCIDA");
   playMissionAudio("mission_start");
+  syncRobotCompanion("small_asteroids");
   enterAstronautMode();
 }
 
@@ -1948,6 +2498,7 @@ function completeSmallMissionTargets() {
   mission01.state = "large_obstacle";
   updateMissionHud("OBSTÁCULO DETECTADO", "NÚCLEO INESTABLE", "RUTA DESCONOCIDA");
   playMissionAudio("large_spawn");
+  syncRobotCompanion("large_obstacle");
   if (mission01.largeObstacle) {
     mission01.largeObstacle.userData.active = true;
     mission01.largeObstacle.userData.destroyed = false;
@@ -1980,13 +2531,16 @@ function revealMissionRelic(sourceTarget) {
   relicScanlines.material.opacity = 0;
   updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", "RUTA DESCONOCIDA");
   playMissionAudio("large_break");
+  syncRobotCompanion("relic");
   window.setTimeout(() => {
+    if (mission01.state !== "relic" || mission01.unlockStarted) return;
     playMissionAudio("relic_reveal");
     playMissionAudio("relic_burst");
     playMissionAudio("relic_idle");
     enterAstronautMode();
     mission01.relicState = "collectible";
     updateMissionHud("RELIQUIA ACTIVADA", "TOCÁ LA SEÑAL", "RUTA DESCONOCIDA");
+    syncRobotCompanion("relic");
   }, 520);
 }
 
@@ -1995,11 +2549,14 @@ function touchMissionRelic() {
   mission01.unlockStarted = true;
   mission01.relicTouched = true;
   mission01.state = "unlocked";
+  mission01.relicState = "destroying";
+  mission01.relicDestroyTime = 0;
   stopMissionAudio("relic_idle");
   playMissionAudio("relic_touch");
   playMissionAudio("energy_transfer");
   triggerAstronautAction();
   updateMissionHud("STAGE UNLOCKED", "NUEVA RUTA ABIERTA", "GRAVEDAD ZERO");
+  syncRobotCompanion("unlocked");
 
   const from = relicGroup.position;
   const to = shipGroup.position;
@@ -2027,12 +2584,16 @@ function handleMissionTargetDestroyed(target, shooter) {
     playMissionAudio("small_break");
     mission01.smallDestroyed = Math.min(mission01.smallRequired, mission01.smallDestroyed + 1);
     updateMissionHud("TOMA EL CONTROL", `${mission01.smallDestroyed}/${mission01.smallRequired} SEÑALES MENORES`, "RUTA DESCONOCIDA");
+    playMissionAudio("robot_item_update");
+    syncRobotCompanion("small_asteroids");
     if (mission01.smallDestroyed >= mission01.smallRequired) {
       window.setTimeout(completeSmallMissionTargets, 420);
     }
   }
   if (target.userData.missionRole === "large") {
     playMissionAudio("large_break");
+    playMissionAudio("robot_item_update");
+    syncRobotCompanion("large_obstacle");
     window.setTimeout(() => revealMissionRelic(target), 380);
   }
 }
@@ -2052,9 +2613,8 @@ function damageTarget(target, shooter) {
   }
 }
 
-function fireAtTarget(target) {
+function launchShotAtTarget(target, shooter = shooterForTarget(target)) {
   if (!target || state.transition) return;
-  const shooter = shooterForTarget(target);
   if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
   if (shooter === "ship") enterShipMode();
 
@@ -2065,7 +2625,12 @@ function fireAtTarget(target) {
   spawnMuzzle(origin, shooter);
   interactionFx.add(shot);
   activeShots.push(shot);
-  damageTarget(target, shooter);
+}
+
+function fireAtTarget(target) {
+  if (!target) return;
+  const point = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+  beginAimAssistTarget(target, point);
 }
 
 function updateInteractionFx(delta) {
@@ -2136,24 +2701,34 @@ function updateMission01(delta, elapsed) {
     mission01.revealTime += delta;
     const reveal = THREE.MathUtils.clamp(mission01.revealTime / 0.75, 0, 1);
     const pulse = 0.5 + Math.sin(elapsed * 3.1) * 0.5;
+    const destroyFade =
+      mission01.relicState === "destroying"
+        ? 1 - THREE.MathUtils.smoothstep(mission01.relicDestroyTime, 0.10, 0.85)
+        : 1;
     const coreScale = 0.18 + reveal * 0.10 + pulse * 0.012;
-    relicGlow.scale.setScalar(0.64 + pulse * 0.08);
-    relicRingA.scale.setScalar(0.36 + reveal * 0.10);
-    relicRingB.scale.setScalar(0.44 + reveal * 0.14);
-    relicCore.scale.setScalar(coreScale);
-    relicScanlines.scale.setScalar(0.26 + reveal * 0.08);
+    if (mission01.relicState === "destroying") mission01.relicDestroyTime += delta;
+    relicGlow.scale.setScalar((0.64 + pulse * 0.08) * (1 + (1 - destroyFade) * 0.44));
+    relicRingA.scale.setScalar((0.36 + reveal * 0.10) * (1 + (1 - destroyFade) * 0.62));
+    relicRingB.scale.setScalar((0.44 + reveal * 0.14) * (1 + (1 - destroyFade) * 0.50));
+    relicCore.scale.setScalar(coreScale * (1 + (1 - destroyFade) * 0.35));
+    relicScanlines.scale.setScalar((0.26 + reveal * 0.08) * (1 + (1 - destroyFade) * 0.28));
     relicRingA.material.rotation = elapsed * 0.72;
     relicRingB.material.rotation = -elapsed * 0.48;
     relicScanlines.material.rotation = Math.sin(elapsed * 0.7) * 0.08;
-    relicGlow.material.opacity = (0.36 + pulse * 0.12) * reveal;
-    relicRingA.material.opacity = 0.50 * reveal;
-    relicRingB.material.opacity = 0.36 * reveal;
-    relicCore.material.opacity = Math.min(0.96, reveal * 1.2);
-    relicScanlines.material.opacity = 0.22 * reveal;
+    relicGlow.material.opacity = (0.36 + pulse * 0.12) * reveal * destroyFade;
+    relicRingA.material.opacity = 0.50 * reveal * destroyFade;
+    relicRingB.material.opacity = 0.36 * reveal * destroyFade;
+    relicCore.material.opacity = Math.min(0.96, reveal * 1.2) * destroyFade;
+    relicScanlines.material.opacity = 0.22 * reveal * destroyFade;
 
     if (mission01.relicState === "collectible" && astronautSprite) {
       const relicPoint = new THREE.Vector2(relicGroup.position.x, relicGroup.position.y);
       if (astronautState.position.distanceTo(relicPoint) < 0.14) touchMissionRelic();
+    }
+
+    if (mission01.relicState === "destroying" && destroyFade <= 0.01) {
+      relicGroup.visible = false;
+      mission01.relicState = "destroyed";
     }
   }
 
@@ -2304,8 +2879,18 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
 window.addEventListener("keydown", (event) => {
   ensureMissionAudio();
   input.keys.add(event.key);
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (gameMenu && !gameMenu.hidden) hideMenu();
+    else showMenu("pause");
+    return;
+  }
   if (event.key === " " || event.key === "Enter") {
     event.preventDefault();
+    if (gameMenu && !gameMenu.hidden) {
+      handleMenuAction("start");
+      return;
+    }
     if (!mission01.started) {
       startMission01();
       return;
@@ -2313,7 +2898,6 @@ window.addEventListener("keydown", (event) => {
     if (state.controlMode === "astronaut") triggerAstronautAction();
     else startStageTransition();
   }
-  if (event.key === "Escape") enterShipMode();
 });
 
 window.addEventListener("keyup", (event) => {
@@ -2330,16 +2914,25 @@ window.addEventListener("pointerleave", () => {
 });
 
 window.addEventListener("pointerdown", (event) => {
+  if (event.target?.closest?.("button, .game-menu")) return;
   ensureMissionAudio();
   const point = worldPointerFromEvent(event);
-  if (!mission01.started) startMission01();
+  if (isRobotCompanionHit(point)) {
+    toggleRobotPanel();
+    return;
+  }
+  if (gameMenu && !gameMenu.hidden) return;
+  if (!mission01.started) {
+    startMission01();
+    return;
+  }
   const astronautDistance = point.distanceTo(astronautState.position);
   const shipDistance = point.distanceTo(state.position);
   const target = findInteractiveTarget(point);
   const relicPoint = new THREE.Vector2(relicGroup.position.x, relicGroup.position.y);
 
   if (mission01.relicState === "collectible" && point.distanceTo(relicPoint) < 0.18) {
-    touchMissionRelic();
+    beginAimAssistRelic(point);
     return;
   }
 
@@ -2371,6 +2964,15 @@ stageButton.addEventListener("click", () => {
   else startStageTransition();
 });
 
+menuActions?.addEventListener("click", (event) => {
+  const button = event.target?.closest?.("button[data-action]");
+  if (!button) return;
+  handleMenuAction(button.dataset.action);
+});
+
+startMissionButton?.addEventListener("click", () => handleMenuAction("start"));
+controlsButton?.addEventListener("click", () => handleMenuAction("controls"));
+
 function resize() {
   viewport.width = window.innerWidth;
   viewport.height = window.innerHeight;
@@ -2386,6 +2988,7 @@ function resize() {
   backgroundUniforms.uAspect.value = viewport.aspect;
   resizeShip();
   resizeAstronaut();
+  positionHudSprites();
 }
 
 function animateBackdrop(delta, elapsed, travelVelocity) {
@@ -2544,7 +3147,9 @@ function animate() {
   updateTransition(delta, elapsed);
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(delta);
+  updateAimAssist(delta, elapsed);
   updateMission01(delta, elapsed);
+  updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
 
   renderer.clear();
@@ -2556,12 +3161,15 @@ function animate() {
 
 updateStageHud();
 updateMissionHud("TOMA EL CONTROL", "CLICK O ENTER PARA INICIAR", "RUTA DESCONOCIDA");
+syncRobotCompanion("boot");
 window.addEventListener("resize", resize);
 resize();
+showMenu("title_menu");
 if (params.get("autoStage") === "1") {
   window.setTimeout(startStageTransition, 450);
 }
 if (params.get("autoMission") === "1") {
+  hideMenu();
   window.setTimeout(startMission01, 350);
 }
 animate();

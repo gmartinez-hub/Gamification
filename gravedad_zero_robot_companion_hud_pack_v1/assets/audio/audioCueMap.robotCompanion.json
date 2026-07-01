@@ -1,0 +1,36 @@
+{
+  "version": "robot-companion-audio-v1",
+  "assetsPath": "assets/audio/",
+  "cues": [
+    {
+      "id": "robot_open_hint",
+      "file": "robot_open_hint_01.wav",
+      "event": "robot_hint_open",
+      "volume": 0.38
+    },
+    {
+      "id": "robot_close_hint",
+      "file": "robot_close_hint_02.wav",
+      "event": "robot_hint_close",
+      "volume": 0.3
+    },
+    {
+      "id": "robot_alert_ping",
+      "file": "robot_alert_ping_03.wav",
+      "event": "robot_alert",
+      "volume": 0.42
+    },
+    {
+      "id": "robot_stage_clear_chime",
+      "file": "robot_stage_clear_chime_04.wav",
+      "event": "stage_unlocked",
+      "volume": 0.44
+    },
+    {
+      "id": "robot_item_update",
+      "file": "robot_item_update_05.wav",
+      "event": "mission_counter_update",
+      "volume": 0.32
+    }
+  ]
+}

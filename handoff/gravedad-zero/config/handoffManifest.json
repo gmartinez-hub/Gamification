@@ -1,0 +1,31 @@
+{
+  "version": "gravedad-zero-handoff-codex-v2",
+  "iterations": {
+    "iteration_1": {
+      "name": "Gameplay / Mission 01",
+      "packs": [
+        "gravedad_zero_mission_01_completion_pack_v1.zip",
+        "gravedad_zero_astronaut_projectiles_pack_v1.zip",
+        "gravedad_zero_unlock_asset_pack_v1.zip",
+        "gravedad_zero_aim_assist_fx_contracts_pack_v1.zip",
+        "nave_three_audio_pack_v2_refined.zip"
+      ]
+    },
+    "iteration_2": {
+      "name": "Menu + Robot Companion HUD",
+      "packs": [
+        "gravedad_zero_robot_companion_hud_pack_v1.zip"
+      ]
+    }
+  },
+  "copied": [
+    "gravedad_zero_mission_01_completion_pack_v1.zip",
+    "gravedad_zero_astronaut_projectiles_pack_v1.zip",
+    "gravedad_zero_unlock_asset_pack_v1.zip",
+    "gravedad_zero_aim_assist_fx_contracts_pack_v1.zip",
+    "gravedad_zero_robot_companion_hud_pack_v1.zip",
+    "nave_three_audio_pack_v2_refined.zip",
+    "gravedad_zero_estado_y_definiciones.docx"
+  ],
+  "missing": []
+}

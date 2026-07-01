@@ -15,8 +15,8 @@ body {
 
 .hud {
   position: fixed;
-  top: 18px;
   right: 18px;
+  bottom: 18px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -62,6 +62,171 @@ body {
 .stage-button:disabled {
   cursor: default;
   opacity: 0.58;
+}
+
+.robot-panel {
+  position: fixed;
+  top: 108px;
+  right: 18px;
+  z-index: 12;
+  width: min(254px, calc(100vw - 36px));
+  padding: 13px 14px 12px;
+  border: 1px solid rgba(86, 230, 255, 0.32);
+  border-radius: 8px;
+  background: rgba(3, 5, 12, 0.82);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+
+.robot-panel[hidden] {
+  display: none;
+}
+
+.robot-state-label {
+  color: #7eeaff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.robot-message {
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.robot-counters {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.robot-counters div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  padding-top: 7px;
+}
+
+.robot-counters span,
+.robot-counters strong {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.robot-counters span {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.robot-counters strong {
+  color: #ff72df;
+}
+
+.game-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.88);
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.game-menu[hidden] {
+  display: none;
+}
+
+.game-menu-inner {
+  width: min(430px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 24px;
+  background: #030306;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+  overflow: auto;
+}
+
+.menu-eyebrow,
+.menu-subtitle,
+.menu-body {
+  letter-spacing: 0;
+}
+
+.menu-eyebrow {
+  color: #7eeaff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.menu-title {
+  margin-top: 10px;
+  color: #ffffff;
+  font-size: clamp(32px, 5vw, 54px);
+  font-weight: 900;
+  line-height: 0.96;
+}
+
+.menu-subtitle {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.menu-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.menu-body div {
+  border-left: 2px solid rgba(126, 234, 255, 0.56);
+  padding-left: 10px;
+}
+
+.menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.menu-actions button {
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #02030a;
+  font: 900 12px/1 Arial, Helvetica, sans-serif;
+  cursor: pointer;
+}
+
+.menu-actions button.secondary {
+  background: transparent;
+  color: #ffffff;
+}
+
+.menu-actions button:hover {
+  border-color: rgba(126, 234, 255, 0.82);
 }
 
 .mission-hud {
@@ -126,7 +291,6 @@ body {
 
 @media (max-width: 720px) {
   .hud {
-    top: auto;
     right: 14px;
     bottom: 14px;
   }
@@ -135,5 +299,25 @@ body {
     left: 14px;
     top: 14px;
     width: min(250px, calc(100vw - 28px));
+  }
+
+  .robot-panel {
+    top: 92px;
+    right: 14px;
+    width: min(230px, calc(100vw - 28px));
+  }
+
+  .game-menu {
+    padding: 16px;
+  }
+
+  .game-menu-inner {
+    width: min(360px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 20px;
+  }
+
+  .menu-actions {
+    flex-direction: column;
   }
 }

@@ -1,0 +1,76 @@
+{
+  "version": "aim-assist-audio-cue-map-v1",
+  "assetsPath": "assets/audio/",
+  "cues": [
+    {
+      "id": "aim_click_ping",
+      "file": "aim_click_ping_01.wav",
+      "event": "pointer_click_target",
+      "volume": 0.36,
+      "loop": false
+    },
+    {
+      "id": "aim_lock_confirm",
+      "file": "aim_lock_confirm_02.wav",
+      "event": "target_acquired",
+      "volume": 0.42,
+      "loop": false
+    },
+    {
+      "id": "slow_motion_enter",
+      "file": "slow_motion_enter_03.wav",
+      "event": "enter_slow_motion",
+      "volume": 0.48,
+      "loop": false
+    },
+    {
+      "id": "zero_g_rotate_whoosh",
+      "file": "zero_g_rotate_whoosh_04.wav",
+      "event": "zero_g_orient_to_target",
+      "volume": 0.42,
+      "loop": false
+    },
+    {
+      "id": "fire_release_snap",
+      "file": "fire_release_snap_05.wav",
+      "event": "fire_release",
+      "volume": 0.46,
+      "loop": false
+    },
+    {
+      "id": "astronaut_tool_fire_cue",
+      "file": "astronaut_tool_fire_cue_06.wav",
+      "event": "astronaut_tool_pulse_release",
+      "volume": 0.48,
+      "loop": false
+    },
+    {
+      "id": "ship_heavy_fire_cue",
+      "file": "ship_heavy_fire_cue_07.wav",
+      "event": "ship_heavy_shot_release",
+      "volume": 0.58,
+      "loop": false
+    },
+    {
+      "id": "invalid_target_blip",
+      "file": "invalid_target_blip_08.wav",
+      "event": "invalid_target",
+      "volume": 0.3,
+      "loop": false
+    },
+    {
+      "id": "slow_motion_exit_snap",
+      "file": "slow_motion_exit_snap_09.wav",
+      "event": "exit_slow_motion",
+      "volume": 0.4,
+      "loop": false
+    },
+    {
+      "id": "aim_focus_low_loop",
+      "file": "aim_focus_low_loop_10.wav",
+      "event": "slow_motion_active",
+      "volume": 0.08,
+      "loop": true
+    }
+  ]
+}

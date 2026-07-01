@@ -1,0 +1,64 @@
+{
+  "version": "robot-companion-events-v1",
+  "position": {
+    "mode": "hud_top_right",
+    "screen": {
+      "x": 0.9,
+      "y": 0.13
+    },
+    "scale": 0.13
+  },
+  "clickBehavior": {
+    "onClick": "toggle_hint_panel",
+    "panel": "assets/ui/hud/robot_speech_bubble_frame.png",
+    "soundOpen": "robot_open_hint_01.wav",
+    "soundClose": "robot_close_hint_02.wav"
+  },
+  "missionCounters": {
+    "smallAsteroids": {
+      "label": "ASTEROIDES",
+      "current": 0,
+      "total": 3
+    },
+    "largeObstacles": {
+      "label": "OBSTÁCULO",
+      "current": 0,
+      "total": 1
+    },
+    "relic": {
+      "label": "RELIQUIA",
+      "current": 0,
+      "total": 1
+    }
+  },
+  "messagesByMissionState": {
+    "boot": {
+      "state": "idle",
+      "message": "RUTA DESCONOCIDA"
+    },
+    "mission_start": {
+      "state": "ready",
+      "message": "ROMPÉ 3 ASTEROIDES CHICOS"
+    },
+    "small_asteroids_active": {
+      "state": "ready",
+      "message": "FALTAN {smallAsteroidsRemaining} ASTEROIDES"
+    },
+    "small_asteroids_complete": {
+      "state": "ready",
+      "message": "CAMPO LIBERADO. VOLVÉ A LA NAVE"
+    },
+    "large_obstacle_active": {
+      "state": "alert",
+      "message": "OBSTÁCULO MAYOR DETECTADO"
+    },
+    "relic_reveal": {
+      "state": "hint",
+      "message": "SEÑAL LIBERADA. TOCÁ LA RELIQUIA"
+    },
+    "stage_unlocked": {
+      "state": "stage_clear",
+      "message": "STAGE UNLOCKED"
+    }
+  }
+}

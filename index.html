@@ -18,6 +18,27 @@
       <div id="stageLabel" class="stage-label">Stage 1</div>
       <button id="stageButton" class="stage-button" type="button">Stage 1 -> Stage 2</button>
     </div>
+    <div id="robotPanel" class="robot-panel" aria-label="Robot companion" hidden>
+      <div id="robotStateLabel" class="robot-state-label">COMPANION</div>
+      <div id="robotMessage" class="robot-message">RUTA DESCONOCIDA</div>
+      <div class="robot-counters" aria-label="Objetivos pendientes">
+        <div><span>ASTEROIDES</span><strong id="robotSmallCounter">0/3</strong></div>
+        <div><span>OBSTÁCULO</span><strong id="robotLargeCounter">0/1</strong></div>
+        <div><span>RELIQUIA</span><strong id="robotRelicCounter">0/1</strong></div>
+      </div>
+    </div>
+    <div id="gameMenu" class="game-menu" aria-label="Menú Gravedad Zero">
+      <div class="game-menu-inner">
+        <div id="menuEyebrow" class="menu-eyebrow">RUTA DESCONOCIDA</div>
+        <div id="menuTitle" class="menu-title">GRAVEDAD ZERO</div>
+        <div id="menuSubtitle" class="menu-subtitle">TOMA EL CONTROL</div>
+        <div id="menuBody" class="menu-body"></div>
+        <div id="menuActions" class="menu-actions">
+          <button id="startMissionButton" type="button">INICIAR MISIÓN</button>
+          <button id="controlsButton" type="button">CONTROLES</button>
+        </div>
+      </div>
+    </div>
     <script type="module" src="./src/main.js?v=space-route-three-v1"></script>
   </body>
 </html>
