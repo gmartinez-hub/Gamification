@@ -9,28 +9,29 @@
   </head>
   <body>
     <canvas id="scene" aria-label="Prototipo visual de nave en gravedad cero"></canvas>
-    <div class="mission-hud" aria-label="Estado de Mission 01">
+    <div class="mission-hud" aria-label="Estado de Gravedad Zero">
       <div id="missionTitle" class="mission-title">GRAVEDAD ZERO</div>
-      <div id="missionSubtitle" class="mission-subtitle">RUTA DESCONOCIDA</div>
+      <div id="missionSubtitle" class="mission-subtitle">SECTOR INICIAL</div>
       <div id="missionStatus" class="mission-status">TOMA EL CONTROL</div>
       <div id="missionProgress" class="mission-progress"></div>
+      <div id="gemHud" class="gem-hud">GEMAS 0/3</div>
     </div>
     <div class="hud" aria-label="Controles de stage">
-      <div id="stageLabel" class="stage-label">Stage 1</div>
-      <button id="stageButton" class="stage-button" type="button">Stage 1 -> Stage 2</button>
+      <div id="stageLabel" class="stage-label">Sector 1</div>
+      <button id="stageButton" class="stage-button" type="button">Sector 1 -> Sector 2</button>
     </div>
     <div id="robotPanel" class="robot-panel" aria-label="Robot companion" hidden>
       <div id="robotStateLabel" class="robot-state-label">COMPANION</div>
-      <div id="robotMessage" class="robot-message">RUTA DESCONOCIDA</div>
+      <div id="robotMessage" class="robot-message">RUMBO EN ESPERA</div>
       <div class="robot-counters" aria-label="Objetivos pendientes">
-        <div><span>ASTEROIDES</span><strong id="robotSmallCounter">0/3</strong></div>
-        <div><span>OBSTÁCULO</span><strong id="robotLargeCounter">0/1</strong></div>
+        <div><span>FRAGMENTOS</span><strong id="robotSmallCounter">0/3</strong></div>
+        <div><span>NÚCLEOS</span><strong id="robotLargeCounter">0/1</strong></div>
         <div><span>RELIQUIA</span><strong id="robotRelicCounter">0/1</strong></div>
       </div>
     </div>
     <div id="gameMenu" class="game-menu" aria-label="Menú Gravedad Zero">
       <div class="game-menu-inner">
-        <div id="menuEyebrow" class="menu-eyebrow">RUTA DESCONOCIDA</div>
+        <div id="menuEyebrow" class="menu-eyebrow">SECTOR INICIAL</div>
         <div id="menuTitle" class="menu-title">GRAVEDAD ZERO</div>
         <div id="menuSubtitle" class="menu-subtitle">TOMA EL CONTROL</div>
         <div id="menuBody" class="menu-body"></div>
@@ -40,6 +41,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="./src/main.js?v=iteration-3-deploy-unico"></script>
+    <script type="module" src="./src/main.js?v=iteration-4-final-v2"></script>
   </body>
 </html>

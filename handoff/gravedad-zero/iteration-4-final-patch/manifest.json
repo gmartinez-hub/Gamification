@@ -1,0 +1,31 @@
+{
+  "name": "gravedad-zero-iteration-4-final-patch-v2-asset-usage",
+  "deploy_strategy": "single_implementation_single_deploy",
+  "qa_strategy": "single_pass_after_deploy",
+  "added_emphasis": "explicit asset usage audit and synthetic bodies",
+  "must_include": [
+    "asset_usage_audit",
+    "new_planets_and_moons",
+    "synthetic_orbital_bodies_from_existing_textures",
+    "procedural_free_navigation",
+    "3_minutes_per_cardinal_direction",
+    "chunked_world_seeded_pooling",
+    "mission_zones",
+    "stage_1_2_3_final_flow",
+    "gem_hud",
+    "premium_wording",
+    "clean_companion_no_halo_ring_shadow",
+    "zero_gravity_autoaim_v2",
+    "audio_event_map",
+    "final_relic_sequence"
+  ],
+  "do_not": [
+    "generate_new_assets_unless_necessary",
+    "add_more_nebulas",
+    "use_existing_textures_only_as_overlays",
+    "keep_old_wording",
+    "use_companion_halo_or_orbit_ring",
+    "return_to_stage_1_after_final",
+    "static_reticle_only_autoaim"
+  ]
+}

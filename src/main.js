@@ -7,6 +7,7 @@ const missionTitle = document.querySelector("#missionTitle");
 const missionSubtitle = document.querySelector("#missionSubtitle");
 const missionStatus = document.querySelector("#missionStatus");
 const missionProgress = document.querySelector("#missionProgress");
+const gemHud = document.querySelector("#gemHud");
 const robotPanel = document.querySelector("#robotPanel");
 const robotStateLabel = document.querySelector("#robotStateLabel");
 const robotMessage = document.querySelector("#robotMessage");
@@ -129,6 +130,7 @@ const stageAssets = Object.fromEntries(
 const fxFrames = {
   burst: manifest.fx.reward_burst.map(makeAsset),
   speed: manifest.fx.speed_streak.map(makeAsset),
+  thruster: manifest.fx.thruster_flame.map(makeAsset),
 };
 
 const astronautAsset = manifest.astronaut?.float ? makeAsset(manifest.astronaut.float) : null;
@@ -200,7 +202,11 @@ const missionFxTextures = {
   relicRingB: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_orbit_ring_02.png"),
   relicScanlines: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_scanlines_overlay.png"),
   stageUnlockFlash: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/vfx/stage_unlock/stage_unlock_flash_glow.png"),
+  stageUnlockShockwave: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/vfx/stage_unlock/stage_unlock_shockwave_atlas_4x4.png"),
   energyBeam: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/vfx/stage_unlock/energy_transfer_beam_vertical.png"),
+  relicParticles: loadTexture("gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_particles_atlas_4x4.png"),
+  astronautToolParticles: loadTexture("gravedad_zero_astronaut_projectiles_pack_v1/assets/vfx/astronaut/astronaut_tool_particles_atlas_4x4.png"),
+  genericEnergyHit: loadTexture("gravedad_zero_astronaut_projectiles_pack_v1/assets/vfx/projectiles/generic_energy_hit_atlas_4x4.png"),
   targetLockReticle: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/target_lock_reticle.png"),
   clickPulse: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/click_pulse_atlas_4x4.png"),
   slowMotionVignette: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/slow_motion_vignette_overlay.png"),
@@ -290,6 +296,92 @@ const missionAudioItems = {
     path: "gravedad_zero_robot_companion_hud_pack_v1/assets/audio/robot_item_update_05.wav",
     volume: 0.18,
   },
+  long_travel_low_rumble: {
+    path: "nave_three_audio_pack_v2_refined/ambient_space_low_loop_14.wav",
+    volume: 0.055,
+    loop: true,
+  },
+  route_detected_ping: {
+    path: "nave_three_audio_pack_v2_refined/ui_hover_sonar_02.wav",
+    volume: 0.18,
+  },
+  mission_zone_enter: {
+    path: "nave_three_audio_pack_v2_refined/motion_liftoff_ignition_08.wav",
+    volume: 0.22,
+  },
+  gem_acquired: {
+    path: "nave_three_audio_pack_v2_refined/reward_unlock_sparkle_refined_13.wav",
+    volume: 0.32,
+  },
+  gem_counter_update: {
+    path: "nave_three_audio_pack_v2_refined/ui_mission_accept_refined_03.wav",
+    volume: 0.22,
+  },
+  stage_route_unlocked: {
+    path: "nave_three_audio_pack_v2_refined/reward_unlock_sparkle_refined_13.wav",
+    volume: 0.26,
+  },
+  zero_g_orientation_spray: {
+    path: "nave_three_audio_pack_v2_refined/motion_speed_whoosh_refined_09.wav",
+    volume: 0.15,
+  },
+  micro_thruster_burst: {
+    path: "nave_three_audio_pack_v2_refined/motion_speed_whoosh_refined_09.wav",
+    volume: 0.14,
+  },
+  recoil_hit: {
+    path: "nave_three_audio_pack_v2_refined/combat_shield_hit_refined_11.wav",
+    volume: 0.18,
+  },
+  impact_hit_stop: {
+    path: "nave_three_audio_pack_v2_refined/combat_shield_hit_refined_11.wav",
+    volume: 0.16,
+  },
+  final_relic_touch: { file: "astronaut_touch_relic_11.wav", volume: 0.30 },
+  final_core_collapse: { file: "large_obstacle_break_07.wav", volume: 0.34 },
+  final_shockwave: { file: "stage_unlocked_arcade_13.wav", volume: 0.30 },
+  final_energy_beam: { file: "energy_transfer_to_ship_12.wav", volume: 0.32 },
+  final_signal_acquired: {
+    path: "nave_three_audio_pack_v2_refined/reward_unlock_sparkle_refined_13.wav",
+    volume: 0.35,
+  },
+  mission_complete_resolve: {
+    path: "nave_three_audio_pack_v2_refined/ui_mission_accept_refined_03.wav",
+    volume: 0.30,
+  },
+};
+
+const audioEventMap = {
+  engine_idle: "ship_engine_idle_loop",
+  engine_move: "ship_engine_move_loop",
+  engine_boost: "ship_engine_boost_loop",
+  speed_whoosh: "ship_speed_whoosh",
+  long_travel_low_rumble: "long_travel_low_rumble",
+  route_detected_ping: "route_detected_ping",
+  mission_zone_enter: "mission_zone_enter",
+  fragment_collected: "small_break",
+  core_hit: "large_hit",
+  core_destroyed: "large_break",
+  relic_reveal: "relic_reveal",
+  gem_acquired: "gem_acquired",
+  gem_counter_update: "gem_counter_update",
+  stage_route_unlocked: "stage_route_unlocked",
+  target_lock: "aim_lock_confirm",
+  slow_motion_enter: "slow_motion_enter",
+  zero_g_orientation_spray: "zero_g_orientation_spray",
+  micro_thruster_burst: "micro_thruster_burst",
+  fire_release: "fire_release_snap",
+  recoil_hit: "recoil_hit",
+  impact_hit_stop: "impact_hit_stop",
+  slow_motion_exit: "slow_motion_exit_snap",
+  synthetic_body_near_hum: "procedural_hum",
+  gravity_node_pulse: "procedural_pulse",
+  final_relic_touch: "final_relic_touch",
+  final_core_collapse: "final_core_collapse",
+  final_shockwave: "final_shockwave",
+  final_energy_beam: "final_energy_beam",
+  final_signal_acquired: "final_signal_acquired",
+  mission_complete_resolve: "mission_complete_resolve",
 };
 
 const missionAudio = {
@@ -380,6 +472,13 @@ function missionAssetUrl(path) {
 }
 
 function ensureMissionAudio() {
+  if (!missionAudio.context && (window.AudioContext || window.webkitAudioContext)) {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    missionAudio.context = new AudioContextCtor();
+  }
+  if (missionAudio.context?.state === "suspended") {
+    missionAudio.context.resume().catch(() => {});
+  }
   missionAudio.ready = true;
   ensureShipAudio();
 }
@@ -418,6 +517,41 @@ function playMissionAudio(id) {
   return audio;
 }
 
+function playProceduralAudio(id, { frequency = 420, duration = 0.18, volume = 0.045, type = "sine" } = {}) {
+  if (!missionAudio.ready || !missionAudio.context) return null;
+  const context = missionAudio.context;
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, now);
+  oscillator.frequency.exponentialRampToValueAtTime(Math.max(60, frequency * 0.58), now + duration);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.018);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + duration + 0.02);
+  return oscillator;
+}
+
+function playAudioEvent(id, options = {}) {
+  const mapped = audioEventMap[id] || id;
+  if (mapped === "ship_speed_whoosh") return playShipOneShot("speed");
+  if (mapped === "ship_engine_idle_loop" || mapped === "ship_engine_move_loop" || mapped === "ship_engine_boost_loop") {
+    ensureShipAudio();
+    return null;
+  }
+  if (mapped === "procedural_hum") {
+    return playProceduralAudio(id, { frequency: 128, duration: 0.48, volume: 0.024, type: "triangle", ...options });
+  }
+  if (mapped === "procedural_pulse") {
+    return playProceduralAudio(id, { frequency: 520, duration: 0.16, volume: 0.038, type: "sine", ...options });
+  }
+  return playMissionAudio(mapped);
+}
+
 function stopMissionAudio(id) {
   const loop = missionAudio.loops[id];
   if (!loop) return;
@@ -431,6 +565,22 @@ function updateMissionHud(status, progress = "", subtitle = "") {
   if (subtitle) missionSubtitle.textContent = subtitle;
   missionStatus.textContent = status;
   missionProgress.textContent = progress;
+  updateGemHud();
+}
+
+function updateGemHud() {
+  if (!gemHud) return;
+  if (mission01.finalSignalAcquired || mission01.finalComplete) {
+    gemHud.textContent = "SEÑAL FINAL ADQUIRIDA";
+    return;
+  }
+  gemHud.textContent = `GEMAS ${THREE.MathUtils.clamp(mission01.gems, 0, 3)}/3`;
+}
+
+function stageSectorLabel(stageIndex = state.stageIndex) {
+  if (mission01.finalComplete) return "MISSION COMPLETE";
+  if (mission01.finalStarted) return "FINAL";
+  return `Sector ${stageIndex + 1}`;
 }
 
 function renderMenu(screenName) {
@@ -489,9 +639,9 @@ function handleMenuAction(action) {
 }
 
 const stageDisplayName = {
-  stage1: "Stage 1",
-  stage2: "Stage 2",
-  stage3: "Stage 3",
+  stage1: "Sector 1",
+  stage2: "Sector 2",
+  stage3: "Sector 3",
 };
 
 function makeSprite(asset, options = {}) {
@@ -1094,9 +1244,12 @@ function createIntegratedAsteroid({
 
 const missionStageConfigs = [
   {
-    mission: "MISSION 01",
+    mission: "SECTOR 01",
     name: "CAMPO INESTABLE",
-    subtitle: "CAMPO INESTABLE",
+    subtitle: "RUMBO NORTE / CAMPO INESTABLE",
+    zoneName: "STAGE 1 ZONE",
+    gemName: "GEMA 1",
+    routeHint: "RUMBO NORTE",
     smallRequired: 3,
     largeRequired: 1,
     smallTargets: [
@@ -1107,9 +1260,12 @@ const missionStageConfigs = [
     largeTargets: [{ x: 0.35, y: 0.92, z: -2.0, radius: 0.50 }],
   },
   {
-    mission: "MISSION 02",
+    mission: "SECTOR 02",
     name: "ÓRBITA FRACTURADA",
-    subtitle: "ÓRBITA FRACTURADA",
+    subtitle: "RUMBO ESTE / ÓRBITA FRACTURADA",
+    zoneName: "STAGE 2 ZONE",
+    gemName: "GEMA 2",
+    routeHint: "RUMBO ESTE",
     smallRequired: 3,
     largeRequired: 2,
     smallTargets: [
@@ -1123,9 +1279,12 @@ const missionStageConfigs = [
     ],
   },
   {
-    mission: "MISSION 03",
+    mission: "SECTOR 03",
     name: "NÚCLEO DESCONOCIDO",
-    subtitle: "NÚCLEO DESCONOCIDO",
+    subtitle: "RUMBO OESTE / NÚCLEO DESCONOCIDO",
+    zoneName: "STAGE 3 ZONE",
+    gemName: "GEMA 3",
+    routeHint: "RUMBO OESTE",
     smallRequired: 3,
     largeRequired: 3,
     smallTargets: [
@@ -1146,15 +1305,15 @@ function currentMissionConfig(stageIndex = mission01.currentStageIndex ?? state.
 }
 
 function largeObjectiveLabel(count) {
-  return `${count} OBSTÁCULO${count === 1 ? "" : "S"} MAYOR${count === 1 ? "" : "ES"}`;
+  return `ROMPÉ ${count} NÚCLEO${count === 1 ? "" : "S"} INESTABLE${count === 1 ? "" : "S"}`;
 }
 
 function largeObjectiveNoun(count) {
-  return `OBSTÁCULO${count === 1 ? "" : "S"} MAYOR${count === 1 ? "" : "ES"}`;
+  return `NÚCLEO${count === 1 ? "" : "S"} INESTABLE${count === 1 ? "" : "S"}`;
 }
 
 function missionObjectiveCopy(config) {
-  return `${config.smallRequired} SEÑALES MENORES / ${largeObjectiveLabel(config.largeRequired)}`;
+  return `RECUPERÁ ${config.smallRequired} FRAGMENTOS DE SEÑAL / ${largeObjectiveLabel(config.largeRequired)}`;
 }
 
 const mission01 = {
@@ -1175,6 +1334,12 @@ const mission01 = {
   unlockStarted: false,
   revealTime: 0,
   relicDestroyTime: 0,
+  gems: 0,
+  finalSignalAcquired: false,
+  finalStarted: false,
+  finalComplete: false,
+  finalTime: 0,
+  zoneIndex: initialStageIndex,
 };
 
 const aimAssist = {
@@ -1184,9 +1349,9 @@ const aimAssist = {
   clickPoint: new THREE.Vector2(),
   firePoint: new THREE.Vector2(),
   time: 0,
-  duration: 0.72,
-  fireTime: 0.32,
-  impactTime: 0.48,
+  duration: 0.90,
+  fireTime: 0.40,
+  impactTime: 0.60,
   fired: false,
   impacted: false,
   recoil: 0,
@@ -1196,7 +1361,7 @@ const aimAssist = {
 
 const robotCompanion = {
   state: "idle",
-  message: "RUTA DESCONOCIDA",
+  message: "RUMBO EN ESPERA",
   panelOpen: false,
   pulse: 0,
   lastMissionState: "boot",
@@ -1207,9 +1372,9 @@ const robotCompanion = {
 
 const menuScreens = {
   title_menu: {
-    eyebrow: "RUTA DESCONOCIDA",
+    eyebrow: "SECTOR INICIAL",
     title: "GRAVEDAD ZERO",
-    subtitle: "TOMA EL CONTROL",
+    subtitle: "RECUPERÁ LAS GEMAS DE RUTA",
     body: [],
     actions: [
       ["INICIAR MISIÓN", "start"],
@@ -1217,10 +1382,10 @@ const menuScreens = {
     ],
   },
   mission_briefing: {
-    eyebrow: "MISSION 01",
+    eyebrow: "SECTOR 01",
     title: "CAMPO INESTABLE",
-    subtitle: "RUTA DESCONOCIDA",
-    body: ["3 SEÑALES MENORES", "1 OBSTÁCULO MAYOR", "ACTIVA LA RELIQUIA"],
+    subtitle: "RUMBO NORTE",
+    body: ["RECUPERÁ 3 FRAGMENTOS DE SEÑAL", "ROMPÉ 1 NÚCLEO INESTABLE", "ACTIVÁ LA RELIQUIA"],
     actions: [["INICIAR MISIÓN", "start"]],
   },
   controls: {
@@ -1236,22 +1401,22 @@ const menuScreens = {
   pause: {
     eyebrow: "GRAVEDAD ZERO",
     title: "PAUSA",
-    subtitle: "RUTA DESCONOCIDA",
-    body: ["OBJETIVOS EN CURSO", "STAGE ACTUAL"],
+    subtitle: "RUTA EN CURSO",
+    body: ["FRAGMENTOS Y NÚCLEOS", "SECTOR ACTUAL"],
     actions: [["CONTINUAR", "resume"]],
   },
   stage_unlocked: {
     eyebrow: "GRAVEDAD ZERO",
-    title: "STAGE UNLOCKED",
-    subtitle: "NUEVA RUTA ABIERTA",
-    body: ["MISSION COMPLETE", "STAGE 2"],
+    title: "GEMA ADQUIRIDA",
+    subtitle: "NUEVO RUMBO ESTABILIZADO",
+    body: ["RUTA ABIERTA", "SIGUIENTE SECTOR"],
     actions: [["CONTINUAR", "resume"]],
   },
   mission_complete: {
     eyebrow: "GRAVEDAD ZERO",
     title: "MISSION COMPLETE",
-    subtitle: "STAGE UNLOCKED",
-    body: ["ASTRONAUTA", "NAVE", "RELIQUIA"],
+    subtitle: "RUTA ESTABILIZADA",
+    body: ["SEÑAL FINAL ADQUIRIDA", "GEMAS 3/3", "NAVE SINCRONIZADA"],
     actions: [["CONTINUAR", "resume"]],
   },
 };
@@ -1377,6 +1542,7 @@ function resetStageMission(stageIndex) {
   mission01.relicState = "hidden";
   mission01.revealTime = 0;
   mission01.relicDestroyTime = 0;
+  mission01.zoneIndex = safeStageIndex;
 
   pool.small.forEach((target, index) => {
     placeMissionTarget(target, config.smallTargets[index], routeBase + index * 0.34);
@@ -1406,12 +1572,15 @@ function startMissionForStage(stageIndex) {
   const config = currentMissionConfig(safeStageIndex);
   hideMenu();
   if (state.stageIndex !== safeStageIndex) applyStage(safeStageIndex);
+  if (mission01.finalComplete || mission01.finalStarted) return;
   spawnStageTargets(safeStageIndex);
   clearPreviousStageTargets();
   resetStageMission(safeStageIndex);
   activateStageTargets(safeStageIndex);
   updateMissionHud(config.mission, missionObjectiveCopy(config), config.subtitle);
   playMissionAudio("mission_start");
+  playAudioEvent("long_travel_low_rumble");
+  playAudioEvent("route_detected_ping");
   syncRobotCompanion("small_asteroids");
   enterAstronautMode();
 }
@@ -1571,6 +1740,570 @@ function createCrystalCluster() {
       drift: new THREE.Vector2((random() - 0.5) * 0.020, -0.010 - random() * 0.020),
       layer: "foreground",
     });
+  }
+}
+
+const assetUsageAudit = {
+  naturalBodies: [
+    "assets/runtime/three-textures/ocean-color.png",
+    "assets/runtime/three-textures/ocean-world-bright-color.png",
+    "assets/runtime/three-textures/gas-giant-color.png",
+    "assets/runtime/three-textures/network-planet-dark-color.png",
+    "assets/runtime/three-textures/dark-crater-color.png",
+    "assets/runtime/three-textures/asteroid-crater-magenta-color.png",
+    "assets/runtime/three-textures/asteroid-surface-neon-close-color.png",
+    "assets/runtime/three-textures/asteroid-surface-plates-color.png",
+    "assets/runtime/three-textures/asteroid-surface-wide-color.png",
+  ],
+  syntheticBodies: [
+    "gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_hologram_alpha_cropped.png",
+    "gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_scanlines_overlay.png",
+    "gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_orbit_ring_01.png",
+    "gravedad_zero_mission_01_completion_pack_v1/assets/hologram/relic_aura_glow.png",
+    "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/target_lock_reticle.png",
+    "gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/time_dilation_field.png",
+    "gravedad_zero_astronaut_projectiles_pack_v1/assets/vfx/projectiles/generic_target_lock_glow.png",
+  ],
+};
+
+const proceduralWorld = {
+  group: new THREE.Group(),
+  chunks: new Map(),
+  chunkSize: 64,
+  visibleRadius: 2,
+  releaseRadius: 3,
+  displayScale: 0.235,
+  objects: [],
+  audioCooldown: 0,
+};
+const ProceduralWorld = proceduralWorld;
+backgroundScene.add(proceduralWorld.group);
+
+const proceduralBodyTextures = {
+  natural: [
+    worldTextures.oceanColor,
+    worldTextures.oceanWorld,
+    worldTextures.gasGiant,
+    worldTextures.networkPlanet,
+    worldTextures.darkCrater,
+    worldTextures.craterWorld,
+    worldTextures.asteroidSurface,
+    worldTextures.asteroidPlates,
+    worldTextures.asteroidWide,
+  ],
+  synthetic: [
+    missionFxTextures.relicCore,
+    missionFxTextures.relicScanlines,
+    missionFxTextures.relicRingA,
+    missionFxTextures.relicGlow,
+    missionFxTextures.targetLockReticle,
+    missionFxTextures.timeDilationField,
+    loadTexture("gravedad_zero_astronaut_projectiles_pack_v1/assets/vfx/projectiles/generic_target_lock_glow.png"),
+  ],
+};
+
+function getChunkKey(chunkX, chunkY) {
+  return `${chunkX}:${chunkY}`;
+}
+
+function seededRandom(chunkX, chunkY, stageIndex = state.stageIndex) {
+  const seed =
+    Math.imul(chunkX + 32768, 73856093) ^
+    Math.imul(chunkY + 32768, 19349663) ^
+    Math.imul(stageIndex + 17, 83492791) ^
+    0x4f1bbcdd;
+  return seedRandom(seed);
+}
+
+function currentChunkCoords() {
+  return {
+    x: Math.floor(state.worldOffset.x / proceduralWorld.chunkSize),
+    y: Math.floor(state.worldOffset.y / proceduralWorld.chunkSize),
+  };
+}
+
+function proceduralStageTint(stageAffinity) {
+  if (mission01.finalStarted || stageAffinity === 3) return new THREE.Color("#ffffff");
+  if (stageAffinity === 2) return new THREE.Color("#ff5de1");
+  if (stageAffinity === 1) return new THREE.Color("#a36dff");
+  return new THREE.Color("#62edff");
+}
+
+function makeBodyMaterial({ map, color = 0xffffff, emissive = 0x061426, opacity = 0.78, metalness = 0.10 }) {
+  return new THREE.MeshStandardMaterial({
+    map,
+    color,
+    roughness: 0.76,
+    metalness,
+    emissive,
+    emissiveIntensity: 0.22,
+    transparent: true,
+    opacity,
+  });
+}
+
+function createOrbitingShards(group, rand, radius, count, color) {
+  for (let i = 0; i < count; i += 1) {
+    const shard = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(radius * (0.10 + rand() * 0.09), 0),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.46 + rand() * 0.24,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    const angle = (i / count) * Math.PI * 2 + rand() * 0.4;
+    const distance = radius * (1.35 + rand() * 0.85);
+    shard.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance * 0.62, (rand() - 0.5) * radius);
+    shard.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
+    group.add(shard);
+  }
+}
+
+function createSyntheticPoints(rand, radius, color) {
+  const count = 18 + Math.floor(rand() * 16);
+  const points = [];
+  for (let i = 0; i < count; i += 1) {
+    const angle = rand() * Math.PI * 2;
+    const distance = radius * (0.9 + rand() * 1.2);
+    points.push(Math.cos(angle) * distance, Math.sin(angle) * distance, (rand() - 0.5) * radius * 0.8);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+  return new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      map: starTexture,
+      color,
+      size: radius * 0.08,
+      transparent: true,
+      opacity: 0.36,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+}
+
+function createLineCage(rand, radius, color) {
+  const points = [];
+  const count = 6 + Math.floor(rand() * 4);
+  for (let i = 0; i < count; i += 1) {
+    const a = (i / count) * Math.PI * 2;
+    const b = ((i + 2) / count) * Math.PI * 2;
+    points.push(
+      new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius * 0.62, 0),
+      new THREE.Vector3(Math.cos(b) * radius * 0.82, Math.sin(b) * radius, radius * 0.18)
+    );
+  }
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  return new THREE.LineSegments(
+    geometry,
+    new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.36,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+}
+
+function createProceduralBody(kind, chunkX, chunkY, rand, index) {
+  const chunkSize = proceduralWorld.chunkSize;
+  const base = new THREE.Vector3(
+    chunkX * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
+    chunkY * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
+    -6 - rand() * 22
+  );
+  const group = new THREE.Group();
+  const stageAffinity = (Math.abs(chunkX) + Math.abs(chunkY) + index) % 4;
+  const tint = proceduralStageTint(stageAffinity);
+  const radius =
+    kind === "planet_far"
+      ? 1.7 + rand() * 2.2
+      : kind === "planet_mid"
+        ? 0.88 + rand() * 1.2
+        : kind === "moon" || kind === "tech_moon"
+          ? 0.36 + rand() * 0.48
+          : kind === "debris_cluster" || kind === "foreground_shards"
+            ? 0.12 + rand() * 0.22
+            : 0.28 + rand() * 0.42;
+  const naturalMap = proceduralBodyTextures.natural[Math.floor(rand() * proceduralBodyTextures.natural.length)];
+  const syntheticMap = proceduralBodyTextures.synthetic[Math.floor(rand() * proceduralBodyTextures.synthetic.length)];
+  const opacity = kind === "planet_far" ? 0.28 + rand() * 0.18 : 0.46 + rand() * 0.34;
+
+  group.userData = {
+    kind,
+    chunkKey: getChunkKey(chunkX, chunkY),
+    base,
+    radius,
+    baseOpacity: opacity,
+    stageAffinity,
+    parallax: THREE.MathUtils.mapLinear(Math.abs(base.z), 6, 28, 0.18, 0.045),
+    drift: new THREE.Vector2((rand() - 0.5) * 0.018, (rand() - 0.5) * 0.018),
+    orbitRadius: new THREE.Vector2(0.10 + rand() * 0.36, 0.08 + rand() * 0.24),
+    orbitSpeed: (rand() > 0.5 ? 1 : -1) * (0.045 + rand() * 0.12),
+    phase: rand() * Math.PI * 2,
+    spin: (rand() > 0.5 ? 1 : -1) * (0.08 + rand() * 0.22),
+  };
+
+  if (kind === "planet_far" || kind === "planet_mid" || kind === "moon") {
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, kind === "planet_far" ? 64 : 40, kind === "planet_far" ? 36 : 24),
+      makeBodyMaterial({
+        map: naturalMap,
+        color: 0xffffff,
+        emissive: stageAffinity === 2 ? 0x31102a : 0x071932,
+        opacity,
+        metalness: 0.04,
+      })
+    );
+    group.add(sphere);
+    if (kind !== "moon") {
+      const atmosphere = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.045, 48, 24),
+        new THREE.MeshBasicMaterial({
+          color: tint,
+          transparent: true,
+          opacity: 0.10,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide,
+          depthWrite: false,
+        })
+      );
+      group.add(atmosphere);
+    }
+  } else if (kind === "synthetic_core" || kind === "signal_body" || kind === "tech_moon") {
+    const core = new THREE.Mesh(
+      kind === "tech_moon" ? new THREE.SphereGeometry(radius, 36, 20) : new THREE.IcosahedronGeometry(radius, 2),
+      makeBodyMaterial({
+        map: syntheticMap,
+        color: 0xffffff,
+        emissive: tint,
+        opacity: Math.min(0.86, opacity + 0.10),
+        metalness: 0.34,
+      })
+    );
+    group.add(core);
+    const ringCount = kind === "signal_body" ? 2 : 1;
+    for (let i = 0; i < ringCount; i += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(radius * (1.24 + i * 0.38), radius * 0.018, 8, 84),
+        new THREE.MeshBasicMaterial({
+          map: proceduralBodyTextures.synthetic[(index + i) % proceduralBodyTextures.synthetic.length],
+          color: tint,
+          transparent: true,
+          opacity: 0.20 + i * 0.06,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+      );
+      ring.rotation.x = Math.PI * (0.34 + rand() * 0.22);
+      ring.rotation.y = rand() * Math.PI;
+      group.add(ring);
+    }
+    createOrbitingShards(group, rand, radius, 3 + Math.floor(rand() * 4), tint);
+  } else if (kind === "gravity_node") {
+    const node = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(radius, 1),
+      makeBodyMaterial({
+        map: syntheticMap,
+        color: tint,
+        emissive: tint,
+        opacity: 0.76,
+        metalness: 0.22,
+      })
+    );
+    group.add(node);
+    group.add(createSyntheticPoints(rand, radius * 1.8, tint));
+    group.add(createLineCage(rand, radius * 1.9, tint));
+  } else if (kind === "broken_gate") {
+    for (let i = 0; i < 3; i += 1) {
+      const gate = new THREE.Mesh(
+        new THREE.TorusGeometry(radius * (1.15 + i * 0.12), radius * 0.045, 5, 18),
+        new THREE.MeshStandardMaterial({
+          map: syntheticMap,
+          color: tint,
+          emissive: tint,
+          emissiveIntensity: 0.35,
+          roughness: 0.48,
+          metalness: 0.42,
+          transparent: true,
+          opacity: 0.30 + i * 0.08,
+        })
+      );
+      gate.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
+      gate.scale.set(1, 0.26 + rand() * 0.18, 1);
+      gate.position.set((rand() - 0.5) * radius * 0.34, (rand() - 0.5) * radius * 0.34, 0);
+      group.add(gate);
+    }
+    createOrbitingShards(group, rand, radius, 5, tint);
+  } else if (kind === "orbital_relic_fragment") {
+    const fragment = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(radius, 1),
+      makeBodyMaterial({
+        map: syntheticMap,
+        color: tint,
+        emissive: tint,
+        opacity: 0.70,
+        metalness: 0.30,
+      })
+    );
+    group.add(fragment);
+    group.add(createLineCage(rand, radius * 1.5, tint));
+  } else {
+    const count = kind === "debris_cluster" ? 5 + Math.floor(rand() * 5) : 3 + Math.floor(rand() * 4);
+    for (let i = 0; i < count; i += 1) {
+      const shardRadius = radius * (0.35 + rand() * 0.65);
+      const shard = new THREE.Mesh(
+        i % 2 ? new THREE.TetrahedronGeometry(shardRadius, 0) : createIntegratedAsteroidGeometry(shardRadius),
+        makeBodyMaterial({
+          map: i % 3 === 0 ? syntheticMap : naturalMap,
+          color: i % 3 === 0 ? tint : 0xffffff,
+          emissive: i % 3 === 0 ? tint : 0x071426,
+          opacity: kind === "foreground_shards" ? 0.58 : 0.42,
+          metalness: i % 3 === 0 ? 0.22 : 0.08,
+        })
+      );
+      shard.position.set((rand() - 0.5) * radius * 4.2, (rand() - 0.5) * radius * 3.2, (rand() - 0.5) * radius);
+      shard.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
+      group.add(shard);
+    }
+  }
+
+  group.traverse((child) => {
+    if (child.material) child.userData.baseOpacity = child.material.opacity ?? opacity;
+  });
+  proceduralWorld.group.add(group);
+  return group;
+}
+
+function spawnChunkObjects(chunkX, chunkY) {
+  const key = getChunkKey(chunkX, chunkY);
+  if (proceduralWorld.chunks.has(key)) return proceduralWorld.chunks.get(key);
+  const rand = seededRandom(chunkX, chunkY, state.stageIndex);
+  const chunk = { key, x: chunkX, y: chunkY, group: new THREE.Group(), objects: [] };
+  const bodyKinds = [
+    "planet_far",
+    "planet_mid",
+    "moon",
+    "synthetic_core",
+    "signal_body",
+    "orbital_relic_fragment",
+    "broken_gate",
+    "tech_moon",
+    "gravity_node",
+    "debris_cluster",
+    "foreground_shards",
+  ];
+  const planetCount = 1 + (rand() > 0.56 ? 1 : 0);
+  const syntheticCount = 2 + Math.floor(rand() * 4);
+  const debrisCount = 6 + Math.floor(rand() * 6);
+  const selections = [];
+  for (let i = 0; i < planetCount; i += 1) selections.push(bodyKinds[Math.floor(rand() * 3)]);
+  for (let i = 0; i < syntheticCount; i += 1) selections.push(bodyKinds[3 + Math.floor(rand() * 6)]);
+  for (let i = 0; i < debrisCount; i += 1) selections.push(bodyKinds[9 + Math.floor(rand() * 2)]);
+
+  selections.forEach((kind, index) => {
+    const body = createProceduralBody(kind, chunkX, chunkY, rand, index);
+    body.userData.chunkKey = key;
+    chunk.objects.push(body);
+    proceduralWorld.objects.push(body);
+  });
+
+  proceduralWorld.chunks.set(key, chunk);
+  return chunk;
+}
+
+function releaseFarChunks(centerX, centerY) {
+  for (const [key, chunk] of proceduralWorld.chunks) {
+    if (
+      Math.abs(chunk.x - centerX) <= proceduralWorld.releaseRadius &&
+      Math.abs(chunk.y - centerY) <= proceduralWorld.releaseRadius
+    ) {
+      continue;
+    }
+    for (const object of chunk.objects) {
+      proceduralWorld.group.remove(object);
+      object.traverse((child) => {
+        child.geometry?.dispose?.();
+        child.material?.dispose?.();
+      });
+      const index = proceduralWorld.objects.indexOf(object);
+      if (index >= 0) proceduralWorld.objects.splice(index, 1);
+    }
+    proceduralWorld.chunks.delete(key);
+  }
+}
+
+function ensureChunksAroundPlayer() {
+  const center = currentChunkCoords();
+  for (let y = center.y - proceduralWorld.visibleRadius; y <= center.y + proceduralWorld.visibleRadius; y += 1) {
+    for (let x = center.x - proceduralWorld.visibleRadius; x <= center.x + proceduralWorld.visibleRadius; x += 1) {
+      spawnChunkObjects(x, y);
+    }
+  }
+  releaseFarChunks(center.x, center.y);
+}
+
+function wrapWorldObject(object) {
+  const base = object.userData.base;
+  const parallax = object.userData.parallax;
+  const span = proceduralWorld.chunkSize * (proceduralWorld.releaseRadius * 2 + 1);
+  return {
+    x: wrapWorldDelta(base.x - state.worldOffset.x * (1 - parallax * 0.42), span) * proceduralWorld.displayScale,
+    y: wrapWorldDelta(base.y - state.worldOffset.y * (1 - parallax * 0.32), span) * proceduralWorld.displayScale,
+  };
+}
+
+function updateChunkObjects(delta, elapsed, travelVelocity) {
+  ensureChunksAroundPlayer();
+  proceduralWorld.audioCooldown = Math.max(0, proceduralWorld.audioCooldown - delta);
+  let nearestSynthetic = Infinity;
+  for (const object of proceduralWorld.objects) {
+    const wrapped = wrapWorldObject(object);
+    const phase = elapsed * object.userData.orbitSpeed + object.userData.phase;
+    const drift = object.userData.drift;
+    object.position.x =
+      wrapped.x +
+      Math.cos(phase) * object.userData.orbitRadius.x -
+      travelVelocity.x * object.userData.parallax * 0.40 +
+      drift.x * elapsed;
+    object.position.y =
+      wrapped.y +
+      Math.sin(phase * 0.83) * object.userData.orbitRadius.y -
+      travelVelocity.y * object.userData.parallax * 0.22 +
+      drift.y * elapsed;
+    object.position.z = object.userData.base.z + Math.sin(phase * 0.52) * 0.34;
+    object.rotation.x += delta * object.userData.spin * 0.65;
+    object.rotation.y += delta * object.userData.spin;
+    object.rotation.z += delta * object.userData.spin * 0.42;
+
+    const finalBoost = mission01.finalStarted ? 0.22 : 0;
+    const stageAffinity = object.userData.stageAffinity;
+    const stageBlend = stageAffinity === 3 || stageAffinity === state.stageIndex ? 1 : 0.62;
+    const pulse = 0.88 + Math.sin(elapsed * (object.userData.kind === "gravity_node" ? 2.6 : 1.2) + object.userData.phase) * 0.12;
+    object.traverse((child) => {
+      if (!child.material || child.userData.baseOpacity === undefined) return;
+      child.material.opacity = THREE.MathUtils.clamp(child.userData.baseOpacity * stageBlend * pulse + finalBoost, 0, 0.92);
+    });
+
+    const isSynthetic =
+      object.userData.kind === "synthetic_core" ||
+      object.userData.kind === "signal_body" ||
+      object.userData.kind === "gravity_node" ||
+      object.userData.kind === "broken_gate" ||
+      object.userData.kind === "orbital_relic_fragment";
+    if (isSynthetic) nearestSynthetic = Math.min(nearestSynthetic, Math.hypot(object.position.x, object.position.y));
+  }
+  if (nearestSynthetic < 1.75 && proceduralWorld.audioCooldown <= 0) {
+    playAudioEvent(nearestSynthetic < 0.92 ? "gravity_node_pulse" : "synthetic_body_near_hum");
+    proceduralWorld.audioCooldown = nearestSynthetic < 0.92 ? 1.4 : 3.2;
+  }
+}
+
+const missionZones = {
+  group: new THREE.Group(),
+  zones: [],
+  lastEntered: null,
+};
+backgroundScene.add(missionZones.group);
+
+const missionZoneSpecs = [
+  { label: "STAGE 1 ZONE", subtitle: "RUMBO NORTE", x: 0, y: WORLD_MIN_Y + 10, color: 0x62edff },
+  { label: "STAGE 2 ZONE", subtitle: "RUMBO ESTE", x: 92, y: WORLD_MIN_Y + 78, color: 0xa36dff },
+  { label: "STAGE 3 ZONE", subtitle: "RUMBO OESTE", x: -96, y: WORLD_MIN_Y + 146, color: 0xff5de1 },
+  { label: "FINAL ZONE", subtitle: "RUMBO FINAL", x: 0, y: WORLD_MIN_Y + 214, color: 0xffffff },
+];
+
+function createMissionZone(index, spec) {
+  const group = new THREE.Group();
+  group.userData = {
+    kind: "mission_zone",
+    index,
+    label: spec.label,
+    subtitle: spec.subtitle,
+    base: new THREE.Vector3(spec.x, spec.y, -3.4),
+    parallax: 0.10,
+    phase: index * 1.37,
+    baseOpacity: 0.42,
+  };
+
+  const color = new THREE.Color(spec.color);
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 32, 18),
+    new THREE.MeshStandardMaterial({
+      map: index === 3 ? missionFxTextures.relicCore : proceduralBodyTextures.synthetic[index % proceduralBodyTextures.synthetic.length],
+      color,
+      emissive: color,
+      emissiveIntensity: 0.42,
+      roughness: 0.42,
+      metalness: 0.18,
+      transparent: true,
+      opacity: 0.56,
+    })
+  );
+  core.userData.baseOpacity = 0.56;
+  group.add(core);
+
+  const gate = new THREE.Mesh(
+    new THREE.TorusGeometry(0.58, 0.018, 8, 96),
+    new THREE.MeshBasicMaterial({
+      map: missionFxTextures.relicRingA,
+      color,
+      transparent: true,
+      opacity: 0.36,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+  gate.rotation.x = Math.PI * 0.48;
+  gate.userData.baseOpacity = 0.36;
+  group.add(gate);
+
+  const cage = createLineCage(() => 0.42, 0.82, color);
+  cage.userData.baseOpacity = 0.30;
+  group.add(cage);
+
+  missionZones.group.add(group);
+  missionZones.zones.push(group);
+  return group;
+}
+
+missionZoneSpecs.forEach((spec, index) => createMissionZone(index, spec));
+
+function updateMissionZones(delta, elapsed) {
+  const activeIndex = mission01.gems >= 3 ? 3 : mission01.gems;
+  for (const zone of missionZones.zones) {
+    const index = zone.userData.index;
+    const unlocked = index <= activeIndex;
+    const completed = index < mission01.gems;
+    const relative = wrapWorldDelta(zone.userData.base.x - state.worldOffset.x, proceduralWorld.chunkSize * 6);
+    const relativeY = wrapWorldDelta(zone.userData.base.y - state.worldOffset.y, proceduralWorld.chunkSize * 6);
+    zone.position.set(relative * proceduralWorld.displayScale, relativeY * proceduralWorld.displayScale, zone.userData.base.z);
+    zone.visible = unlocked || completed;
+    zone.rotation.y += delta * (0.14 + index * 0.03);
+    zone.rotation.z += delta * (completed ? 0.05 : 0.18);
+    const distance = Math.hypot(zone.position.x, zone.position.y);
+    const zonePulse = completed ? 0.48 : index === activeIndex ? 1 : 0.62;
+    const pulse = zonePulse * (0.78 + Math.sin(elapsed * 2.0 + zone.userData.phase) * 0.18);
+    zone.traverse((child) => {
+      if (!child.material || child.userData.baseOpacity === undefined) return;
+      child.material.opacity = child.userData.baseOpacity * pulse;
+    });
+    if (index === activeIndex && distance < 1.55 && missionZones.lastEntered !== index) {
+      missionZones.lastEntered = index;
+      playAudioEvent("mission_zone_enter");
+      playAudioEvent("route_detected_ping");
+      if (mission01.started && !mission01.finalComplete) {
+        const subtitle = index === 3 ? "RUMBO FINAL / ZONA FINAL" : currentMissionConfig().subtitle;
+        const status = index === 3 ? "FINAL ZONE" : `SECTOR ${index + 1}`;
+        updateMissionHud(status, index === 3 ? "ACTIVÁ LA SEÑAL FINAL" : missionObjectiveCopy(currentMissionConfig()), subtitle);
+      }
+    }
+    if (distance >= 2.1 && missionZones.lastEntered === index) missionZones.lastEntered = null;
   }
 }
 
@@ -2120,6 +2853,53 @@ const energyBeam = makeMissionSprite(missionFxTextures.energyBeam, { opacity: 0.
 energyBeam.visible = false;
 scene.add(energyBeam);
 
+const finalFxGroup = new THREE.Group();
+finalFxGroup.visible = false;
+finalFxGroup.renderOrder = 58;
+scene.add(finalFxGroup);
+
+const finalCore = makeMissionSprite(missionFxTextures.relicCore, {
+  opacity: 0,
+  renderOrder: 56,
+  blending: THREE.NormalBlending,
+});
+finalFxGroup.add(finalCore);
+
+const finalShockwave = makeMissionSprite(missionFxTextures.stageUnlockShockwave, { opacity: 0, renderOrder: 57 });
+finalFxGroup.add(finalShockwave);
+
+const finalFlash = makeMissionSprite(missionFxTextures.stageUnlockFlash, { opacity: 0, renderOrder: 58 });
+finalFxGroup.add(finalFlash);
+
+const finalBeamSprites = Array.from({ length: 4 }, () => {
+  const sprite = makeMissionSprite(missionFxTextures.energyBeam, { opacity: 0, renderOrder: 57 });
+  sprite.userData.thickness = 0.055;
+  finalFxGroup.add(sprite);
+  return sprite;
+});
+
+const finalParticleCount = 80;
+const finalParticleGeometry = new THREE.BufferGeometry();
+finalParticleGeometry.setAttribute(
+  "position",
+  new THREE.Float32BufferAttribute(new Array(finalParticleCount * 3).fill(0), 3)
+);
+const finalParticles = new THREE.Points(
+  finalParticleGeometry,
+  new THREE.PointsMaterial({
+    map: starTexture,
+    color: 0x9ff4ff,
+    size: 0.024,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  })
+);
+finalParticles.renderOrder = 57;
+finalFxGroup.add(finalParticles);
+
 const aimReticle = makeMissionSprite(missionFxTextures.targetLockReticle, { opacity: 0.0, renderOrder: 47 });
 aimReticle.visible = false;
 scene.add(aimReticle);
@@ -2185,6 +2965,7 @@ const robotOrbitRing = new THREE.Mesh(
 );
 robotOrbitRing.renderOrder = 51;
 robotOrbitRing.rotation.x = Math.PI * 0.46;
+robotOrbitRing.visible = false;
 robotGroup.add(robotOrbitRing);
 
 const robotParticleBases = Array.from({ length: 14 }, (_, index) => {
@@ -2211,6 +2992,7 @@ const robotParticles = new THREE.Points(
   })
 );
 robotParticles.renderOrder = 51;
+robotParticles.visible = false;
 robotGroup.add(robotParticles);
 
 function setSpriteAsset(sprite, asset) {
@@ -2232,10 +3014,10 @@ function positionHudSprites() {
   const robotSize = viewport.aspect < 0.75 ? 0.18 : 0.16;
   robotGroup.position.set(viewport.aspect - robotSize * 0.90 - 0.055, 0.77, 0.22);
   robotSprite.scale.set(robotSize, robotSize, 1);
-  robotGlow.scale.set(robotSize * 1.72, robotSize * 1.72, 1);
+  robotGlow.scale.set(robotSize * 1.12, robotSize * 1.12, 1);
   robotShadow.scale.set(robotSize * 1.18, robotSize * 0.62, 1);
-  robotOrbitRing.scale.setScalar(robotSize / 0.16);
-  robotParticles.scale.setScalar(robotSize / 0.16);
+  robotOrbitRing.visible = false;
+  robotParticles.visible = false;
 }
 
 function updateRobotPanel() {
@@ -2271,33 +3053,38 @@ function syncRobotCompanion(missionState = mission01.state) {
   robotCompanion.relicCurrent = mission01.relicTouched ? 1 : 0;
 
   if (!mission01.started) {
-    setRobotCompanionState("idle", "RUTA DESCONOCIDA");
+    setRobotCompanionState("idle", "RUMBO EN ESPERA");
     return;
   }
 
   if (missionState === "small_asteroids") {
     const remaining = Math.max(0, mission01.smallRequired - mission01.smallDestroyed);
-    setRobotCompanionState("ready", `FALTAN ${remaining} ASTEROIDES`);
+    setRobotCompanionState("ready", `${currentMissionConfig().routeHint}. FALTAN ${remaining} FRAGMENTOS`);
     return;
   }
 
   if (missionState === "large_obstacle") {
     const remaining = Math.max(0, mission01.largeRequired - mission01.largeDestroyed);
-    setRobotCompanionState("alert", `FALTAN ${remaining} OBSTÁCULOS`);
+    setRobotCompanionState("alert", `SECTOR ACTIVO. FALTAN ${remaining} NÚCLEOS`);
     return;
   }
 
   if (missionState === "relic") {
-    setRobotCompanionState("hint", "SEÑAL LIBERADA. TOCÁ LA RELIQUIA");
+    setRobotCompanionState("hint", "SEÑAL LIBERADA. ACTIVÁ LA RELIQUIA");
     return;
   }
 
   if (missionState === "unlocked") {
-    setRobotCompanionState("stage_clear", "STAGE UNLOCKED");
+    setRobotCompanionState("stage_clear", `GEMA ${mission01.gems}/3 ADQUIRIDA`);
     return;
   }
 
-  setRobotCompanionState("ready", "MISSION START");
+  if (missionState === "final") {
+    setRobotCompanionState("stage_clear", "RUTA ESTABILIZADA");
+    return;
+  }
+
+  setRobotCompanionState("ready", "RUMBO ACTIVO");
 }
 
 function isRobotCompanionHit(point) {
@@ -2325,28 +3112,12 @@ function updateRobotCompanion(delta, elapsed) {
   robotGlow.position.y = bob * 0.55;
   robotGlow.material.opacity =
     robotCompanion.state === "alert"
-      ? 0.38 + Math.sin(elapsed * 7.2) * 0.12 + pulse * 0.18
-      : 0.26 + Math.sin(elapsed * 3.0) * 0.08 + pulse * 0.16;
+      ? 0.16 + Math.sin(elapsed * 7.2) * 0.04 + pulse * 0.08
+      : 0.10 + Math.sin(elapsed * 3.0) * 0.025 + pulse * 0.06;
   const baseScale = viewport.aspect < 0.75 ? 0.18 : 0.16;
   robotSprite.scale.setScalar(baseScale * (1 + pulse * 0.10));
-  robotOrbitRing.rotation.z = elapsed * (robotCompanion.state === "alert" ? -1.8 : -0.86);
-  robotOrbitRing.rotation.y = Math.sin(elapsed * 0.9) * 0.42;
-  robotOrbitRing.material.color.set(robotCompanion.state === "alert" ? 0xff62df : 0x65ecff);
-  robotOrbitRing.material.opacity = 0.22 + pulse * 0.18 + Math.sin(elapsed * 3.0) * 0.04;
-  robotParticles.material.color.set(robotCompanion.state === "stage_clear" ? 0xffffff : robotCompanion.state === "alert" ? 0xff70df : 0x7eeaff);
-  robotParticles.material.opacity = 0.26 + pulse * 0.28 + Math.sin(elapsed * 4.4) * 0.04;
-  const positions = robotParticleGeometry.attributes.position;
-  robotParticleBases.forEach((base, index) => {
-    const orbit = elapsed * (0.8 + index * 0.022) + index * 0.74;
-    const wobble = 1 + Math.sin(orbit * 1.7) * 0.12 + pulse * 0.22;
-    positions.setXYZ(
-      index,
-      base.x * wobble + Math.cos(orbit) * 0.010,
-      base.y * wobble + Math.sin(orbit * 0.82) * 0.010,
-      base.z
-    );
-  });
-  positions.needsUpdate = true;
+  robotOrbitRing.visible = false;
+  robotParticles.visible = false;
 }
 
 function validTargetForMissionPhase(target) {
@@ -2435,6 +3206,7 @@ function clearAimAssistSprites() {
 function updateAimAssist(delta, elapsed) {
   if (!aimAssist.active) {
     astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, 0, 0.12);
+    backgroundCamera.position.z = THREE.MathUtils.lerp(backgroundCamera.position.z, 9.6, 0.08);
     return;
   }
   aimAssist.time += delta;
@@ -2454,31 +3226,35 @@ function updateAimAssist(delta, elapsed) {
   const orientation = orientationIn * orientationOut;
   const aimTilt = THREE.MathUtils.clamp(Math.sin(aimAngle) * 0.18 - Math.cos(aimAngle) * 0.05, -0.24, 0.24);
   const recoilOffset = aimDirection.clone().multiplyScalar(-aimAssist.recoil);
+  const sideVector = new THREE.Vector2(-aimDirection.y, aimDirection.x);
+  backgroundCamera.position.z = THREE.MathUtils.lerp(backgroundCamera.position.z, 9.35 - orientation * 0.26, 0.22);
+  backgroundCamera.rotation.z += aimTilt * orientation * 0.020;
 
   if (aimAssist.shooter === "ship") {
-    shipGroup.rotation.z += aimTilt * orientation;
+    shipGroup.rotation.z += aimTilt * orientation * 0.42;
     shipGroup.position.x += recoilOffset.x;
     shipGroup.position.y += recoilOffset.y;
   } else {
     astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, aimTilt * 1.45 * orientation, 0.24);
     if (astronautSprite) {
-      astronautSprite.position.x += recoilOffset.x;
-      astronautSprite.position.y += recoilOffset.y;
+      astronautSprite.position.x += recoilOffset.x + sideVector.x * 0.012 * orientation;
+      astronautSprite.position.y += recoilOffset.y + sideVector.y * 0.012 * orientation;
     }
   }
   aimAssist.recoil = Math.max(0, aimAssist.recoil - delta * 0.42);
 
   if (!aimAssist.played.lock && t >= 0.04) {
     aimAssist.played.lock = true;
-    playMissionAudio("aim_lock_confirm");
+    playAudioEvent("target_lock");
   }
   if (!aimAssist.played.slow && t >= 0.08) {
     aimAssist.played.slow = true;
-    playMissionAudio("slow_motion_enter");
+    playAudioEvent("slow_motion_enter");
   }
   if (!aimAssist.played.orient && t >= 0.12) {
     aimAssist.played.orient = true;
-    playMissionAudio("zero_g_rotate_whoosh");
+    playAudioEvent("zero_g_orientation_spray");
+    spawnOrientationSpray(origin, aimDirection, aimAssist.shooter);
   }
 
   aimReticle.position.set(targetPoint.x, targetPoint.y, 0.18);
@@ -2509,8 +3285,10 @@ function updateAimAssist(delta, elapsed) {
     fireReleaseFlash.scale.setScalar(aimAssist.shooter === "ship" ? 0.28 : 0.18);
     fireReleaseFlash.material.opacity = 0.82;
     aimAssist.recoil = aimAssist.shooter === "ship" ? 0.105 : 0.064;
-    playMissionAudio("fire_release_snap");
+    playAudioEvent("fire_release");
+    playAudioEvent("micro_thruster_burst");
     playMissionAudio(aimAssist.shooter === "ship" ? "ship_heavy_fire_cue" : "astronaut_tool_fire_cue");
+    spawnOrientationSpray(origin, aimDirection, aimAssist.shooter);
     if (aimAssist.kind === "target" && aimAssist.target) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
     if (aimAssist.shooter === "astronaut") triggerAstronautAction();
   }
@@ -2523,14 +3301,14 @@ function updateAimAssist(delta, elapsed) {
 
   if (!aimAssist.impacted && t >= aimAssist.impactTime) {
     aimAssist.impacted = true;
-    aimAssist.hitStop = Math.max(aimAssist.hitStop, 0.085);
+    aimAssist.hitStop = Math.max(aimAssist.hitStop, 0.12);
     if (aimAssist.kind === "target" && aimAssist.target) damageTarget(aimAssist.target, aimAssist.shooter);
     if (aimAssist.kind === "relic") touchMissionRelic();
   }
 
   if (!aimAssist.played.exit && t >= 0.60) {
     aimAssist.played.exit = true;
-    playMissionAudio("slow_motion_exit_snap");
+    playAudioEvent("slow_motion_exit");
   }
 
   if (t >= aimAssist.duration) clearAimAssistSprites();
@@ -2609,6 +3387,19 @@ function resolveDirection(x, y) {
 }
 
 function updateStageHud() {
+  if (mission01.finalComplete) {
+    stageLabel.textContent = "Final";
+    stageButton.textContent = "MISSION COMPLETE";
+    stageButton.disabled = true;
+    return;
+  }
+  if (mission01.finalStarted) {
+    stageLabel.textContent = "Final";
+    stageButton.textContent = "Señal final";
+    stageButton.disabled = true;
+    return;
+  }
+  if (!state.transition) stageButton.disabled = false;
   if (state.controlMode === "astronaut") {
     stageLabel.textContent = "Astronauta";
     stageButton.textContent = "Volver a nave";
@@ -2617,14 +3408,18 @@ function updateStageHud() {
 
   const stage = currentStage();
   stageLabel.textContent = stageDisplayName[stage];
-  const nextStage = STAGES[(state.stageIndex + 1) % STAGES.length];
-  stageButton.textContent = `${stageDisplayName[stage]} -> ${stageDisplayName[nextStage]}`;
+  const nextStage = STAGES[Math.min(state.stageIndex + 1, STAGES.length - 1)];
+  stageButton.textContent =
+    state.stageIndex >= STAGES.length - 1
+      ? `${stageDisplayName[stage]} -> Final`
+      : `${stageDisplayName[stage]} -> ${stageDisplayName[nextStage]}`;
 }
 
 function startStageTransition() {
-  if (state.transition) return;
+  if (state.transition || mission01.finalStarted || mission01.finalComplete) return;
   const from = state.stageIndex;
-  const to = (from + 1) % STAGES.length;
+  const to = Math.min(from + 1, STAGES.length - 1);
+  if (to === from) return;
   state.transition = {
     from,
     to,
@@ -2736,7 +3531,7 @@ function wrapWorldDelta(delta, span) {
 }
 
 function routeProgressFromWorldY(y) {
-  return THREE.MathUtils.clamp((y - WORLD_MIN_Y) / WORLD_WRAP_Y, 0, 1);
+  return ((((y - WORLD_MIN_Y) / WORLD_WRAP_Y) % 1) + 1) % 1;
 }
 
 function routeViewY(routeY) {
@@ -2995,6 +3790,41 @@ function spawnMuzzle(point, shooter) {
   activeImpacts.push(sprite);
 }
 
+function spawnOrientationSpray(origin, aimDirection, shooter) {
+  const side = new THREE.Vector2(-aimDirection.y, aimDirection.x);
+  const frameSet = fxFrames.thruster.length ? fxFrames.thruster : fxFrames.speed;
+  const count = shooter === "ship" ? 7 : 5;
+  for (let i = 0; i < count; i += 1) {
+    const frame = frameSet[i % frameSet.length];
+    const sprite = makeSprite(frame, {
+      opacity: shooter === "ship" ? 0.36 : 0.30,
+      blending: THREE.AdditiveBlending,
+      renderOrder: 33,
+      depthTest: false,
+    });
+    const lateral = (i - (count - 1) * 0.5) * (shooter === "ship" ? 0.030 : 0.020);
+    const backward = aimDirection.clone().multiplyScalar(shooter === "ship" ? -0.14 : -0.08);
+    sprite.position.set(
+      origin.x + side.x * lateral + backward.x,
+      origin.y + side.y * lateral + backward.y,
+      0.12
+    );
+    sprite.material.rotation = Math.atan2(-aimDirection.y, -aimDirection.x) + (i % 2 ? 0.16 : -0.16);
+    scaleSprite(sprite, shooter === "ship" ? 0.16 + i * 0.010 : 0.10 + i * 0.006);
+    sprite.userData = {
+      time: 0,
+      duration: shooter === "ship" ? 0.40 : 0.32,
+      spray: true,
+      strong: shooter === "ship",
+      drift: new THREE.Vector2(backward.x * 0.55 + side.x * lateral * 1.8, backward.y * 0.55 + side.y * lateral * 1.8),
+      baseScale: sprite.scale.x,
+      baseOpacity: sprite.material.opacity,
+    };
+    interactionFx.add(sprite);
+    activeImpacts.push(sprite);
+  }
+}
+
 function createLegacyShotLine(origin, target, shooter) {
   const material = new THREE.LineBasicMaterial({
     color: shooter === "ship" ? 0x38dcff : 0xf54de3,
@@ -3046,7 +3876,8 @@ function completeSmallMissionTargets() {
   if (mission01.state !== "small_asteroids") return;
   mission01.state = "large_obstacle";
   const config = currentMissionConfig();
-  updateMissionHud("OBSTÁCULO DETECTADO", largeObjectiveLabel(mission01.largeRequired), config.subtitle);
+  updateMissionHud("NÚCLEOS DETECTADOS", largeObjectiveLabel(mission01.largeRequired), config.subtitle);
+  playAudioEvent("mission_zone_enter");
   playMissionAudio("large_spawn");
   syncRobotCompanion("large_obstacle");
   for (const obstacle of mission01.largeObstacles) {
@@ -3081,7 +3912,7 @@ function revealMissionRelic(sourceTarget) {
   relicCore.material.opacity = 0;
   relicScanlines.material.opacity = 0;
   updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", config.subtitle);
-  playMissionAudio("large_break");
+  playAudioEvent("core_destroyed");
   syncRobotCompanion("relic");
   window.setTimeout(() => {
     if (mission01.state !== "relic" || mission01.unlockStarted) return;
@@ -3090,9 +3921,49 @@ function revealMissionRelic(sourceTarget) {
     playMissionAudio("relic_idle");
     enterAstronautMode();
     mission01.relicState = "collectible";
-    updateMissionHud("RELIQUIA ACTIVADA", "TOCÁ LA SEÑAL", config.subtitle);
+    updateMissionHud("ACTIVÁ LA RELIQUIA", "TOCÁ LA SEÑAL", config.subtitle);
     syncRobotCompanion("relic");
   }, 520);
+}
+
+function acquireStageGem() {
+  const nextGemCount = THREE.MathUtils.clamp(mission01.currentStageIndex + 1, 1, 3);
+  if (mission01.gems < nextGemCount) {
+    mission01.gems = nextGemCount;
+    playAudioEvent("gem_acquired");
+    playAudioEvent("gem_counter_update");
+  }
+  updateGemHud();
+}
+
+function startFinalSequence() {
+  if (mission01.finalStarted || mission01.finalComplete) return;
+  mission01.finalStarted = true;
+  mission01.finalTime = 0;
+  mission01.state = "final";
+  mission01.finalSignalAcquired = false;
+  finalFxGroup.visible = true;
+  finalFxGroup.position.set(0, 0, 0.18);
+  finalCore.position.set(relicGroup.position.x || 0, relicGroup.position.y || 0.1, 0.2);
+  finalCore.scale.setScalar(0.34);
+  finalCore.material.opacity = 0.82;
+  finalShockwave.position.copy(finalCore.position);
+  finalShockwave.scale.setScalar(0.20);
+  finalShockwave.material.opacity = 0;
+  finalFlash.position.copy(finalCore.position);
+  finalFlash.scale.setScalar(0.24);
+  finalFlash.material.opacity = 0;
+  finalParticles.material.opacity = 0;
+  finalBeamSprites.forEach((beam) => {
+    beam.visible = true;
+    beam.material.opacity = 0;
+  });
+  playAudioEvent("final_relic_touch");
+  playAudioEvent("final_core_collapse");
+  updateMissionHud("FINAL ZONE", "ACTIVÁ LA SEÑAL FINAL", "RUMBO FINAL / ZONA FINAL");
+  syncRobotCompanion("final");
+  enterAstronautMode();
+  updateStageHud();
 }
 
 function touchMissionRelic() {
@@ -3106,7 +3977,14 @@ function touchMissionRelic() {
   playMissionAudio("relic_touch");
   playMissionAudio("energy_transfer");
   triggerAstronautAction();
-  updateMissionHud("STAGE UNLOCKED", "NUEVA RUTA ABIERTA", "GRAVEDAD ZERO");
+  acquireStageGem();
+  const config = currentMissionConfig();
+  const isFinalStageGem = mission01.currentStageIndex >= missionStageConfigs.length - 1;
+  updateMissionHud(
+    `${config.gemName} ADQUIRIDA`,
+    isFinalStageGem ? "FINAL ZONE ACTIVADA" : "NUEVO RUMBO ESTABILIZADO",
+    isFinalStageGem ? "RUMBO FINAL / ZONA FINAL" : config.subtitle
+  );
   syncRobotCompanion("unlocked");
 
   const from = relicGroup.position;
@@ -3124,7 +4002,11 @@ function touchMissionRelic() {
   unlockFlash.material.opacity = 0.82;
 
   window.setTimeout(() => {
-    playMissionAudio("stage_unlocked");
+    playAudioEvent("stage_route_unlocked");
+    if (isFinalStageGem) {
+      startFinalSequence();
+      return;
+    }
     if (!state.transition) startStageTransition();
   }, 760);
 }
@@ -3133,9 +4015,13 @@ function handleMissionTargetDestroyed(target, shooter) {
   if (!target?.userData.missionRole) return;
   const config = currentMissionConfig();
   if (target.userData.missionRole === "small") {
-    playMissionAudio("small_break");
+    playAudioEvent("fragment_collected");
     mission01.smallDestroyed = Math.min(mission01.smallRequired, mission01.smallDestroyed + 1);
-    updateMissionHud("TOMA EL CONTROL", `${mission01.smallDestroyed}/${mission01.smallRequired} SEÑALES MENORES`, config.subtitle);
+    updateMissionHud(
+      "RECUPERANDO FRAGMENTOS",
+      `${mission01.smallDestroyed}/${mission01.smallRequired} FRAGMENTOS DE SEÑAL`,
+      config.subtitle
+    );
     playMissionAudio("robot_item_update");
     syncRobotCompanion("small_asteroids");
     if (mission01.smallDestroyed >= mission01.smallRequired) {
@@ -3143,10 +4029,10 @@ function handleMissionTargetDestroyed(target, shooter) {
     }
   }
   if (target.userData.missionRole === "large") {
-    playMissionAudio("large_break");
+    playAudioEvent("core_destroyed");
     mission01.largeDestroyed = Math.min(mission01.largeRequired, mission01.largeDestroyed + 1);
     updateMissionHud(
-      "NÚCLEO INESTABLE",
+      "ROMPIENDO NÚCLEOS",
       `${mission01.largeDestroyed}/${mission01.largeRequired} ${largeObjectiveNoun(mission01.largeRequired)}`,
       config.subtitle
     );
@@ -3161,11 +4047,12 @@ function handleMissionTargetDestroyed(target, shooter) {
 function damageTarget(target, shooter) {
   if (!target || target.userData.destroyed) return;
   if (target.userData.missionRole === "small") playMissionAudio("small_hit");
-  if (target.userData.missionRole === "large") playMissionAudio("large_hit");
+  if (target.userData.missionRole === "large") playAudioEvent("core_hit");
   target.userData.hp -= shooter === "ship" ? 2 : 1;
   target.userData.hitPulse = 1;
   const impactPoint = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
   spawnImpact(impactPoint, target.userData.hp <= 0);
+  playAudioEvent(target.userData.hp <= 0 ? "impact_hit_stop" : "recoil_hit");
   if (target.userData.hp <= 0) {
     target.userData.destroyed = true;
     target.userData.destroyTime = 0;
@@ -3222,6 +4109,18 @@ function updateInteractionFx(delta) {
     const impact = activeImpacts[i];
     impact.userData.time += delta;
     const t = impact.userData.time / impact.userData.duration;
+    if (impact.userData.spray) {
+      impact.position.x += impact.userData.drift.x * delta;
+      impact.position.y += impact.userData.drift.y * delta;
+      impact.scale.setScalar(impact.userData.baseScale * (1 + t * (impact.userData.strong ? 1.8 : 1.25)));
+      impact.material.opacity = Math.max(0, impact.userData.baseOpacity * (1 - t));
+      if (t >= 1) {
+        interactionFx.remove(impact);
+        impact.material.dispose();
+        activeImpacts.splice(i, 1);
+      }
+      continue;
+    }
     const scale = impact.userData.strong ? 0.34 + t * 0.42 : 0.20 + t * 0.22;
     impact.scale.setScalar(scale);
     impact.material.opacity = Math.max(0, (impact.userData.strong ? 0.95 : 0.62) * (1 - t));
@@ -3301,6 +4200,93 @@ function updateMission01(delta, elapsed) {
   if (energyBeam.visible) {
     energyBeam.material.opacity = Math.max(0, energyBeam.material.opacity - delta * 0.52);
     if (energyBeam.material.opacity <= 0.01) energyBeam.visible = false;
+  }
+}
+
+function updateFinalSequence(delta, elapsed) {
+  if (!mission01.finalStarted) {
+    finalFxGroup.visible = false;
+    return;
+  }
+
+  mission01.finalTime += delta;
+  const t = mission01.finalTime;
+  finalFxGroup.visible = true;
+  const corePoint = new THREE.Vector2(finalCore.position.x, finalCore.position.y);
+  const shipPoint = new THREE.Vector2(shipGroup.position.x, shipGroup.position.y);
+  const collapse = THREE.MathUtils.smoothstep(t, 0.05, 0.90);
+  const release = THREE.MathUtils.smoothstep(t, 0.70, 1.28);
+  const resolve = THREE.MathUtils.smoothstep(t, 2.40, 3.70);
+
+  finalCore.rotation.z = elapsed * (1.2 + collapse * 1.8);
+  finalCore.scale.setScalar(THREE.MathUtils.lerp(0.34, 0.07, collapse) + Math.sin(elapsed * 16) * 0.006);
+  finalCore.material.opacity = Math.max(0, 0.86 * (1 - THREE.MathUtils.smoothstep(t, 0.86, 1.42)));
+
+  finalFlash.position.copy(finalCore.position);
+  finalFlash.scale.setScalar(0.22 + release * 1.15);
+  finalFlash.material.opacity = Math.max(0, Math.sin(Math.PI * release) * 0.86 * (1 - resolve));
+
+  finalShockwave.position.copy(finalCore.position);
+  finalShockwave.scale.setScalar(0.20 + release * 1.72);
+  finalShockwave.material.rotation = elapsed * 0.36;
+  finalShockwave.material.opacity = Math.max(0, 0.62 * Math.sin(Math.PI * release) * (1 - resolve * 0.8));
+
+  const positions = finalParticleGeometry.attributes.position;
+  for (let i = 0; i < finalParticleCount; i += 1) {
+    const slot = i / finalParticleCount;
+    const angle = elapsed * (2.4 + slot * 2.0) + slot * Math.PI * 10;
+    const radius = (0.04 + slot * 0.76) * (0.35 + release * 1.25);
+    const spiral = Math.sin(release * Math.PI) * (1 - resolve * 0.6);
+    positions.setXYZ(
+      i,
+      Math.cos(angle) * radius * spiral,
+      Math.sin(angle) * radius * spiral,
+      0.18 + slot * 0.04
+    );
+  }
+  positions.needsUpdate = true;
+  finalParticles.position.copy(finalCore.position);
+  finalParticles.material.opacity = Math.max(0, 0.50 * Math.sin(Math.PI * release) * (1 - resolve));
+
+  finalBeamSprites.forEach((beam, index) => {
+    const angle = (index / finalBeamSprites.length) * Math.PI * 2 + elapsed * 0.36;
+    const from = new THREE.Vector2(
+      corePoint.x + Math.cos(angle) * (0.08 + release * 0.10),
+      corePoint.y + Math.sin(angle) * (0.08 + release * 0.10)
+    );
+    placeBeamSprite(beam, from, shipPoint);
+    beam.material.opacity = Math.max(0, release * 0.52 * (1 - resolve * 0.7));
+  });
+
+  shipAura.material.opacity = Math.max(shipAura.material.opacity, 0.24 + release * 0.38);
+  shipAura.scale.set(shipSprite.scale.x * (1.76 + release * 0.40), shipSprite.scale.y * (1.20 + release * 0.30), 1);
+  unlockFlash.visible = release > 0.42 && !mission01.finalComplete;
+  if (unlockFlash.visible) {
+    unlockFlash.position.set(shipGroup.position.x, shipGroup.position.y, 0.13);
+    unlockFlash.scale.setScalar(0.66 + release * 0.72);
+    unlockFlash.material.opacity = Math.max(unlockFlash.material.opacity, 0.18 + release * 0.32);
+  }
+
+  if (!mission01.finalSignalAcquired && t >= 1.18) {
+    mission01.finalSignalAcquired = true;
+    mission01.gems = 3;
+    playAudioEvent("final_shockwave");
+    playAudioEvent("final_energy_beam");
+    playAudioEvent("final_signal_acquired");
+    updateMissionHud("SEÑAL FINAL ADQUIRIDA", "RUTA ESTABILIZADA", "RUMBO FINAL / ZONA FINAL");
+    syncRobotCompanion("final");
+  }
+
+  if (!mission01.finalComplete && t >= 3.15) {
+    mission01.finalComplete = true;
+    playAudioEvent("mission_complete_resolve");
+    updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
+    syncRobotCompanion("final");
+    updateStageHud();
+  }
+
+  if (mission01.finalComplete && resolve >= 0.98) {
+    finalFxGroup.visible = false;
   }
 }
 
@@ -3643,7 +4629,8 @@ function animate() {
   const elapsed = clock.elapsedTime;
   const hitStopped = aimAssist.hitStop > 0;
   if (hitStopped) aimAssist.hitStop = Math.max(0, aimAssist.hitStop - rawDelta);
-  const delta = rawDelta * (hitStopped ? 0.04 : aimAssist.active ? 0.46 : 1);
+  const finalSlow = mission01.finalStarted && !mission01.finalComplete && mission01.finalTime < 2.4;
+  const delta = rawDelta * (hitStopped ? 0.04 : aimAssist.active ? 0.40 : finalSlow ? 0.48 : 1);
 
   const keyX = keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
   const keyY = keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
@@ -3677,16 +4664,8 @@ function animate() {
       1 - Math.pow(0.006, delta)
     );
     const worldMoveSpeed = state.transition ? 0.72 : 1.72;
-    state.worldOffset.x = THREE.MathUtils.clamp(
-      state.worldOffset.x + input.velocity.x * worldMoveSpeed * delta,
-      -WORLD_HALF_WIDTH,
-      WORLD_HALF_WIDTH
-    );
-    state.worldOffset.y = THREE.MathUtils.clamp(
-      state.worldOffset.y + input.velocity.y * worldMoveSpeed * 1.18 * delta,
-      WORLD_MIN_Y,
-      WORLD_MAX_Y
-    );
+    state.worldOffset.x += input.velocity.x * worldMoveSpeed * delta;
+    state.worldOffset.y += input.velocity.y * worldMoveSpeed * 1.18 * delta;
     state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
   } else {
     setDirection(input.debugDirection || "idle");
@@ -3706,7 +4685,9 @@ function animate() {
   backgroundUniforms.uWorldOffset.value.copy(state.worldOffset);
 
   updateIntegratedBackground(delta, elapsed, shipVelocity);
+  updateChunkObjects(delta, elapsed, shipVelocity);
   updateOrbitalObjects(delta, elapsed, shipVelocity);
+  updateMissionZones(delta, elapsed);
   updateShipEngineAudio(shipVelocity, state.transition, rawDelta);
   updateShipFx(elapsed, shipVelocity);
   updateTransition(delta, elapsed);
@@ -3714,6 +4695,7 @@ function animate() {
   updateInteractionFx(delta);
   updateAimAssist(rawDelta, elapsed);
   updateMission01(delta, elapsed);
+  updateFinalSequence(rawDelta, elapsed);
   updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
 
@@ -3725,7 +4707,7 @@ function animate() {
 }
 
 updateStageHud();
-updateMissionHud("TOMA EL CONTROL", "CLICK O ENTER PARA INICIAR", "RUTA DESCONOCIDA");
+updateMissionHud("TOMA EL CONTROL", "CLICK O ENTER PARA INICIAR", "SECTOR INICIAL");
 syncRobotCompanion("boot");
 window.addEventListener("resize", resize);
 resize();
