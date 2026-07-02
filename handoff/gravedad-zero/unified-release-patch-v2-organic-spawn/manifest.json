@@ -1,0 +1,33 @@
+{
+  "name": "gravedad-zero-unified-release-patch-v2-organic-spawn",
+  "source_of_truth": "handoff/gravedad-zero/unified-release-patch-v2-organic-spawn/",
+  "must_include": [
+    "organic_offscreen_spawn",
+    "no_spawn_in_camera",
+    "progressive_vivid_bodies_by_stage",
+    "companion_only_hud",
+    "hide_default_hud",
+    "hide_stage_and_speed_clickables",
+    "minimal_gem_badge_top_left",
+    "companion_story_intro",
+    "stage_unlocks_by_gems",
+    "F_turbo",
+    "turbo_propulsion_fx",
+    "autoaim_range_success_and_miss"
+  ],
+  "automatic_failures": [
+    "planet_pops_inside_viewport",
+    "body_spawns_on_player",
+    "hud_default_visible",
+    "stage_button_visible",
+    "speed_button_visible",
+    "no_gem_badge",
+    "worlds_remain_grey_background_only",
+    "no_vivid_bodies",
+    "autoaim_hits_from_anywhere"
+  ],
+  "visual_references": [
+    "01_current_latest_reference.png",
+    "02_bad_line_artifacts_reference.png"
+  ]
+}

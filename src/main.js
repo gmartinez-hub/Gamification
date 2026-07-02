@@ -9,6 +9,7 @@ const missionSubtitle = document.querySelector("#missionSubtitle");
 const missionStatus = document.querySelector("#missionStatus");
 const missionProgress = document.querySelector("#missionProgress");
 const gemHud = document.querySelector("#gemHud");
+const gemBadge = document.querySelector("#gemBadge");
 const robotPanel = document.querySelector("#robotPanel");
 const robotStateLabel = document.querySelector("#robotStateLabel");
 const robotGoal = document.querySelector("#robotGoal");
@@ -142,7 +143,17 @@ const speedState = {
   visualMultiplier: SPEED_MODES[requestedSpeedMode].multiplier,
   currentTuning: { ...STAGE_TUNING[initialStageIndex] },
   notificationTime: 0,
+  turboActive: false,
+  turboPulse: 0,
+  turboLabel: "TURBO LIMITADO",
 };
+
+const TURBO_UNLOCKS = [
+  { label: "TURBO LIMITADO", multiplier: 1.22, audio: 0.90, requiredGems: 0 },
+  { label: "TURBO x2", multiplier: 1.55, audio: 1.08, requiredGems: 1 },
+  { label: "TURBO x3", multiplier: 1.92, audio: 1.24, requiredGems: 2 },
+  { label: "WARP PULSE", multiplier: 2.34, audio: 1.42, requiredGems: 3 },
+];
 
 const state = {
   stageIndex: initialStageIndex,
@@ -568,7 +579,10 @@ function fadeMissionLoop(id, targetVolume, delta) {
 
 function currentAudioIntensity() {
   const mode = SPEED_MODES[speedState.modeIndex];
-  return speedState.currentTuning.audioIntensity * mode.audio * (0.92 + (speedState.currentMultiplier - 1) * 0.24);
+  const turbo = currentTurboUnlock();
+  return speedState.currentTuning.audioIntensity *
+    mode.audio *
+    (0.92 + (speedState.currentMultiplier - 1) * 0.24 + speedState.turboPulse * turbo.audio * 0.20);
 }
 
 function updateShipEngineAudio(shipVelocity, transition, delta) {
@@ -692,12 +706,28 @@ function renderMissionProgress(progress = "") {
 }
 
 function updateGemHud() {
-  if (!gemHud) return;
+  const gems = THREE.MathUtils.clamp(mission01.gems, 0, 3);
   if (mission01.finalSignalAcquired || mission01.finalComplete) {
-    gemHud.textContent = "SEÑAL FINAL ADQUIRIDA";
+    if (gemHud) gemHud.textContent = "SEÑAL FINAL ADQUIRIDA";
+    if (gemBadge) {
+      gemBadge.hidden = false;
+      gemBadge.dataset.gems = "3";
+      gemBadge.textContent = "◆◆◆ FINAL";
+    }
     return;
   }
-  gemHud.textContent = `GEMAS ${THREE.MathUtils.clamp(mission01.gems, 0, 3)}/3`;
+  if (gemHud) gemHud.textContent = `GEMAS ${gems}/3`;
+  if (!gemBadge) return;
+  gemBadge.hidden = !mission01.started && !mission01.finalStarted && !mission01.finalComplete;
+  gemBadge.dataset.gems = String(gems);
+  gemBadge.textContent = `${"◆".repeat(gems)}${"◇".repeat(3 - gems)} GEMAS ${gems}/3`;
+}
+
+function pulseGemBadge() {
+  if (!gemBadge) return;
+  gemBadge.classList.remove("is-pulsing");
+  void gemBadge.offsetWidth;
+  gemBadge.classList.add("is-pulsing");
 }
 
 function stageSectorLabel(stageIndex = state.stageIndex) {
@@ -1176,7 +1206,7 @@ function makePremiumPlanetTexture(kind) {
   return texture;
 }
 
-function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, map = null, normalMap = null }) {
+function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, map = null, normalMap = null, profileStage = 0 }) {
   const group = new THREE.Group();
   const worldBase = new THREE.Vector3(position.x, routeY + position.y, position.z);
   group.position.copy(worldBase);
@@ -1188,6 +1218,7 @@ function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, m
     orbitRadius: new THREE.Vector2(0.48 + random() * 0.58, 0.24 + random() * 0.42),
     orbitSpeed: (kind === "dark" ? -0.18 : 0.14) * (0.7 + random() * 0.85),
     orbitPhase: random() * Math.PI * 2,
+    profileStage,
   };
 
   const sphere = new THREE.Mesh(
@@ -1484,6 +1515,11 @@ const aimAssist = {
   targetRotation: 0,
   baseDirection: "right",
   hitStop: 0,
+  distance: 0,
+  maxRange: 1,
+  successChance: 1,
+  willHit: true,
+  missPoint: new THREE.Vector2(),
   played: {},
 };
 
@@ -1521,8 +1557,8 @@ const menuScreens = {
   controls: {
     eyebrow: "GRAVEDAD ZERO",
     title: "CONTROLES",
-    subtitle: "AUTO TARGET",
-    body: ["WASD / FLECHAS", "CLICK / DISPARO", "ESC / PAUSA"],
+    subtitle: "AUTOAIM + TURBO",
+    body: ["WASD / FLECHAS", "CLICK / AUTOAIM", "F / TURBO", "ESC / PAUSA"],
     actions: [
       ["VOLVER", "title", "secondary"],
       ["INICIAR MISIÓN", "start"],
@@ -1552,13 +1588,15 @@ const menuScreens = {
 };
 
 [
-  { kind: "ocean", radius: 2.8, position: new THREE.Vector3(8.4, 0, -11.2), routeY: -9.0, opacity: 0.92, map: worldTextures.oceanWorld },
-  { kind: "dark", radius: 1.72, position: new THREE.Vector3(-10.6, 0, -9.8), routeY: 4.6, opacity: 0.90, map: worldTextures.cyberEarth },
-  { kind: "ocean", radius: 1.35, position: new THREE.Vector3(11.8, 0, -14.0), routeY: 18.0, opacity: 0.70, map: worldTextures.networkPlanet },
-  { kind: "dark", radius: 2.25, position: new THREE.Vector3(-8.8, 0, -11.8), routeY: 32.5, opacity: 0.86, map: worldTextures.darkCrater, normalMap: worldTextures.darkCraterNormal },
-  { kind: "ocean", radius: 1.72, position: new THREE.Vector3(9.6, 0, -10.6), routeY: 48.0, opacity: 0.80, map: worldTextures.gasGiant },
-  { kind: "dark", radius: 2.55, position: new THREE.Vector3(-12.6, 0, -12.4), routeY: 67.5, opacity: 0.86, map: worldTextures.craterWorld, normalMap: worldTextures.craterNormal },
-  { kind: "ocean", radius: 1.58, position: new THREE.Vector3(7.2, 0, -13.8), routeY: 82.0, opacity: 0.66, map: worldTextures.oceanColor },
+  { kind: "ocean", radius: 2.8, position: new THREE.Vector3(8.4, 0, -11.2), routeY: -9.0, opacity: 0.92, map: worldTextures.oceanWorld, profileStage: 0 },
+  { kind: "dark", radius: 2.48, position: new THREE.Vector3(8.6, -0.05, -10.95), routeY: -9.0, opacity: 0.88, map: worldTextures.networkPlanet, profileStage: 1 },
+  { kind: "dark", radius: 2.62, position: new THREE.Vector3(8.1, -0.10, -10.85), routeY: -9.0, opacity: 0.90, map: worldTextures.craterWorld, normalMap: worldTextures.craterNormal, profileStage: 2 },
+  { kind: "dark", radius: 1.72, position: new THREE.Vector3(-10.6, 0, -9.8), routeY: 4.6, opacity: 0.90, map: worldTextures.cyberEarth, profileStage: 1 },
+  { kind: "ocean", radius: 1.35, position: new THREE.Vector3(11.8, 0, -14.0), routeY: 18.0, opacity: 0.76, map: worldTextures.networkPlanet, profileStage: 1 },
+  { kind: "dark", radius: 2.25, position: new THREE.Vector3(-8.8, 0, -11.8), routeY: 32.5, opacity: 0.90, map: worldTextures.darkCrater, normalMap: worldTextures.darkCraterNormal, profileStage: 2 },
+  { kind: "ocean", radius: 1.72, position: new THREE.Vector3(9.6, 0, -10.6), routeY: 48.0, opacity: 0.78, map: worldTextures.gasGiant, profileStage: 1 },
+  { kind: "dark", radius: 2.55, position: new THREE.Vector3(-12.6, 0, -12.4), routeY: 67.5, opacity: 0.92, map: worldTextures.craterWorld, normalMap: worldTextures.craterNormal, profileStage: 2 },
+  { kind: "ocean", radius: 1.58, position: new THREE.Vector3(7.2, 0, -13.8), routeY: 82.0, opacity: 0.70, map: worldTextures.oceanColor, profileStage: 3 },
 ].forEach((planet) => createIntegratedPlanet(planet));
 
 const asteroidTextureCycle = [
@@ -1952,6 +1990,50 @@ const REGION_CONFIGS = {
   },
 };
 
+const ORGANIC_SPAWN_BANDS = {
+  offscreenNear: { min: 1.16, max: 1.72 },
+  offscreenFar: { min: 1.78, max: 2.72 },
+};
+
+const STAGE_WORLD_PROFILES = [
+  {
+    name: "STAGE_1_CLEAN_OCEAN",
+    accent: "#62edff",
+    density: 0.82,
+    planetFamilies: ["planet_ocean_large", "moon", "planet_gas_far"],
+    syntheticFamilies: ["gravity_node"],
+    vividFamilies: ["planet_ocean_large"],
+    debris: 0.55,
+  },
+  {
+    name: "STAGE_2_NETWORK_MECHANICAL",
+    accent: "#a36dff",
+    density: 1.04,
+    planetFamilies: ["planet_network", "mechanical_moon", "planet_gas_far"],
+    syntheticFamilies: ["broken_gate", "orbital_station_body", "gravity_node"],
+    vividFamilies: ["planet_network", "mechanical_moon"],
+    debris: 0.70,
+  },
+  {
+    name: "STAGE_3_DARK_SYNTHETIC",
+    accent: "#ff5de1",
+    density: 1.22,
+    planetFamilies: ["planet_crater_magenta", "planet_dark_giant", "mechanical_moon"],
+    syntheticFamilies: ["synthetic_core", "relic_fragment_cluster", "gravity_node"],
+    vividFamilies: ["planet_crater_magenta", "synthetic_core"],
+    debris: 0.82,
+  },
+  {
+    name: "FINAL_RELIC_ALIGNMENT",
+    accent: "#ffffff",
+    density: 1.12,
+    planetFamilies: ["planet_ocean_large", "planet_dark_giant", "mechanical_moon"],
+    syntheticFamilies: ["relic_fragment_cluster", "orbital_station_body", "gravity_node"],
+    vividFamilies: ["relic_fragment_cluster", "orbital_station_body"],
+    debris: 0.46,
+  },
+];
+
 const proceduralBodyTextures = {
   natural: [
     worldTextures.oceanColor,
@@ -1999,6 +2081,59 @@ function regionForChunk(chunkX, chunkY) {
   if (mission01.finalStarted || mission01.finalComplete) return REGION_CONFIGS.final;
   if (Math.abs(chunkY) >= Math.abs(chunkX)) return chunkY >= 0 ? REGION_CONFIGS.north : REGION_CONFIGS.south;
   return chunkX >= 0 ? REGION_CONFIGS.east : REGION_CONFIGS.west;
+}
+
+function currentWorldProfile() {
+  if (mission01.finalStarted || mission01.finalComplete || mission01.gems >= 3) return STAGE_WORLD_PROFILES[3];
+  const activeStage = mission01.started
+    ? Math.max(state.stageIndex, mission01.currentStageIndex, mission01.gems)
+    : Math.max(state.stageIndex, mission01.gems);
+  return STAGE_WORLD_PROFILES[THREE.MathUtils.clamp(activeStage, 0, STAGE_WORLD_PROFILES.length - 2)];
+}
+
+function visualRadiusForBody(object) {
+  return THREE.MathUtils.clamp((object.userData.radius || 0.5) * 0.13, 0.10, 0.62);
+}
+
+function isOutsideViewportWithMargin(point, radius = 0, margin = 0.35) {
+  return (
+    point.x < -viewport.aspect - radius - margin ||
+    point.x > viewport.aspect + radius + margin ||
+    point.y < -1 - radius - margin ||
+    point.y > 1 + radius + margin
+  );
+}
+
+function screenPointForProceduralBase(base, parallax) {
+  const span = proceduralWorld.chunkSize * (proceduralWorld.releaseRadius * 2 + 1);
+  return new THREE.Vector2(
+    wrapWorldDelta(base.x - state.worldOffset.x * (1 - parallax * 0.42), span) * proceduralWorld.displayScale,
+    wrapWorldDelta(base.y - state.worldOffset.y * (1 - parallax * 0.32), span) * proceduralWorld.displayScale
+  );
+}
+
+function placeProceduralBodyOffscreen(object, rand, bandName = "offscreenNear") {
+  const band = ORGANIC_SPAWN_BANDS[bandName] || ORGANIC_SPAWN_BANDS.offscreenNear;
+  const radius = visualRadiusForBody(object);
+  let point = screenPointForProceduralBase(object.userData.base, object.userData.parallax);
+  if (!isOutsideViewportWithMargin(point, radius, 0.22)) {
+    const side = Math.floor(rand() * 4);
+    const span = band.min + rand() * (band.max - band.min);
+    const xSign = rand() > 0.5 ? 1 : -1;
+    const ySign = rand() > 0.5 ? 1 : -1;
+    const desired = new THREE.Vector2(
+      side < 2 ? xSign * (viewport.aspect + radius + span * 0.42) : (rand() * 2 - 1) * viewport.aspect * 0.86,
+      side >= 2 ? ySign * (1 + radius + span * 0.34) : (rand() * 2 - 1) * 0.86
+    );
+    object.userData.base.x = desired.x / proceduralWorld.displayScale + state.worldOffset.x * (1 - object.userData.parallax * 0.42);
+    object.userData.base.y = desired.y / proceduralWorld.displayScale + state.worldOffset.y * (1 - object.userData.parallax * 0.32);
+    point = desired;
+  }
+  object.position.set(point.x, point.y, object.userData.base.z);
+  object.userData.reveal = 0;
+  object.userData.discovered = false;
+  object.userData.spawnBand = bandName;
+  object.scale.setScalar(0.92);
 }
 
 function proceduralStageTint(stageAffinity) {
@@ -2089,6 +2224,7 @@ function createLineCage(rand, radius, color) {
 function createProceduralBody(kind, chunkX, chunkY, rand, index) {
   const chunkSize = proceduralWorld.chunkSize;
   const region = regionForChunk(chunkX, chunkY);
+  const profile = currentWorldProfile();
   const base = new THREE.Vector3(
     chunkX * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
     chunkY * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
@@ -2096,12 +2232,16 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
   );
   const group = new THREE.Group();
   const stageAffinity = (Math.abs(chunkX) + Math.abs(chunkY) + index) % 4;
-  const tint = new THREE.Color(region.accent).lerp(proceduralStageTint(stageAffinity), 0.28);
+  const profileTint = new THREE.Color(profile.accent);
+  const tint = new THREE.Color(region.accent).lerp(profileTint, 0.52).lerp(proceduralStageTint(stageAffinity), 0.18);
+  const vividBody = profile.vividFamilies.includes(kind);
   const largePlanet =
     kind === "planet_far" ||
     kind === "planet_ocean_large" ||
     kind === "planet_dark_giant" ||
-    kind === "planet_gas_far";
+    kind === "planet_gas_far" ||
+    kind === "planet_network" ||
+    kind === "planet_crater_magenta";
   const midPlanet = kind === "planet_mid";
   const moonLike = kind === "moon" || kind === "tech_moon" || kind === "mechanical_moon";
   const radius =
@@ -2117,6 +2257,10 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
   const naturalMap =
     kind === "planet_ocean_large"
       ? (rand() > 0.5 ? worldTextures.oceanWorld : worldTextures.oceanColor)
+      : kind === "planet_network"
+        ? worldTextures.networkPlanet
+        : kind === "planet_crater_magenta"
+          ? (rand() > 0.5 ? worldTextures.craterWorld : worldTextures.darkCrater)
       : kind === "planet_dark_giant"
         ? (rand() > 0.5 ? worldTextures.darkCrater : worldTextures.networkPlanet)
         : kind === "planet_gas_far"
@@ -2128,11 +2272,20 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
     kind === "foreground_shards" ||
     kind === "moon" ||
     kind === "asteroid_belt_patch";
-  const opacity = largePlanet ? 0.28 + rand() * 0.18 : decorative ? 0.22 + rand() * 0.20 : 0.50 + rand() * 0.28;
+  const opacity = vividBody
+    ? 0.64 + rand() * 0.18
+    : largePlanet
+      ? 0.32 + rand() * 0.20
+      : decorative
+        ? 0.22 + rand() * 0.20
+        : 0.50 + rand() * 0.28;
 
   group.userData = {
     kind,
     region: region.name,
+    profile: profile.name,
+    profileStage: STAGE_WORLD_PROFILES.indexOf(profile),
+    vividBody,
     chunkKey: getChunkKey(chunkX, chunkY),
     base,
     radius,
@@ -2172,7 +2325,7 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
       );
       group.add(atmosphere);
     }
-    if (kind === "planet_ocean_large" || kind === "planet_gas_far") {
+    if (kind === "planet_ocean_large" || kind === "planet_gas_far" || kind === "planet_network" || kind === "planet_crater_magenta") {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(radius * 1.18, radius * 0.012, 8, 96),
         new THREE.MeshBasicMaterial({
@@ -2301,17 +2454,24 @@ function spawnChunkObjects(chunkX, chunkY) {
   if (proceduralWorld.chunks.has(key)) return proceduralWorld.chunks.get(key);
   const rand = seededRandom(chunkX, chunkY, state.stageIndex);
   const region = regionForChunk(chunkX, chunkY);
-  const chunk = { key, x: chunkX, y: chunkY, region: region.name, group: new THREE.Group(), objects: [] };
-  const density = region.density * speedState.currentTuning.spawnDensity;
-  const planetCount = rand() > 0.72 ? 2 : 1;
-  const syntheticCount = rand() > 0.54 / density ? 2 : 1;
-  const debrisCount = Math.max(1, Math.round((1 + Math.floor(rand() * 3)) * region.debris));
+  const profile = currentWorldProfile();
+  const chunk = { key, x: chunkX, y: chunkY, region: region.name, profile: profile.name, group: new THREE.Group(), objects: [] };
+  const density = region.density * profile.density * speedState.currentTuning.spawnDensity;
+  const planetPool = [...profile.planetFamilies, ...region.planetFamilies];
+  const syntheticPool = [...profile.syntheticFamilies, ...region.syntheticFamilies];
+  const vividCount = rand() > 0.48 ? 1 : 0;
+  const planetCount = rand() > 0.68 / density ? 2 : 1;
+  const syntheticCount = rand() > 0.58 / density ? 2 : 1;
+  const debrisCount = Math.max(1, Math.round((1 + Math.floor(rand() * 3)) * region.debris * profile.debris));
   const selections = [];
+  for (let i = 0; i < vividCount; i += 1) {
+    selections.push(profile.vividFamilies[Math.floor(rand() * profile.vividFamilies.length)]);
+  }
   for (let i = 0; i < planetCount; i += 1) {
-    selections.push(region.planetFamilies[Math.floor(rand() * region.planetFamilies.length)]);
+    selections.push(planetPool[Math.floor(rand() * planetPool.length)]);
   }
   for (let i = 0; i < syntheticCount; i += 1) {
-    selections.push(region.syntheticFamilies[Math.floor(rand() * region.syntheticFamilies.length)]);
+    selections.push(syntheticPool[Math.floor(rand() * syntheticPool.length)]);
   }
   for (let i = 0; i < debrisCount; i += 1) {
     selections.push(rand() > 0.72 ? "asteroid_belt_patch" : rand() > 0.52 ? "foreground_shards" : "debris_cluster");
@@ -2320,6 +2480,7 @@ function spawnChunkObjects(chunkX, chunkY) {
   selections.forEach((kind, index) => {
     const body = createProceduralBody(kind, chunkX, chunkY, rand, index);
     body.userData.chunkKey = key;
+    placeProceduralBodyOffscreen(body, rand, body.userData.vividBody ? "offscreenFar" : "offscreenNear");
     chunk.objects.push(body);
     proceduralWorld.objects.push(body);
   });
@@ -2388,20 +2549,35 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
       travelVelocity.y * object.userData.parallax * 0.22 +
       drift.y * elapsed;
     object.position.z = object.userData.base.z + Math.sin(phase * 0.52) * 0.34;
+    const visualRadius = visualRadiusForBody(object);
+    const enteringView = !isOutsideViewportWithMargin(object.position, visualRadius, 0.08);
+    if (enteringView) object.userData.discovered = true;
+    const revealTarget = object.userData.discovered ? 1 : 0;
+    object.userData.reveal = THREE.MathUtils.lerp(
+      object.userData.reveal ?? 0,
+      revealTarget,
+      1 - Math.pow(0.0008, delta)
+    );
+    const reveal = THREE.MathUtils.smoothstep(object.userData.reveal, 0, 1);
+    object.scale.setScalar(0.92 + reveal * 0.08);
     object.rotation.x += delta * object.userData.spin * 0.65;
     object.rotation.y += delta * object.userData.spin;
     object.rotation.z += delta * object.userData.spin * 0.42;
 
     const finalBoost = mission01.finalStarted ? 0.22 : 0;
     const stageAffinity = object.userData.stageAffinity;
-    const stageBlend = stageAffinity === 3 || stageAffinity === state.stageIndex ? 1 : 0.62;
+    const unlockedProfileStage = mission01.finalStarted ? 3 : Math.max(state.stageIndex, mission01.gems);
+    const stageBlend =
+      object.userData.vividBody || object.userData.profileStage <= unlockedProfileStage || stageAffinity === state.stageIndex
+        ? 1
+        : 0.62;
     const decorativeFade =
       object.userData.kind === "debris_cluster" || object.userData.kind === "foreground_shards" ? 0.58 : 1;
     const pulse = 0.88 + Math.sin(elapsed * (object.userData.kind === "gravity_node" ? 2.6 : 1.2) + object.userData.phase) * 0.12;
     object.traverse((child) => {
       if (!child.material || child.userData.baseOpacity === undefined) return;
       child.material.opacity = THREE.MathUtils.clamp(
-        child.userData.baseOpacity * stageBlend * pulse * decorativeFade + finalBoost,
+        (child.userData.baseOpacity * stageBlend * pulse * decorativeFade + finalBoost) * reveal,
         0,
         0.92
       );
@@ -3392,6 +3568,25 @@ function positionHudSprites() {
 }
 
 function robotTutorialContent(missionState = mission01.state) {
+  if (robotCompanion.focus === "turbo" && robotCompanion.focusTimer > 0) {
+    const turbo = currentTurboUnlock();
+    return {
+      label: "COMPANION / TURBO",
+      goal: `${turbo.label} disponible con ${mission01.gems}/3 gemas.`,
+      action: "Mantené F para acelerar en gravedad cero.",
+      tip: mission01.gems >= 3 ? "Warp Pulse empuja navegación, parallax y audio." : "Cada gema desbloquea más capacidad de turbo.",
+    };
+  }
+
+  if (robotCompanion.focus === "aim" && robotCompanion.focusTimer > 0) {
+    return {
+      label: "COMPANION / AUTOAIM",
+      goal: robotCompanion.message,
+      action: "Acercate al objetivo correcto antes de disparar.",
+      tip: "El rango y la alineación definen el porcentaje de éxito; si estás lejos, puede desviarse.",
+    };
+  }
+
   if (robotCompanion.focus === "speed" && robotCompanion.focusTimer > 0) {
     return {
       label: "COMPANION / VELOCIDAD",
@@ -3404,9 +3599,9 @@ function robotTutorialContent(missionState = mission01.state) {
   if (!mission01.started) {
     return {
       label: "COMPANION / SISTEMA ONLINE",
-      goal: "Iniciá la misión para recuperar las gemas de ruta.",
-      action: "Mové la nave con WASD o flechas.",
-      tip: "Clickeá objetivos marcados para activar autoaim.",
+      goal: "Recuperá tres gemas para abrir la ruta final.",
+      action: "Iniciá la misión, mové la nave y usá el companion como guía.",
+      tip: "F activa turbo cuando la ruta lo permite; el autoaim requiere distancia correcta.",
     };
   }
 
@@ -3466,9 +3661,9 @@ function robotTutorialContent(missionState = mission01.state) {
 
   return {
     label: "COMPANION / RUMBO",
-    goal: "Rumbo activo.",
+    goal: `Gemas ${mission01.gems}/3. ${currentTurboUnlock().label}.`,
     action: "Explorá el espacio y seguí los marcadores de zona.",
-    tip: "El control de velocidad cambia el ritmo del viaje y el audio.",
+    tip: "Los cuerpos nuevos se descubren viajando; no aparecen de golpe en la ruta.",
   };
 }
 
@@ -3610,10 +3805,34 @@ function validTargetForMissionPhase(target) {
   return false;
 }
 
-function showInvalidAim(point) {
+function aimRangeForTarget(target, shooter) {
+  const gemBoost = mission01.gems * 0.08;
+  if (target?.userData?.missionRole === "small" || shooter === "astronaut") return 1.05 + gemBoost;
+  return 1.48 + gemBoost * 1.2;
+}
+
+function aimSuccessForDistance(distance, maxRange, target, shooter) {
+  const rangeT = THREE.MathUtils.clamp(distance / Math.max(0.01, maxRange), 0, 1);
+  const base = shooter === "ship" ? 0.94 : 0.90;
+  const largePenalty = target?.userData?.missionRole === "large" ? 0.04 : 0;
+  const chance = base - rangeT * 0.34 - largePenalty + mission01.gems * 0.035;
+  return THREE.MathUtils.clamp(chance, 0.42, 0.98);
+}
+
+function setCompanionAimFeedback(message, openPanel = false) {
+  robotCompanion.focus = "aim";
+  robotCompanion.focusTimer = 4.8;
+  robotCompanion.message = message;
+  robotCompanion.pulse = 1;
+  if (openPanel) robotCompanion.panelOpen = true;
+  updateRobotPanel();
+}
+
+function showInvalidAim(point, message = "OBJETIVO FUERA DE RANGO") {
   if (aimAssist.active) return;
   playMissionAudio("invalid_target_blip");
   spawnImpact(point, false);
+  setCompanionAimFeedback(message, true);
 }
 
 function beginAimAssistTarget(target, clickPoint) {
@@ -3625,16 +3844,37 @@ function beginAimAssistTarget(target, clickPoint) {
   const shooter = shooterForTarget(target);
   if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
   if (shooter === "ship") enterShipMode();
+  const origin = shooter === "astronaut" ? astronautState.position : state.position;
+  const targetPoint = backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+  const distance = origin.distanceTo(targetPoint);
+  const maxRange = aimRangeForTarget(target, shooter);
+  if (distance > maxRange) {
+    const meters = Math.round((distance / maxRange) * 100);
+    showInvalidAim(clickPoint, `FUERA DE RANGO · ${meters}% DEL ALCANCE`);
+    return;
+  }
+  const successChance = aimSuccessForDistance(distance, maxRange, target, shooter);
+  const forcedMiss = params.get("forceMiss") === "1";
+  const willHit = forcedMiss ? false : random() < successChance;
+  const missSide = new THREE.Vector2(-(targetPoint.y - origin.y), targetPoint.x - origin.x).normalize();
+  const missAmount = THREE.MathUtils.lerp(0.14, 0.30, 1 - successChance);
+  const missPoint = targetPoint.clone().add(missSide.multiplyScalar((random() > 0.5 ? 1 : -1) * missAmount));
+  setCompanionAimFeedback(`AUTOAIM ${Math.round(successChance * 100)}% · ${willHit ? "LOCK" : "DESVÍO"}`);
 
   aimAssist.active = true;
   aimAssist.kind = "target";
   aimAssist.target = target;
   aimAssist.shooter = shooter;
   aimAssist.clickPoint.copy(clickPoint);
-  aimAssist.firePoint.copy(backgroundObjectScreenPoint(target, new THREE.Vector2()));
+  aimAssist.firePoint.copy(targetPoint);
   aimAssist.time = 0;
   aimAssist.fired = false;
   aimAssist.impacted = false;
+  aimAssist.distance = distance;
+  aimAssist.maxRange = maxRange;
+  aimAssist.successChance = successChance;
+  aimAssist.willHit = willHit;
+  aimAssist.missPoint.copy(missPoint);
   aimAssist.recoil = 0;
   aimAssist.recoilRoll = 0;
   aimAssist.orientationAngle = shooter === "astronaut" ? astronautGroup.rotation.z : shipGroup.rotation.z;
@@ -3802,7 +4042,10 @@ function updateAimAssist(delta, elapsed) {
     playAudioEvent("micro_thruster_burst");
     playMissionAudio(aimAssist.shooter === "ship" ? "ship_heavy_fire_cue" : "astronaut_tool_fire_cue");
     spawnOrientationBurst(origin, aimDirection, aimAssist.shooter);
-    if (aimAssist.kind === "target" && aimAssist.target) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
+    if (aimAssist.kind === "target" && aimAssist.target) {
+      if (aimAssist.willHit) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
+      else launchShotAtPoint(aimAssist.missPoint, aimAssist.shooter);
+    }
     if (aimAssist.shooter === "astronaut") triggerAstronautAction();
   }
 
@@ -3815,7 +4058,14 @@ function updateAimAssist(delta, elapsed) {
   if (!aimAssist.impacted && t >= aimAssist.impactTime) {
     aimAssist.impacted = true;
     aimAssist.hitStop = Math.max(aimAssist.hitStop, 0.12);
-    if (aimAssist.kind === "target" && aimAssist.target) damageTarget(aimAssist.target, aimAssist.shooter);
+    if (aimAssist.kind === "target" && aimAssist.target) {
+      if (aimAssist.willHit) damageTarget(aimAssist.target, aimAssist.shooter);
+      else {
+        spawnImpact(aimAssist.missPoint, false);
+        playMissionAudio("invalid_target_blip");
+        setCompanionAimFeedback(`MISS · AUTOAIM ${Math.round(aimAssist.successChance * 100)}%`);
+      }
+    }
     if (aimAssist.kind === "relic") touchMissionRelic();
   }
 
@@ -3951,6 +4201,15 @@ function targetStageTuning() {
   return STAGE_TUNING[THREE.MathUtils.clamp(state.stageIndex, 0, STAGE_TUNING.length - 2)];
 }
 
+function currentTurboUnlock() {
+  const gemTier = THREE.MathUtils.clamp(mission01.gems, 0, TURBO_UNLOCKS.length - 1);
+  return TURBO_UNLOCKS[gemTier];
+}
+
+function turboKeyHeld() {
+  return input.keys.has("f") || input.keys.has("F");
+}
+
 function updateSpeedButton() {
   if (!speedButton) return;
   const mode = SPEED_MODES[speedState.modeIndex];
@@ -3982,8 +4241,20 @@ function updateSpeedState(delta) {
   }
   speedState.currentTuning.label = target.label;
   const mode = SPEED_MODES[speedState.modeIndex];
-  const shiftBoost = input.keys.has("Shift") ? 1.14 : 1;
-  const targetMultiplier = mode.multiplier * shiftBoost;
+  const turbo = currentTurboUnlock();
+  const turboRequested = turboKeyHeld() && !state.transition && !aimAssist.active;
+  const turboWasActive = speedState.turboActive;
+  speedState.turboActive = turboRequested;
+  speedState.turboLabel = turbo.label;
+  speedState.turboPulse = THREE.MathUtils.lerp(speedState.turboPulse, turboRequested ? 1 : 0, 1 - Math.pow(0.001, delta));
+  if (turboRequested && !turboWasActive) {
+    robotCompanion.focus = "turbo";
+    robotCompanion.focusTimer = 3.2;
+    robotCompanion.pulse = 1;
+    playAudioEvent("speed_whoosh");
+    playAudioEvent("micro_thruster_burst");
+  }
+  const targetMultiplier = mode.multiplier * (turboRequested ? turbo.multiplier : 1);
   speedState.currentMultiplier = THREE.MathUtils.lerp(
     speedState.currentMultiplier,
     targetMultiplier,
@@ -3991,7 +4262,7 @@ function updateSpeedState(delta) {
   );
   speedState.visualMultiplier = THREE.MathUtils.lerp(
     speedState.visualMultiplier,
-    mode.multiplier * mode.streaks * speedState.currentTuning.speedLines,
+    mode.multiplier * mode.streaks * speedState.currentTuning.speedLines * (1 + speedState.turboPulse * turbo.audio * 0.48),
     1 - Math.pow(0.002, delta)
   );
   speedState.notificationTime = Math.max(0, speedState.notificationTime - delta);
@@ -4181,6 +4452,14 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
   backgroundCamera.lookAt(travelVelocity.x * 0.045, travelVelocity.y * 0.05 + ascentEnergy * 0.14, -5);
 
   for (const planet of integratedBackground.planets) {
+    const activeProfileStage = STAGE_WORLD_PROFILES.indexOf(currentWorldProfile());
+    const profileDistance = Math.abs((planet.userData.profileStage ?? 0) - activeProfileStage);
+    const profilePresence =
+      profileDistance === 0
+        ? 1
+        : 0.02;
+    planet.visible = profilePresence > 0.03;
+    if (!planet.visible) continue;
     const base = planet.userData.base;
     const parallax = planet.userData.parallax;
     const orbitAngle = elapsed * planet.userData.orbitSpeed + planet.userData.orbitPhase;
@@ -4188,7 +4467,6 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     const orbitY = Math.sin(orbitAngle * 0.82) * planet.userData.orbitRadius.y;
     const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.74 + parallax * 0.30), WORLD_WRAP_X);
     const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.84 + parallax * 0.18), WORLD_WRAP_Y);
-    planet.visible = true;
     planet.position.x =
       relativeX +
       orbitX;
@@ -4198,7 +4476,7 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     planet.position.z = base.z + Math.sin(orbitAngle * 0.55) * planet.userData.orbitRadius.y * 0.38;
     planet.rotation.y += delta * planet.userData.spin;
     planet.rotation.z += delta * planet.userData.spin * 0.20;
-    setGroupOpacity(planet, 1);
+    setGroupOpacity(planet, profilePresence);
   }
 
   for (const star of integratedBackground.stars.children) {
@@ -4543,6 +4821,7 @@ function acquireStageGem() {
     mission01.gems = nextGemCount;
     playAudioEvent("gem_acquired");
     playAudioEvent("gem_counter_update");
+    pulseGemBadge();
   }
   updateGemHud();
 }
@@ -4685,6 +4964,19 @@ function launchShotAtTarget(target, shooter = shooterForTarget(target)) {
   activeShots.push(shot);
 }
 
+function launchShotAtPoint(point, shooter = "ship") {
+  if (state.transition) return;
+  if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
+  if (shooter === "ship") enterShipMode();
+
+  const origin = shooter === "astronaut" ? astronautState.position.clone() : state.position.clone();
+  const shot = createShotLine(origin, point, shooter);
+  shot.userData = { ...shot.userData, target: null, targetPoint: point.clone(), shooter, time: 0, duration: 0.18, origin, miss: true };
+  spawnMuzzle(origin, shooter);
+  interactionFx.add(shot);
+  activeShots.push(shot);
+}
+
 function fireAtTarget(target) {
   if (!target) return;
   const point = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
@@ -4696,7 +4988,9 @@ function updateInteractionFx(delta) {
     const shot = activeShots[i];
     shot.userData.time += delta;
     const t = shot.userData.time / shot.userData.duration;
-    const targetPoint = shot.userData.target.userData.screenPoint || backgroundObjectScreenPoint(shot.userData.target, new THREE.Vector2());
+    const targetPoint = shot.userData.target
+      ? shot.userData.target.userData.screenPoint || backgroundObjectScreenPoint(shot.userData.target, new THREE.Vector2())
+      : shot.userData.targetPoint;
     const origin = shot.userData.shooter === "astronaut" ? astronautState.position : state.position;
     if (shot.userData.isBeam) {
       placeBeamSprite(shot, origin, targetPoint);
@@ -4976,7 +5270,7 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
   const isControlled = state.controlMode === "astronaut";
   if (isControlled) {
     astronautState.velocity.lerp(controlVelocity, 1 - Math.pow(0.004, delta));
-    const moveSpeed = 0.58;
+    const moveSpeed = 0.58 * (1 + speedState.turboPulse * 0.58);
     astronautState.position.x = THREE.MathUtils.clamp(
       astronautState.position.x + astronautState.velocity.x * moveSpeed * delta,
       -viewport.aspect + 0.10,
@@ -5026,11 +5320,12 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
   const returnPulse = astronautState.returnPulse * 0.18;
   astronautGroup.position.set(astronautState.position.x, astronautState.position.y, 0.04);
   astronautSprite.position.set(0, 0, 0.02);
-  astronautSprite.rotation.z = Math.sin(elapsed * 0.72) * 0.035 - astronautState.velocity.x * 0.035;
+  astronautSprite.rotation.z = Math.sin(elapsed * (0.72 + speedState.turboPulse * 0.42)) * 0.035 - astronautState.velocity.x * (0.035 + speedState.turboPulse * 0.035);
   astronautSprite.material.opacity = state.transition ? 0.24 : isControlled ? 0.98 : 0.84;
   astronautHalo.material.opacity = state.transition
     ? 0.05
-    : 0.10 + controlledPulse + returnPulse;
+    : 0.10 + controlledPulse + returnPulse + speedState.turboPulse * 0.20;
+  astronautHalo.scale.setScalar(0.23 * (1 + speedState.turboPulse * 0.18));
 }
 
 window.addEventListener("keydown", (event) => {
@@ -5058,7 +5353,7 @@ window.addEventListener("keydown", (event) => {
       return;
     }
     if (state.controlMode === "astronaut") triggerAstronautAction();
-    else startStageTransition();
+    else setCompanionAimFeedback("SECTOR BLOQUEADO · RECUPERÁ LA GEMA", true);
   }
 });
 
@@ -5212,6 +5507,7 @@ function animateBackdrop(delta, elapsed, travelVelocity) {
 function updateShipFx(elapsed, shipVelocity) {
   const speed = Math.min(1, shipVelocity.length());
   const moving = speed > 0.08;
+  const turbo = speedState.turboPulse;
   const direction = moving
     ? shipVelocity.clone().normalize()
     : new THREE.Vector2(0, 0.82 + Math.sin(elapsed * 0.7) * 0.05).normalize();
@@ -5219,31 +5515,36 @@ function updateShipFx(elapsed, shipVelocity) {
   const stageScale = { stage1: 0.82, stage2: 1, stage3: 1.16 }[currentStage()];
   const pulse = 0.5 + Math.sin(elapsed * 2.35) * 0.5;
 
-  shipAura.material.opacity = 0.16 + pulse * 0.035 + speed * 0.20 + (state.transition ? 0.16 : 0);
-  shipAura.rotation.z = elapsed * 0.16;
+  shipAura.material.opacity = 0.16 + pulse * 0.035 + speed * 0.20 + turbo * 0.28 + (state.transition ? 0.16 : 0);
+  shipAura.rotation.z = elapsed * (0.16 + turbo * 0.18);
+  shipAura.scale.set(
+    shipSprite.scale.x * (1.72 + turbo * 0.56),
+    shipSprite.scale.y * (1.16 + turbo * 0.36),
+    1
+  );
 
-  velocityWake.visible = false;
-  velocityWake.position.set(behind.x * 0.28 * stageScale, behind.y * 0.28 * stageScale, -0.01);
+  velocityWake.visible = moving || turbo > 0.03;
+  velocityWake.position.set(behind.x * (0.28 + turbo * 0.14) * stageScale, behind.y * (0.28 + turbo * 0.14) * stageScale, -0.01);
   velocityWake.material.rotation = Math.atan2(direction.y, direction.x);
-  velocityWake.material.opacity = 0;
-  scaleSprite(velocityWake, shipSprite.scale.x * 1.34 * (1 + speed * 0.22));
+  velocityWake.material.opacity = (0.08 + speed * 0.24 + turbo * 0.34) * (moving ? 1 : 0.55);
+  scaleSprite(velocityWake, shipSprite.scale.x * 1.34 * (1 + speed * 0.22 + turbo * 0.42));
 
   let i = 0;
   for (const particle of motionParticles.children) {
     const depth = particle.userData.depth;
     const phase = particle.userData.phase + elapsed * (0.85 + speed * 2.2);
     const side = new THREE.Vector2(-direction.y, direction.x);
-    const trail = (0.08 + (i % 6) * 0.034) * (0.9 + speed * 1.5) * stageScale;
-    const spread = Math.sin(phase) * (0.025 + speed * 0.048) * depth;
+    const trail = (0.08 + (i % 6) * 0.034) * (0.9 + speed * 1.5 + turbo * 1.25) * stageScale;
+    const spread = Math.sin(phase) * (0.025 + speed * 0.048 + turbo * 0.030) * depth;
     const orbit = Math.cos(phase * 0.63) * (0.012 + depth * 0.012);
     particle.position.set(
       behind.x * trail + side.x * spread + direction.x * orbit,
       behind.y * trail + side.y * spread + direction.y * orbit,
       0.015
     );
-    const particleSize = (0.007 + depth * 0.010 + speed * 0.008) * stageScale;
+    const particleSize = (0.007 + depth * 0.010 + speed * 0.008 + turbo * 0.010) * stageScale;
     particle.scale.set(particleSize, particleSize, 1);
-    particle.material.opacity = moving ? (0.030 + speed * 0.075) * depth : 0.010 + pulse * 0.012;
+    particle.material.opacity = moving ? (0.030 + speed * 0.075 + turbo * 0.12) * depth : 0.010 + pulse * 0.012;
     i += 1;
   }
 }
