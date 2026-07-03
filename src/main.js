@@ -190,6 +190,23 @@ function loadWorldTexture(path, { color = true, repeat = [1, 1] } = {}) {
   return texture;
 }
 
+function makeStripFrameTexture(texture, frame, frameCount = 4) {
+  const frameTexture = texture.clone();
+  frameTexture.repeat.set(1 / frameCount, 1);
+  frameTexture.offset.set(frame / frameCount, 0);
+  frameTexture.needsUpdate = true;
+  return frameTexture;
+}
+
+function makeStripFrameAssets(texture, frameCount = 4, aspect = 1) {
+  return Array.from({ length: frameCount }, (_, frame) => ({
+    texture: makeStripFrameTexture(texture, frame, frameCount),
+    aspect,
+    width: 1,
+    height: 1,
+  }));
+}
+
 function makeAsset(entry) {
   return {
     texture: loadTexture(entry.path),
@@ -252,6 +269,12 @@ const worldTextures = {
   oceanColor: loadWorldTexture("assets/runtime/three-textures/ocean-color.png"),
   oceanWorld: loadWorldTexture("assets/runtime/three-textures/ocean-world-bright-color.png"),
   gasGiant: loadWorldTexture("assets/runtime/three-textures/gas-giant-color.png"),
+  oceanPrime: loadWorldTexture("assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png"),
+  darkCraterPremium: loadWorldTexture("assets/runtime/gravedad-zero/planets/planet_dark_crater_albedo.png"),
+  nebulaCore: loadWorldTexture("assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png"),
+  mechanicalMoonPremium: loadWorldTexture("assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png"),
+  auroraGas: loadWorldTexture("assets/runtime/gravedad-zero/planets/planet_aurora_gas_albedo.png"),
+  deepDarkEmissiveOverlay: loadWorldTexture("assets/runtime/gravedad-zero/planets/planet_deep_dark_emissive_overlay.png"),
   networkPlanet: loadWorldTexture("assets/runtime/three-textures/network-planet-dark-color.png"),
   craterWorld: loadWorldTexture("assets/runtime/three-textures/asteroid-crater-magenta-color.png"),
   craterNormal: loadWorldTexture("assets/runtime/three-textures/asteroid-crater-magenta-normal.png", { color: false }),
@@ -295,6 +318,17 @@ const missionFxTextures = {
   zeroGRotationStreaks: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/zero_g_rotation_streaks_overlay.png"),
   aimAssistLine: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/aim_assist/aim_assist_line.png"),
   fireReleaseFlash: loadTexture("gravedad_zero_aim_assist_fx_contracts_pack_v1/assets/vfx/projectiles/fire_release_flash.png"),
+  premiumTurboFlame: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_turbo_flame_strip.png"),
+  premiumSpeedStreaks: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_speed_streaks_strip.png"),
+  premiumImpactRing: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_impact_ring_strip.png"),
+  premiumGemBurst: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_gem_pickup_burst_strip.png"),
+};
+
+const premiumFxFrames = {
+  turboFlame: makeStripFrameAssets(missionFxTextures.premiumTurboFlame, 4),
+  speedStreaks: makeStripFrameAssets(missionFxTextures.premiumSpeedStreaks, 4),
+  impactRing: makeStripFrameAssets(missionFxTextures.premiumImpactRing, 4),
+  gemBurst: makeStripFrameAssets(missionFxTextures.premiumGemBurst, 4),
 };
 
 const robotFxTextures = {
@@ -1206,7 +1240,19 @@ function makePremiumPlanetTexture(kind) {
   return texture;
 }
 
-function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, map = null, normalMap = null, profileStage = 0 }) {
+function createIntegratedPlanet({
+  kind,
+  radius,
+  position,
+  routeY,
+  opacity = 1,
+  map = null,
+  normalMap = null,
+  emissiveMap = null,
+  emissiveIntensity = null,
+  unlit = false,
+  profileStage = 0,
+}) {
   const group = new THREE.Group();
   const worldBase = new THREE.Vector3(position.x, routeY + position.y, position.z);
   group.position.copy(worldBase);
@@ -1223,17 +1269,25 @@ function createIntegratedPlanet({ kind, radius, position, routeY, opacity = 1, m
 
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(radius, 72, 48),
-    new THREE.MeshStandardMaterial({
-      map: map || makePremiumPlanetTexture(kind),
-      normalMap,
-      normalScale: new THREE.Vector2(0.28, 0.28),
-      roughness: 0.78,
-      metalness: 0.04,
-      emissive: kind === "dark" ? 0x260a38 : 0x07325e,
-      emissiveIntensity: kind === "dark" ? 0.30 : 0.24,
-      transparent: true,
-      opacity,
-    })
+    unlit
+      ? new THREE.MeshBasicMaterial({
+          map: map || makePremiumPlanetTexture(kind),
+          color: 0xffffff,
+          transparent: true,
+          opacity,
+        })
+      : new THREE.MeshStandardMaterial({
+          map: map || makePremiumPlanetTexture(kind),
+          normalMap,
+          emissiveMap,
+          normalScale: new THREE.Vector2(0.28, 0.28),
+          roughness: 0.78,
+          metalness: 0.04,
+          emissive: kind === "dark" ? 0x260a38 : 0x07325e,
+          emissiveIntensity: emissiveIntensity ?? (kind === "dark" ? 0.30 : 0.24),
+          transparent: true,
+          opacity,
+        })
   );
   sphere.userData.baseOpacity = opacity;
   group.add(sphere);
@@ -1588,15 +1642,15 @@ const menuScreens = {
 };
 
 [
-  { kind: "ocean", radius: 2.8, position: new THREE.Vector3(8.4, 0, -11.2), routeY: -9.0, opacity: 0.92, map: worldTextures.oceanWorld, profileStage: 0 },
-  { kind: "dark", radius: 2.48, position: new THREE.Vector3(8.6, -0.05, -10.95), routeY: -9.0, opacity: 0.88, map: worldTextures.networkPlanet, profileStage: 1 },
-  { kind: "dark", radius: 2.62, position: new THREE.Vector3(8.1, -0.10, -10.85), routeY: -9.0, opacity: 0.90, map: worldTextures.craterWorld, normalMap: worldTextures.craterNormal, profileStage: 2 },
+  { kind: "ocean", radius: 2.8, position: new THREE.Vector3(8.4, 0, -11.2), routeY: -9.0, opacity: 0.94, map: worldTextures.oceanPrime, profileStage: 0 },
+  { kind: "dark", radius: 2.48, position: new THREE.Vector3(8.6, -0.05, -10.95), routeY: -9.0, opacity: 0.92, map: worldTextures.mechanicalMoonPremium, profileStage: 1 },
+  { kind: "dark", radius: 2.62, position: new THREE.Vector3(8.1, -0.10, -10.85), routeY: -9.0, opacity: 0.93, map: worldTextures.darkCraterPremium, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.42, unlit: true, profileStage: 2 },
   { kind: "dark", radius: 1.72, position: new THREE.Vector3(-10.6, 0, -9.8), routeY: 4.6, opacity: 0.90, map: worldTextures.cyberEarth, profileStage: 1 },
-  { kind: "ocean", radius: 1.35, position: new THREE.Vector3(11.8, 0, -14.0), routeY: 18.0, opacity: 0.76, map: worldTextures.networkPlanet, profileStage: 1 },
-  { kind: "dark", radius: 2.25, position: new THREE.Vector3(-8.8, 0, -11.8), routeY: 32.5, opacity: 0.90, map: worldTextures.darkCrater, normalMap: worldTextures.darkCraterNormal, profileStage: 2 },
-  { kind: "ocean", radius: 1.72, position: new THREE.Vector3(9.6, 0, -10.6), routeY: 48.0, opacity: 0.78, map: worldTextures.gasGiant, profileStage: 1 },
-  { kind: "dark", radius: 2.55, position: new THREE.Vector3(-12.6, 0, -12.4), routeY: 67.5, opacity: 0.92, map: worldTextures.craterWorld, normalMap: worldTextures.craterNormal, profileStage: 2 },
-  { kind: "ocean", radius: 1.58, position: new THREE.Vector3(7.2, 0, -13.8), routeY: 82.0, opacity: 0.70, map: worldTextures.oceanColor, profileStage: 3 },
+  { kind: "ocean", radius: 1.35, position: new THREE.Vector3(11.8, 0, -14.0), routeY: 18.0, opacity: 0.78, map: worldTextures.nebulaCore, profileStage: 1 },
+  { kind: "dark", radius: 2.25, position: new THREE.Vector3(-8.8, 0, -11.8), routeY: 32.5, opacity: 0.92, map: worldTextures.darkCraterPremium, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.36, unlit: true, profileStage: 2 },
+  { kind: "ocean", radius: 1.72, position: new THREE.Vector3(9.6, 0, -10.6), routeY: 48.0, opacity: 0.82, map: worldTextures.auroraGas, profileStage: 1 },
+  { kind: "dark", radius: 2.55, position: new THREE.Vector3(-12.6, 0, -12.4), routeY: 67.5, opacity: 0.94, map: worldTextures.darkCraterPremium, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.44, unlit: true, profileStage: 2 },
+  { kind: "ocean", radius: 1.58, position: new THREE.Vector3(7.2, 0, -13.8), routeY: 82.0, opacity: 0.86, map: worldTextures.nebulaCore, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.38, unlit: true, profileStage: 3 },
 ].forEach((planet) => createIntegratedPlanet(planet));
 
 const asteroidTextureCycle = [
@@ -2036,6 +2090,11 @@ const STAGE_WORLD_PROFILES = [
 
 const proceduralBodyTextures = {
   natural: [
+    worldTextures.oceanPrime,
+    worldTextures.auroraGas,
+    worldTextures.mechanicalMoonPremium,
+    worldTextures.nebulaCore,
+    worldTextures.darkCraterPremium,
     worldTextures.oceanColor,
     worldTextures.oceanWorld,
     worldTextures.gasGiant,
@@ -2056,6 +2115,54 @@ const proceduralBodyTextures = {
     loadTexture("gravedad_zero_astronaut_projectiles_pack_v1/assets/vfx/projectiles/generic_target_lock_glow.png"),
   ],
 };
+
+const proceduralPremiumTexturePools = {
+  STAGE_1_CLEAN_OCEAN: {
+    planet_ocean_large: [worldTextures.oceanPrime],
+    planet_gas_far: [worldTextures.auroraGas, worldTextures.gasGiant],
+    moon: [worldTextures.oceanWorld, worldTextures.oceanPrime],
+  },
+  STAGE_2_NETWORK_MECHANICAL: {
+    planet_network: [worldTextures.mechanicalMoonPremium, worldTextures.networkPlanet],
+    mechanical_moon: [worldTextures.mechanicalMoonPremium],
+    planet_gas_far: [worldTextures.nebulaCore, worldTextures.auroraGas],
+    gravity_node: [worldTextures.nebulaCore, missionFxTextures.timeDilationField],
+    broken_gate: [worldTextures.mechanicalMoonPremium, missionFxTextures.relicScanlines],
+    orbital_station_body: [worldTextures.mechanicalMoonPremium, worldTextures.nebulaCore],
+  },
+  STAGE_3_DARK_SYNTHETIC: {
+    planet_crater_magenta: [worldTextures.darkCraterPremium],
+    planet_dark_giant: [worldTextures.darkCraterPremium, worldTextures.deepDarkEmissiveOverlay],
+    mechanical_moon: [worldTextures.mechanicalMoonPremium],
+    synthetic_core: [worldTextures.deepDarkEmissiveOverlay, worldTextures.darkCraterPremium],
+    relic_fragment_cluster: [worldTextures.deepDarkEmissiveOverlay, missionFxTextures.relicCore],
+    gravity_node: [worldTextures.deepDarkEmissiveOverlay, missionFxTextures.timeDilationField],
+  },
+  FINAL_RELIC_ALIGNMENT: {
+    planet_ocean_large: [worldTextures.nebulaCore],
+    planet_dark_giant: [worldTextures.deepDarkEmissiveOverlay, worldTextures.darkCraterPremium],
+    mechanical_moon: [worldTextures.mechanicalMoonPremium],
+    relic_fragment_cluster: [worldTextures.nebulaCore, worldTextures.deepDarkEmissiveOverlay, missionFxTextures.relicGlow],
+    orbital_station_body: [worldTextures.nebulaCore, worldTextures.mechanicalMoonPremium],
+    gravity_node: [worldTextures.deepDarkEmissiveOverlay, missionFxTextures.relicRingA],
+  },
+};
+
+function pickTexture(pool, rand) {
+  return pool[Math.floor(rand() * pool.length)] || pool[0];
+}
+
+function premiumTextureForProceduralBody(kind, profile, rand) {
+  const profilePool = proceduralPremiumTexturePools[profile.name]?.[kind];
+  if (profilePool) return pickTexture(profilePool, rand);
+  if (kind === "planet_ocean_large") return rand() > 0.42 ? worldTextures.oceanPrime : worldTextures.oceanWorld;
+  if (kind === "planet_network") return rand() > 0.35 ? worldTextures.mechanicalMoonPremium : worldTextures.networkPlanet;
+  if (kind === "planet_crater_magenta") return rand() > 0.35 ? worldTextures.darkCraterPremium : worldTextures.craterWorld;
+  if (kind === "planet_dark_giant") return rand() > 0.5 ? worldTextures.darkCraterPremium : worldTextures.deepDarkEmissiveOverlay;
+  if (kind === "planet_gas_far") return rand() > 0.5 ? worldTextures.auroraGas : worldTextures.gasGiant;
+  if (kind === "mechanical_moon" || kind === "tech_moon") return worldTextures.mechanicalMoonPremium;
+  return null;
+}
 
 function getChunkKey(chunkX, chunkY) {
   return `${chunkX}:${chunkY}`;
@@ -2143,14 +2250,23 @@ function proceduralStageTint(stageAffinity) {
   return new THREE.Color("#62edff");
 }
 
-function makeBodyMaterial({ map, color = 0xffffff, emissive = 0x061426, opacity = 0.78, metalness = 0.10 }) {
+function makeBodyMaterial({
+  map,
+  color = 0xffffff,
+  emissive = 0x061426,
+  emissiveMap = null,
+  emissiveIntensity = 0.22,
+  opacity = 0.78,
+  metalness = 0.10,
+}) {
   return new THREE.MeshStandardMaterial({
     map,
     color,
     roughness: 0.76,
     metalness,
     emissive,
-    emissiveIntensity: 0.22,
+    emissiveMap,
+    emissiveIntensity,
     transparent: true,
     opacity,
   });
@@ -2254,31 +2370,21 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
           : kind === "debris_cluster" || kind === "foreground_shards" || kind === "asteroid_belt_patch"
             ? 0.12 + rand() * 0.22
             : 0.38 + rand() * 0.55;
-  const naturalMap =
-    kind === "planet_ocean_large"
-      ? (rand() > 0.5 ? worldTextures.oceanWorld : worldTextures.oceanColor)
-      : kind === "planet_network"
-        ? worldTextures.networkPlanet
-        : kind === "planet_crater_magenta"
-          ? (rand() > 0.5 ? worldTextures.craterWorld : worldTextures.darkCrater)
-      : kind === "planet_dark_giant"
-        ? (rand() > 0.5 ? worldTextures.darkCrater : worldTextures.networkPlanet)
-        : kind === "planet_gas_far"
-          ? worldTextures.gasGiant
-          : proceduralBodyTextures.natural[Math.floor(rand() * proceduralBodyTextures.natural.length)];
-  const syntheticMap = proceduralBodyTextures.synthetic[Math.floor(rand() * proceduralBodyTextures.synthetic.length)];
+  const premiumMap = premiumTextureForProceduralBody(kind, profile, rand);
+  const naturalMap = premiumMap || proceduralBodyTextures.natural[Math.floor(rand() * proceduralBodyTextures.natural.length)];
+  const syntheticMap = premiumMap || proceduralBodyTextures.synthetic[Math.floor(rand() * proceduralBodyTextures.synthetic.length)];
   const decorative =
     kind === "debris_cluster" ||
     kind === "foreground_shards" ||
     kind === "moon" ||
     kind === "asteroid_belt_patch";
   const opacity = vividBody
-    ? 0.64 + rand() * 0.18
+    ? 0.82 + rand() * 0.12
     : largePlanet
-      ? 0.32 + rand() * 0.20
+      ? 0.34 + rand() * 0.14
       : decorative
         ? 0.22 + rand() * 0.20
-        : 0.50 + rand() * 0.28;
+        : 0.48 + rand() * 0.24;
 
   group.userData = {
     kind,
@@ -2306,6 +2412,8 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
         map: naturalMap,
         color: 0xffffff,
         emissive: stageAffinity === 2 ? 0x31102a : 0x071932,
+        emissiveMap: kind === "planet_crater_magenta" || kind === "planet_dark_giant" ? worldTextures.deepDarkEmissiveOverlay : null,
+        emissiveIntensity: vividBody ? 0.34 : 0.20,
         opacity,
         metalness: 0.04,
       })
@@ -2349,6 +2457,8 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
         map: syntheticMap,
         color: 0xffffff,
         emissive: tint,
+        emissiveMap: kind === "synthetic_core" ? worldTextures.deepDarkEmissiveOverlay : null,
+        emissiveIntensity: vividBody ? 0.40 : 0.28,
         opacity: Math.min(0.86, opacity + 0.10),
         metalness: 0.34,
       })
@@ -3087,13 +3197,28 @@ const shipAura = new THREE.Sprite(
 shipAura.renderOrder = 18;
 shipGroup.add(shipAura);
 
-const velocityWake = makeSprite(fxFrames.speed[1], {
+const velocityWake = makeSprite(premiumFxFrames.speedStreaks[2], {
   opacity: 0,
   blending: THREE.AdditiveBlending,
   renderOrder: 17,
 });
 velocityWake.visible = false;
 shipGroup.add(velocityWake);
+
+const turboFlames = new THREE.Group();
+shipGroup.add(turboFlames);
+const turboFlameSprites = [-1, 1].map((side, index) => {
+  const sprite = makeSprite(premiumFxFrames.turboFlame[index], {
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    renderOrder: 18,
+    depthTest: false,
+  });
+  sprite.visible = false;
+  sprite.userData.side = side;
+  turboFlames.add(sprite);
+  return sprite;
+});
 
 const motionParticles = new THREE.Group();
 shipGroup.add(motionParticles);
@@ -3309,7 +3434,7 @@ const aimField = makeMissionSprite(missionFxTextures.timeDilationField, { opacit
 aimField.visible = false;
 scene.add(aimField);
 
-const aimRotationStreaks = makeMissionSprite(missionFxTextures.zeroGRotationStreaks, { opacity: 0.0, renderOrder: 46 });
+const aimRotationStreaks = makeMissionSprite(premiumFxFrames.speedStreaks[1].texture, { opacity: 0.0, renderOrder: 46 });
 aimRotationStreaks.visible = false;
 scene.add(aimRotationStreaks);
 
@@ -3395,68 +3520,68 @@ const robotModelParts = {
 };
 
 const robotBodyMaterial = makeRobotMaterial({
-  color: 0xf3f5ff,
-  emissive: 0x182540,
-  emissiveIntensity: 0.10,
-  roughness: 0.38,
+  color: 0xf4f6ff,
+  emissive: 0x111629,
+  emissiveIntensity: 0.055,
+  roughness: 0.44,
 });
 const robotFaceMaterial = makeRobotMaterial({
-  color: 0xf8f5ff,
-  emissive: 0x7054bc,
-  emissiveIntensity: 0.12,
-  roughness: 0.42,
+  color: 0xf9f6ff,
+  emissive: 0x2c2254,
+  emissiveIntensity: 0.05,
+  roughness: 0.48,
 });
 const robotAccentMaterial = makeRobotMaterial({
-  color: 0x8065ff,
-  emissive: 0x6b42ff,
-  emissiveIntensity: 0.42,
+  color: 0x5b34d6,
+  emissive: 0x4c22b7,
+  emissiveIntensity: 0.22,
   roughness: 0.30,
-  metalness: 0.12,
+  metalness: 0.10,
 });
 const robotTipMaterial = makeRobotMaterial({
-  color: 0xffe9a6,
-  emissive: 0xffb95e,
-  emissiveIntensity: 0.72,
+  color: 0xff8f45,
+  emissive: 0xff7b30,
+  emissiveIntensity: 0.34,
   roughness: 0.34,
 });
 const robotLensMaterial = makeRobotMaterial({
-  color: 0xf7efff,
-  emissive: 0xb18cff,
-  emissiveIntensity: 0.20,
-  roughness: 0.28,
-  opacity: 0.94,
+  color: 0xf8f4ff,
+  emissive: 0x2b1b58,
+  emissiveIntensity: 0.045,
+  roughness: 0.34,
+  opacity: 0.98,
 });
 const robotMouthMaterial = makeRobotMaterial({
-  color: 0x596174,
-  emissive: 0x161b2c,
-  emissiveIntensity: 0.16,
-  roughness: 0.34,
+  color: 0x7c879a,
+  emissive: 0x111520,
+  emissiveIntensity: 0.06,
+  roughness: 0.42,
 });
 const robotGlowMaterial = new THREE.MeshBasicMaterial({
-  color: 0x74efff,
+  color: 0xb58cff,
   transparent: true,
-  opacity: 0.12,
+  opacity: 0.035,
   blending: THREE.AdditiveBlending,
   depthWrite: false,
   depthTest: false,
 });
 
 const robotBody = new THREE.Mesh(new THREE.SphereGeometry(0.090, 48, 32), robotBodyMaterial);
-robotBody.scale.set(1.12, 1.03, 0.92);
+robotBody.scale.set(1.10, 1.03, 0.94);
 robotBody.renderOrder = 52;
 robotHudModel.add(robotBody);
 robotModelParts.body.push(robotBody);
 
 const robotFace = new THREE.Mesh(new THREE.SphereGeometry(0.072, 40, 24), robotFaceMaterial);
-robotFace.position.set(0, 0.003, 0.045);
-robotFace.scale.set(1.02, 0.86, 0.22);
+robotFace.position.set(0, 0.002, 0.047);
+robotFace.scale.set(1.00, 0.82, 0.18);
 robotFace.renderOrder = 53;
 robotHudModel.add(robotFace);
 robotModelParts.body.push(robotFace);
 
 const robotInnerGlow = new THREE.Mesh(new THREE.SphereGeometry(0.060, 32, 20), robotGlowMaterial);
 robotInnerGlow.position.set(0, 0.006, 0.058);
-robotInnerGlow.scale.set(1.06, 0.86, 0.16);
+robotInnerGlow.scale.set(0.94, 0.72, 0.12);
 robotInnerGlow.renderOrder = 52;
 robotHudModel.add(robotInnerGlow);
 robotModelParts.glow.push(robotInnerGlow);
@@ -3464,12 +3589,12 @@ robotModelParts.glow.push(robotInnerGlow);
 for (const x of [-0.037, 0.037]) {
   const lens = new THREE.Mesh(new THREE.SphereGeometry(0.031, 30, 16), robotLensMaterial);
   lens.position.set(x, 0.002, 0.077);
-  lens.scale.set(1.02, 0.98, 0.16);
+  lens.scale.set(0.98, 0.96, 0.13);
   lens.renderOrder = 54;
   robotHudModel.add(lens);
 
   const glasses = new THREE.Mesh(
-    new THREE.TorusGeometry(0.031, 0.0039, 10, 64),
+    new THREE.TorusGeometry(0.031, 0.0032, 10, 64),
     robotAccentMaterial
   );
   glasses.position.set(x, 0.002, 0.084);
@@ -3480,9 +3605,9 @@ for (const x of [-0.037, 0.037]) {
   const innerRing = new THREE.Mesh(
     new THREE.TorusGeometry(0.025, 0.0015, 8, 56),
     new THREE.MeshBasicMaterial({
-      color: 0x74efff,
+      color: 0xb339d4,
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.12,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false,
@@ -3493,29 +3618,29 @@ for (const x of [-0.037, 0.037]) {
   robotHudModel.add(innerRing);
   robotModelParts.glow.push(innerRing);
 
-  robotHudModel.add(makeRobotArc(x, -0.007, 0.014, 0x4c2378, 0.96));
+  robotHudModel.add(makeRobotArc(x, -0.007, 0.014, 0x4c2378, 0.98));
 }
 
-const bridge = makeRobotCapsule(0.020, 0.0021, 0x8065ff, 0.92);
+const bridge = makeRobotCapsule(0.020, 0.0018, 0x5b34d6, 0.92);
 bridge.position.set(0, 0.004, 0.084);
 robotHudModel.add(bridge);
 robotModelParts.accent.push(bridge);
 
 const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.018, 20, 12), robotMouthMaterial);
-mouth.position.set(0, -0.039, 0.081);
-mouth.scale.set(1.24, 0.58, 0.16);
+mouth.position.set(0, -0.038, 0.081);
+mouth.scale.set(1.02, 0.42, 0.13);
 mouth.renderOrder = 54;
 robotHudModel.add(mouth);
 for (let i = 0; i < 3; i += 1) {
-  const slat = makeRobotCapsule(0.022 - i * 0.003, 0.0015, 0x202639, 0.92);
-  slat.position.set(0, -0.034 - i * 0.006, 0.087);
+  const slat = makeRobotCapsule(0.018 - i * 0.0022, 0.0012, 0x3d4658, 0.88);
+  slat.position.set(0, -0.034 - i * 0.0048, 0.087);
   robotHudModel.add(slat);
 }
 
 for (const side of [-1, 1]) {
-  const sideDot = new THREE.Mesh(new THREE.SphereGeometry(0.0085, 18, 12), robotAccentMaterial);
-  sideDot.scale.set(0.82, 1.16, 0.70);
-  sideDot.position.set(side * 0.092, -0.006, 0.034);
+  const sideDot = new THREE.Mesh(new THREE.SphereGeometry(0.0072, 18, 12), robotAccentMaterial);
+  sideDot.scale.set(0.62, 1.38, 0.60);
+  sideDot.position.set(side * 0.091, -0.005, 0.034);
   sideDot.renderOrder = 53;
   robotHudModel.add(sideDot);
   robotModelParts.accent.push(sideDot);
@@ -3527,7 +3652,7 @@ for (const side of [-1, 1]) {
   robotHudModel.add(antennaBase);
   robotModelParts.accent.push(antennaBase);
 
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.005, 0.058, 14), robotAccentMaterial);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.0037, 0.0046, 0.058, 14), robotAccentMaterial);
   stem.position.set(side * 0.058, 0.096, 0.014);
   stem.rotation.z = side * -0.42;
   stem.rotation.x = side * 0.10;
@@ -3542,7 +3667,7 @@ for (const side of [-1, 1]) {
   robotHudModel.add(tip);
 }
 
-const robotHudLight = new THREE.PointLight(0x76edff, 0.62, 0.38);
+const robotHudLight = new THREE.PointLight(0xb58cff, 0.30, 0.32);
 robotHudLight.position.set(0, 0.02, 0.10);
 robotHudModel.add(robotHudLight);
 
@@ -3699,8 +3824,8 @@ function setRobotCompanionState(stateName, message) {
   robotCompanion.state = nextState;
   robotCompanion.message = message || robotCompanion.message;
   robotCompanion.pulse = changed ? 1 : Math.max(robotCompanion.pulse, 0.28);
-  const accent = nextState === "alert" ? 0xff64de : nextState === "stage_clear" ? 0xffffff : 0x8065ff;
-  const glow = nextState === "alert" ? 0xff62df : nextState === "stage_clear" ? 0xffffff : 0x74efff;
+  const accent = nextState === "alert" ? 0xd842d7 : nextState === "stage_clear" ? 0xff8f45 : 0x5b34d6;
+  const glow = nextState === "alert" ? 0xd842d7 : nextState === "stage_clear" ? 0xff8f45 : 0xb58cff;
   for (const part of robotModelParts.accent) {
     part.material.color.setHex(accent);
     part.material.emissive?.setHex(accent);
@@ -3790,11 +3915,11 @@ function updateRobotCompanion(delta, elapsed) {
     (robotCompanion.state === "alert" ? Math.sin(elapsed * 5.2) * 0.035 : 0);
   robotGlowMaterial.opacity =
     robotCompanion.state === "alert"
-      ? 0.16 + Math.sin(elapsed * 7.2) * 0.04 + pulse * 0.08
-      : 0.10 + Math.sin(elapsed * 3.0) * 0.025 + pulse * 0.06;
+      ? 0.040 + Math.sin(elapsed * 7.2) * 0.010 + pulse * 0.025
+      : 0.024 + Math.sin(elapsed * 3.0) * 0.006 + pulse * 0.018;
   const baseScale = viewport.aspect < 0.75 ? 0.18 : 0.16;
   robotHudModel.scale.setScalar((baseScale / 0.16) * (1 + pulse * 0.08));
-  robotHudLight.intensity = robotCompanion.state === "alert" ? 0.72 + pulse * 0.28 : 0.48 + pulse * 0.18;
+  robotHudLight.intensity = robotCompanion.state === "alert" ? 0.34 + pulse * 0.14 : 0.24 + pulse * 0.08;
 }
 
 function validTargetForMissionPhase(target) {
@@ -3855,7 +3980,8 @@ function beginAimAssistTarget(target, clickPoint) {
   }
   const successChance = aimSuccessForDistance(distance, maxRange, target, shooter);
   const forcedMiss = params.get("forceMiss") === "1";
-  const willHit = forcedMiss ? false : random() < successChance;
+  const forcedHit = params.get("forceHit") === "1";
+  const willHit = forcedMiss ? false : forcedHit ? true : random() < successChance;
   const missSide = new THREE.Vector2(-(targetPoint.y - origin.y), targetPoint.x - origin.x).normalize();
   const missAmount = THREE.MathUtils.lerp(0.14, 0.30, 1 - successChance);
   const missPoint = targetPoint.clone().add(missSide.multiplyScalar((random() > 0.5 ? 1 : -1) * missAmount));
@@ -4018,14 +4144,14 @@ function updateAimAssist(delta, elapsed) {
   aimClickPulse.scale.setScalar(0.12 + progress * 0.42);
   aimClickPulse.material.opacity = Math.max(0, 0.70 * (1 - progress * 1.3));
 
-  aimVignette.material.opacity = 0.26 * Math.sin(Math.PI * Math.min(1, progress));
-  aimField.material.opacity = 0.20 * Math.sin(Math.PI * Math.min(1, progress));
+  aimVignette.material.opacity = 0.20 * Math.sin(Math.PI * Math.min(1, progress));
+  aimField.material.opacity = 0.12 * Math.sin(Math.PI * Math.min(1, progress));
   aimField.material.rotation = -elapsed * 0.16;
 
   aimRotationStreaks.position.set(origin.x, origin.y, 0.17);
-  aimRotationStreaks.scale.setScalar(0.28 + orientation * 0.20);
+  aimRotationStreaks.scale.set(0.30 + orientation * 0.26, 0.075 + orientation * 0.040, 1);
   aimRotationStreaks.material.rotation = aimAngle + elapsed * (aimAssist.shooter === "ship" ? -0.7 : 0.9);
-  aimRotationStreaks.material.opacity = 0.18 * orientation;
+  aimRotationStreaks.material.opacity = 0.12 * orientation;
 
   aimGuideLine.visible = false;
   aimGuideLine.material.opacity = 0;
@@ -4642,12 +4768,12 @@ function placeBeamSprite(sprite, origin, target) {
 }
 
 function createShotLine(origin, target, shooter) {
-  const texture = shooter === "ship" ? missionFxTextures.shipTrail : missionFxTextures.toolBeam;
+  const texture = shooter === "ship" ? premiumFxFrames.speedStreaks[3].texture : premiumFxFrames.speedStreaks[2].texture;
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      opacity: shooter === "ship" ? 0.78 : 0.70,
+      opacity: shooter === "ship" ? 0.82 : 0.64,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false,
@@ -4655,7 +4781,7 @@ function createShotLine(origin, target, shooter) {
   );
   sprite.renderOrder = 31;
   sprite.userData.isBeam = true;
-  sprite.userData.thickness = shooter === "ship" ? 0.090 : 0.040;
+  sprite.userData.thickness = shooter === "ship" ? 0.070 : 0.032;
   placeBeamSprite(sprite, origin, target);
   return sprite;
 }
@@ -4681,12 +4807,12 @@ function spawnMuzzle(point, shooter) {
 
 function spawnOrientationBurst(origin, aimDirection, shooter) {
   const side = new THREE.Vector2(-aimDirection.y, aimDirection.x);
-  const frameSet = fxFrames.speed.length ? fxFrames.speed : fxFrames.thruster;
-  const count = shooter === "ship" ? 3 : 2;
+  const frameSet = premiumFxFrames.speedStreaks;
+  const count = shooter === "ship" ? 2 : 1;
   for (let i = 0; i < count; i += 1) {
-    const frame = frameSet[i % frameSet.length];
+    const frame = frameSet[(i + 1) % frameSet.length];
     const sprite = makeSprite(frame, {
-      opacity: shooter === "ship" ? 0.18 : 0.14,
+      opacity: shooter === "ship" ? 0.14 : 0.10,
       blending: THREE.AdditiveBlending,
       renderOrder: 33,
       depthTest: false,
@@ -4699,7 +4825,7 @@ function spawnOrientationBurst(origin, aimDirection, shooter) {
       0.12
     );
     sprite.material.rotation = Math.atan2(-aimDirection.y, -aimDirection.x) + (i % 2 ? 0.08 : -0.08);
-    scaleSprite(sprite, shooter === "ship" ? 0.070 + i * 0.008 : 0.050 + i * 0.006);
+    sprite.scale.set(shooter === "ship" ? 0.17 + i * 0.035 : 0.12, shooter === "ship" ? 0.042 : 0.032, 1);
     sprite.userData = {
       time: 0,
       duration: shooter === "ship" ? 0.18 : 0.14,
@@ -4707,6 +4833,8 @@ function spawnOrientationBurst(origin, aimDirection, shooter) {
       strong: shooter === "ship",
       drift: new THREE.Vector2(backward.x * 0.34 + side.x * lateral * 0.7, backward.y * 0.34 + side.y * lateral * 0.7),
       baseScale: sprite.scale.x,
+      baseScaleX: sprite.scale.x,
+      baseScaleY: sprite.scale.y,
       baseOpacity: sprite.material.opacity,
     };
     interactionFx.add(sprite);
@@ -4732,19 +4860,55 @@ function createLegacyShotLine(origin, target, shooter) {
 }
 
 function spawnImpact(point, strong = false) {
+  const baseScale = strong ? 0.42 : 0.22;
+  const baseOpacity = strong ? 0.92 : 0.62;
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
-      map: bgAuraTexture,
+      map: premiumFxFrames.impactRing[0].texture,
       transparent: true,
-      opacity: strong ? 0.95 : 0.62,
+      opacity: baseOpacity,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
+      depthTest: false,
     })
   );
   sprite.position.set(point.x, point.y, 0.09);
-  sprite.scale.setScalar(strong ? 0.34 : 0.20);
+  sprite.scale.setScalar(baseScale);
   sprite.renderOrder = 32;
-  sprite.userData = { time: 0, duration: strong ? 0.48 : 0.30, strong };
+  sprite.userData = {
+    time: 0,
+    duration: strong ? 0.60 : 0.38,
+    strong,
+    stripFrames: premiumFxFrames.impactRing,
+    baseScale,
+    baseOpacity,
+  };
+  interactionFx.add(sprite);
+  activeImpacts.push(sprite);
+}
+
+function spawnGemPickupBurst(point) {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: premiumFxFrames.gemBurst[0].texture,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    })
+  );
+  sprite.position.set(point.x, point.y, 0.15);
+  sprite.scale.setScalar(0.22);
+  sprite.renderOrder = 38;
+  sprite.userData = {
+    time: 0,
+    duration: 0.44,
+    strong: true,
+    stripFrames: premiumFxFrames.gemBurst,
+    baseScale: 0.22,
+    baseOpacity: 0.88,
+  };
   interactionFx.add(sprite);
   activeImpacts.push(sprite);
 }
@@ -4822,6 +4986,10 @@ function acquireStageGem() {
     playAudioEvent("gem_acquired");
     playAudioEvent("gem_counter_update");
     pulseGemBadge();
+    const burstPoint = relicGroup.visible
+      ? new THREE.Vector2(relicGroup.position.x, relicGroup.position.y)
+      : state.position.clone();
+    spawnGemPickupBurst(burstPoint);
   }
   updateGemHud();
 }
@@ -5014,10 +5182,26 @@ function updateInteractionFx(delta) {
     const impact = activeImpacts[i];
     impact.userData.time += delta;
     const t = impact.userData.time / impact.userData.duration;
+    if (impact.userData.stripFrames?.length) {
+      const frameIndex = Math.min(
+        impact.userData.stripFrames.length - 1,
+        Math.floor(t * impact.userData.stripFrames.length)
+      );
+      const frame = impact.userData.stripFrames[frameIndex];
+      if (frame?.texture && impact.material.map !== frame.texture) {
+        impact.material.map = frame.texture;
+        impact.material.needsUpdate = true;
+      }
+    }
     if (impact.userData.burst) {
       impact.position.x += impact.userData.drift.x * delta;
       impact.position.y += impact.userData.drift.y * delta;
-      impact.scale.setScalar(impact.userData.baseScale * (1 + t * (impact.userData.strong ? 1.8 : 1.25)));
+      const burstScale = 1 + t * (impact.userData.strong ? 1.8 : 1.25);
+      impact.scale.set(
+        (impact.userData.baseScaleX ?? impact.userData.baseScale) * burstScale,
+        (impact.userData.baseScaleY ?? impact.userData.baseScale) * burstScale,
+        1
+      );
       impact.material.opacity = Math.max(0, impact.userData.baseOpacity * (1 - t));
       if (t >= 1) {
         interactionFx.remove(impact);
@@ -5026,9 +5210,9 @@ function updateInteractionFx(delta) {
       }
       continue;
     }
-    const scale = impact.userData.strong ? 0.34 + t * 0.42 : 0.20 + t * 0.22;
+    const scale = (impact.userData.baseScale ?? (impact.userData.strong ? 0.26 : 0.16)) * (1 + t * (impact.userData.strong ? 1.65 : 1.25));
     impact.scale.setScalar(scale);
-    impact.material.opacity = Math.max(0, (impact.userData.strong ? 0.95 : 0.62) * (1 - t));
+    impact.material.opacity = Math.max(0, (impact.userData.baseOpacity ?? (impact.userData.strong ? 0.88 : 0.58)) * (1 - t));
     if (t >= 1) {
       interactionFx.remove(impact);
       impact.material.dispose();
@@ -5527,7 +5711,38 @@ function updateShipFx(elapsed, shipVelocity) {
   velocityWake.position.set(behind.x * (0.28 + turbo * 0.14) * stageScale, behind.y * (0.28 + turbo * 0.14) * stageScale, -0.01);
   velocityWake.material.rotation = Math.atan2(direction.y, direction.x);
   velocityWake.material.opacity = (0.08 + speed * 0.24 + turbo * 0.34) * (moving ? 1 : 0.55);
-  scaleSprite(velocityWake, shipSprite.scale.x * 1.34 * (1 + speed * 0.22 + turbo * 0.42));
+  const wakeFrame = premiumFxFrames.speedStreaks[Math.min(3, Math.floor((speed + turbo) * 2.7))] || premiumFxFrames.speedStreaks[2];
+  if (velocityWake.material.map !== wakeFrame.texture) {
+    velocityWake.material.map = wakeFrame.texture;
+    velocityWake.material.needsUpdate = true;
+  }
+  velocityWake.scale.set(
+    shipSprite.scale.x * (1.24 + speed * 0.34 + turbo * 0.92),
+    shipSprite.scale.y * (0.34 + speed * 0.08 + turbo * 0.18),
+    1
+  );
+
+  const side = new THREE.Vector2(-direction.y, direction.x);
+  const turboTier = THREE.MathUtils.clamp(mission01.gems, 0, 3);
+  const flameFrame = premiumFxFrames.turboFlame[
+    Math.min(3, Math.floor((elapsed * (9 + turboTier * 3) + turboTier) % premiumFxFrames.turboFlame.length))
+  ];
+  turboFlameSprites.forEach((flame, index) => {
+    const sideOffset = (index === 0 ? -1 : 1) * shipSprite.scale.x * 0.19;
+    const length = shipSprite.scale.x * (0.62 + turboTier * 0.14) * (0.55 + turbo * 1.12);
+    const width = shipSprite.scale.y * (0.22 + turboTier * 0.035) * (0.42 + turbo * 1.04);
+    flame.visible = turbo > 0.045;
+    flame.material.map = flameFrame.texture;
+    flame.material.needsUpdate = true;
+    flame.position.set(
+      behind.x * shipSprite.scale.y * (0.56 + turbo * 0.22) + side.x * sideOffset,
+      behind.y * shipSprite.scale.y * (0.56 + turbo * 0.22) + side.y * sideOffset,
+      0.018
+    );
+    flame.material.rotation = Math.atan2(behind.y, behind.x);
+    flame.scale.set(length, width, 1);
+    flame.material.opacity = Math.min(0.96, turbo * (0.50 + turboTier * 0.15));
+  });
 
   let i = 0;
   for (const particle of motionParticles.children) {
@@ -5656,6 +5871,23 @@ if (params.get("autoStage") === "1") {
 if (params.get("autoMission") === "1") {
   hideMenu();
   window.setTimeout(startMission01, 350);
+}
+if (params.get("autoTurbo") === "1") {
+  hideMenu();
+  window.setTimeout(() => {
+    if (!mission01.started) startMission01();
+    const previewGems = Number(params.get("gems"));
+    if (Number.isFinite(previewGems)) {
+      mission01.gems = THREE.MathUtils.clamp(Math.round(previewGems), 0, 3);
+      updateGemHud();
+    }
+    input.keys.add("f");
+    input.keys.add(params.get("turboDir") || "w");
+    robotCompanion.focus = "turbo";
+    robotCompanion.focusTimer = 4;
+    robotCompanion.pulse = 1;
+    updateRobotPanel();
+  }, 450);
 }
 if (params.get("autoAim")) {
   hideMenu();

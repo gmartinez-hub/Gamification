@@ -1,0 +1,49 @@
+{
+  "name": "gravedad-zero-codex-visual-integration-patch-v3",
+  "purpose": "Codex instructions and assets for premium world textures, companion visual fix, shot FX, turbo FX, HUD cleanup and QA",
+  "target_repo": "gmartinez-hub/Gamification",
+  "source_of_truth": "handoff/gravedad-zero/codex-visual-integration-patch-v3/",
+  "asset_destination": {
+    "planets": "assets/runtime/gravedad-zero/planets/",
+    "vfx": "assets/runtime/gravedad-zero/vfx/"
+  },
+  "assets_included": [
+    "assets/planets/planet_ocean_prime_albedo.png",
+    "assets/planets/planet_dark_crater_albedo.png",
+    "assets/planets/planet_nebula_core_albedo.png",
+    "assets/planets/planet_mechanical_moon_albedo.png",
+    "assets/planets/planet_aurora_gas_albedo.png",
+    "assets/planets/planet_deep_dark_emissive_overlay.png",
+    "assets/vfx/vfx_turbo_flame_strip.png",
+    "assets/vfx/vfx_speed_streaks_strip.png",
+    "assets/vfx/vfx_impact_ring_strip.png",
+    "assets/vfx/vfx_gem_pickup_burst_strip.png"
+  ],
+  "visual_references_included": [
+    "visual-references/current_gameplay_reference.png",
+    "visual-references/bad_line_artifacts_reference.png",
+    "visual-references/companion_texture_direction.png",
+    "visual-references/companion_3d_comparison_direction.png"
+  ],
+  "must_include": [
+    "copy_new_planet_textures",
+    "load_new_worldTextures",
+    "map_textures_to_stage_world_profiles",
+    "organic_offscreen_spawn_preserved",
+    "premium_autoaim_and_shot_vfx",
+    "turbo_F_with_flame_fx",
+    "companion_color_and_shape_fix",
+    "minimal_hud_gemBadge_only",
+    "deploy_and_qa_evidence"
+  ],
+  "automatic_failures": [
+    "assets_not_copied",
+    "worldTextures_not_updated",
+    "spray_or_halo_bad_quality_still_visible",
+    "companion_wrong_identity",
+    "turbo_without_visible_propulsion",
+    "planets_still_grey_or_low_definition",
+    "hud_buttons_visible_in_prod",
+    "no_qa_evidence"
+  ]
+}
