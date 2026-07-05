@@ -194,7 +194,6 @@ function makeStripFrameTexture(texture, frame, frameCount = 4) {
   const frameTexture = texture.clone();
   frameTexture.repeat.set(1 / frameCount, 1);
   frameTexture.offset.set(frame / frameCount, 0);
-  frameTexture.needsUpdate = true;
   return frameTexture;
 }
 
@@ -322,6 +321,19 @@ const missionFxTextures = {
   premiumSpeedStreaks: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_speed_streaks_strip.png"),
   premiumImpactRing: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_impact_ring_strip.png"),
   premiumGemBurst: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_gem_pickup_burst_strip.png"),
+  closingTargetLockRing: loadTexture("assets/runtime/gravedad-zero/aim-fx/target_lock_ring_1024.png"),
+  closingTargetLockField: loadTexture("assets/runtime/gravedad-zero/aim-fx/target_lock_field_1024.png"),
+  closingStabilizeField: loadTexture("assets/runtime/gravedad-zero/aim-fx/zero_g_stabilize_field_1024.png"),
+  closingShipProjectile: loadTexture("assets/runtime/gravedad-zero/aim-fx/projectile_ship_energy_bolt_1024x256.png"),
+  closingAstronautProjectile: loadTexture("assets/runtime/gravedad-zero/aim-fx/projectile_astronaut_tool_bolt_768x192.png"),
+  closingLongTrail: loadTexture("assets/runtime/gravedad-zero/aim-fx/projectile_long_trail_1024x256.png"),
+  closingShortTrail: loadTexture("assets/runtime/gravedad-zero/aim-fx/projectile_short_trail_768x192.png"),
+  closingImpactRing: loadTexture("assets/runtime/gravedad-zero/aim-fx/impact_ring_atlas_4x1_1024.png"),
+  closingMuzzleCharge: loadTexture("assets/runtime/gravedad-zero/aim-fx/muzzle_charge_atlas_4x1_1024.png"),
+  closingMissSpark: loadTexture("assets/runtime/gravedad-zero/aim-fx/miss_spark_512.png"),
+  turboWake8Dir: loadTexture("assets/runtime/gravedad-zero/turbo-8dir/speed_wake_8dir_atlas_4x2_512.png"),
+  turboCompression8Dir: loadTexture("assets/runtime/gravedad-zero/turbo-8dir/warp_compression_8dir_atlas_4x2_512.png"),
+  turboEngineGlow8Dir: loadTexture("assets/runtime/gravedad-zero/turbo-8dir/directional_engine_glow_8dir_atlas_4x2_512.png"),
 };
 
 const premiumFxFrames = {
@@ -329,6 +341,14 @@ const premiumFxFrames = {
   speedStreaks: makeStripFrameAssets(missionFxTextures.premiumSpeedStreaks, 4),
   impactRing: makeStripFrameAssets(missionFxTextures.premiumImpactRing, 4),
   gemBurst: makeStripFrameAssets(missionFxTextures.premiumGemBurst, 4),
+  closingImpactRing: makeStripFrameAssets(missionFxTextures.closingImpactRing, 4),
+  closingMuzzleCharge: makeStripFrameAssets(missionFxTextures.closingMuzzleCharge, 4),
+};
+
+const turbo8Frames = {
+  wake: { texture: missionFxTextures.turboWake8Dir, aspect: 1 },
+  compression: { texture: missionFxTextures.turboCompression8Dir, aspect: 1 },
+  glow: { texture: missionFxTextures.turboEngineGlow8Dir, aspect: 1 },
 };
 
 const robotFxTextures = {
@@ -340,6 +360,36 @@ const robotFxTextures = {
   glowCyan: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_glow_cyan.png"),
   glowMagenta: loadTexture("gravedad_zero_robot_companion_hud_pack_v1/assets/ui/robot_companion/robot_glow_magenta.png"),
 };
+
+const companionTextures = {
+  frontAlbedo: loadTexture("assets/runtime/gravedad-zero/companion/companion_front_albedo_2048.png"),
+  frontEmissive: loadTexture("assets/runtime/gravedad-zero/companion/companion_front_emissive_2048.png"),
+  sidePanel: loadTexture("assets/runtime/gravedad-zero/companion/companion_side_panel_albedo_1024.png"),
+  sidePanelEmissive: loadTexture("assets/runtime/gravedad-zero/companion/companion_side_panel_emissive_1024.png"),
+  topAlbedo: loadTexture("assets/runtime/gravedad-zero/companion/companion_top_albedo_1024.png"),
+  face: {
+    idle: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_idle_2048.png"),
+    talk: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_talk_2048.png"),
+    alert: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_alert_2048.png"),
+    success: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_success_2048.png"),
+    blink: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_blink_2048.png"),
+  },
+  faceEmissive: {
+    idle: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_idle_emissive_2048.png"),
+    talk: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_talk_emissive_2048.png"),
+    alert: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_alert_emissive_2048.png"),
+    success: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_success_emissive_2048.png"),
+    blink: loadTexture("assets/runtime/gravedad-zero/companion/companion_face_blink_emissive_2048.png"),
+  },
+};
+
+function cropCompanionFaceTexture(texture) {
+  texture.repeat.set(0.76, 0.58);
+  texture.offset.set(0.12, 0.19);
+}
+
+Object.values(companionTextures.face).forEach(cropCompanionFaceTexture);
+Object.values(companionTextures.faceEmissive).forEach(cropCompanionFaceTexture);
 
 const missionAudioItems = {
   mission_start: { file: "mission_start_arcade_01.wav", volume: 0.30 },
@@ -1265,6 +1315,9 @@ function createIntegratedPlanet({
     orbitSpeed: (kind === "dark" ? -0.18 : 0.14) * (0.7 + random() * 0.85),
     orbitPhase: random() * Math.PI * 2,
     profileStage,
+    spawnStage: profileStage,
+    materialLocked: true,
+    identityKind: kind,
   };
 
   const sphere = new THREE.Mesh(
@@ -1461,11 +1514,11 @@ const missionStageConfigs = [
     smallRequired: 3,
     largeRequired: 1,
     smallTargets: [
-      { x: -1.96, y: -0.14, z: -2.0, radius: 0.20 },
-      { x: -1.42, y: 0.40, z: -1.9, radius: 0.20 },
-      { x: -0.96, y: -0.76, z: -2.1, radius: 0.19 },
+      { x: -2.22, y: -0.24, z: -2.10, radius: 0.20 },
+      { x: 1.54, y: 0.48, z: -2.00, radius: 0.20 },
+      { x: -1.16, y: -0.86, z: -2.18, radius: 0.19 },
     ],
-    largeTargets: [{ x: 0.35, y: 0.92, z: -2.0, radius: 0.50 }],
+    largeTargets: [{ x: 1.38, y: 0.98, z: -2.08, radius: 0.50 }],
   },
   {
     mission: "SECTOR 02",
@@ -1477,13 +1530,13 @@ const missionStageConfigs = [
     smallRequired: 3,
     largeRequired: 2,
     smallTargets: [
-      { x: -2.02, y: 0.22, z: -2.15, radius: 0.20 },
-      { x: -1.48, y: -0.54, z: -1.95, radius: 0.20 },
-      { x: -0.90, y: -0.08, z: -2.05, radius: 0.19 },
+      { x: -2.54, y: 0.28, z: -2.28, radius: 0.20 },
+      { x: 1.92, y: -0.62, z: -2.06, radius: 0.20 },
+      { x: -1.62, y: -0.10, z: -2.20, radius: 0.19 },
     ],
     largeTargets: [
-      { x: 0.24, y: 0.86, z: -2.05, radius: 0.49 },
-      { x: 1.08, y: 0.18, z: -2.12, radius: 0.52 },
+      { x: 1.68, y: 0.92, z: -2.18, radius: 0.49 },
+      { x: -2.08, y: 0.22, z: -2.24, radius: 0.52 },
     ],
   },
   {
@@ -1496,14 +1549,14 @@ const missionStageConfigs = [
     smallRequired: 3,
     largeRequired: 3,
     smallTargets: [
-      { x: -2.04, y: -0.54, z: -2.12, radius: 0.20 },
-      { x: -1.46, y: 0.14, z: -1.94, radius: 0.20 },
-      { x: -0.86, y: -0.54, z: -2.04, radius: 0.19 },
+      { x: -2.76, y: -0.56, z: -2.30, radius: 0.20 },
+      { x: 2.12, y: 0.18, z: -2.10, radius: 0.20 },
+      { x: -2.02, y: -0.74, z: -2.22, radius: 0.19 },
     ],
     largeTargets: [
-      { x: -0.18, y: 0.90, z: -2.06, radius: 0.49 },
-      { x: 0.78, y: 0.28, z: -2.14, radius: 0.52 },
-      { x: 1.46, y: -0.34, z: -2.08, radius: 0.47 },
+      { x: -1.86, y: 0.94, z: -2.18, radius: 0.49 },
+      { x: 1.82, y: 0.30, z: -2.24, radius: 0.52 },
+      { x: 2.54, y: -0.42, z: -2.18, radius: 0.47 },
     ],
   },
 ];
@@ -1522,6 +1575,68 @@ function largeObjectiveNoun(count) {
 
 function missionObjectiveCopy(config) {
   return `RECUPERÁ ${config.smallRequired} FRAGMENTOS DE SEÑAL / ${largeObjectiveLabel(config.largeRequired)}`;
+}
+
+const TARGET_MOTION_PROFILES = [
+  {
+    name: "stage1_drift",
+    orbitRadius: [0.12, 0.24],
+    orbitSpeed: [0.22, 0.36],
+    driftRadius: [0.04, 0.12],
+    driftSpeed: [0.18, 0.28],
+    predictionLead: 0.16,
+    chaseRequired: false,
+  },
+  {
+    name: "stage2_chase",
+    orbitRadius: [0.22, 0.42],
+    orbitSpeed: [0.34, 0.58],
+    driftRadius: [0.12, 0.28],
+    driftSpeed: [0.24, 0.42],
+    predictionLead: 0.24,
+    chaseRequired: true,
+  },
+  {
+    name: "stage3_volatile",
+    orbitRadius: [0.30, 0.58],
+    orbitSpeed: [0.48, 0.82],
+    driftRadius: [0.18, 0.34],
+    driftSpeed: [0.38, 0.62],
+    predictionLead: 0.34,
+    chaseRequired: true,
+  },
+];
+
+function rangeValue(range, seed) {
+  const fraction = seed - Math.floor(seed);
+  return THREE.MathUtils.lerp(range[0], range[1], fraction);
+}
+
+function assignMissionTargetMotion(target, stageIndex, role, index) {
+  const profile = TARGET_MOTION_PROFILES[THREE.MathUtils.clamp(stageIndex, 0, TARGET_MOTION_PROFILES.length - 1)];
+  const seed = (stageIndex + 1) * 0.173 + (index + 1) * 0.311 + (role === "large" ? 0.527 : 0.091);
+  const roleScale = role === "large" ? 1.28 : 1;
+  const direction = index % 2 === 0 ? 1 : -1;
+  target.userData.motion = {
+    name: profile.name,
+    anchor: target.userData.base.clone(),
+    phase: seed * Math.PI * 2,
+    orbitRadius: new THREE.Vector2(
+      rangeValue(profile.orbitRadius, seed * 3.17) * roleScale,
+      rangeValue(profile.orbitRadius, seed * 5.23) * (role === "large" ? 0.82 : 0.70)
+    ),
+    orbitSpeed: rangeValue(profile.orbitSpeed, seed * 7.11) * direction,
+    driftRadius: new THREE.Vector2(
+      rangeValue(profile.driftRadius, seed * 2.13) * roleScale,
+      rangeValue(profile.driftRadius, seed * 4.79) * 0.68
+    ),
+    driftSpeed: rangeValue(profile.driftSpeed, seed * 6.31) * -direction,
+    predictionLead: profile.predictionLead * (role === "large" ? 1.25 : 1),
+    chaseRequired: profile.chaseRequired,
+  };
+  target.userData.velocity2D = target.userData.velocity2D || new THREE.Vector2();
+  target.userData.screenVelocity2D = target.userData.screenVelocity2D || new THREE.Vector2();
+  target.userData.previousScreenPoint = null;
 }
 
 const mission01 = {
@@ -1554,14 +1669,21 @@ const aimAssist = {
   active: false,
   target: null,
   shooter: null,
+  mode: "normal",
+  phase: "idle",
+  timing: null,
   clickPoint: new THREE.Vector2(),
   firePoint: new THREE.Vector2(),
+  predictedPoint: new THREE.Vector2(),
+  targetVelocity: new THREE.Vector2(),
   time: 0,
   duration: 1.04,
   fireTime: 0.54,
   impactTime: 0.76,
+  projectileTravel: 0.45,
   fired: false,
   impacted: false,
+  projectile: null,
   recoil: 0,
   recoilRoll: 0,
   orientationAngle: 0,
@@ -1577,11 +1699,47 @@ const aimAssist = {
   played: {},
 };
 
+const AIM_TIMINGS = {
+  normal: {
+    lock: 0.35,
+    stabilize: 0.45,
+    orient: 0.40,
+    charge: 0.0,
+    projectileTravel: 0.45,
+    impactHold: 0.0,
+    recover: 0.30,
+  },
+  major: {
+    lock: 0.75,
+    stabilize: 1.00,
+    orient: 1.05,
+    charge: 0.70,
+    projectileTravel: 1.65,
+    impactHold: 0.70,
+    recover: 0.65,
+  },
+};
+
+function aimTimingSchedule(mode) {
+  const timing = AIM_TIMINGS[mode] || AIM_TIMINGS.normal;
+  const fireTime = timing.lock + timing.stabilize + timing.orient + (timing.charge || 0);
+  const impactTime = fireTime + timing.projectileTravel;
+  return {
+    ...timing,
+    fireTime,
+    impactTime,
+    duration: impactTime + (timing.impactHold || 0) + timing.recover,
+  };
+}
+
 const robotCompanion = {
   state: "idle",
   message: "RUMBO EN ESPERA",
   panelOpen: false,
   pulse: 0,
+  blinkTimer: 3.8,
+  blinkTime: 0,
+  faceState: "idle",
   focus: null,
   focusTimer: 0,
   lastMissionState: "boot",
@@ -1677,6 +1835,12 @@ function placeMissionTarget(target, spec, routeY) {
   target.position.copy(target.userData.base);
   target.userData.radius = spec.radius;
   target.userData.hitRadius = spec.radius * (target.userData.missionRole === "large" ? 3.45 : 3.7);
+  assignMissionTargetMotion(
+    target,
+    target.userData.stageIndex ?? mission01.currentStageIndex ?? state.stageIndex,
+    target.userData.missionRole ?? "small",
+    target.userData.targetIndex ?? 0
+  );
 }
 
 function spawnStageTargets(stageIndex) {
@@ -2391,6 +2555,9 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
     region: region.name,
     profile: profile.name,
     profileStage: STAGE_WORLD_PROFILES.indexOf(profile),
+    spawnStage: stageAffinity,
+    materialLocked: true,
+    textureProfile: profile.name,
     vividBody,
     chunkKey: getChunkKey(chunkX, chunkY),
     base,
@@ -3220,6 +3387,33 @@ const turboFlameSprites = [-1, 1].map((side, index) => {
   return sprite;
 });
 
+const turbo8Group = new THREE.Group();
+shipGroup.add(turbo8Group);
+const turbo8FxSprites = {
+  wake: makeSprite(turbo8Frames.wake, {
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    renderOrder: 18,
+    depthTest: false,
+  }),
+  compression: makeSprite(turbo8Frames.compression, {
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    renderOrder: 19,
+    depthTest: false,
+  }),
+  glow: makeSprite(turbo8Frames.glow, {
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    renderOrder: 20,
+    depthTest: false,
+  }),
+};
+Object.values(turbo8FxSprites).forEach((sprite) => {
+  sprite.visible = false;
+  turbo8Group.add(sprite);
+});
+
 const motionParticles = new THREE.Group();
 shipGroup.add(motionParticles);
 for (let i = 0; i < 18; i += 1) {
@@ -3281,6 +3475,23 @@ if (astronautSprite) astronautGroup.add(astronautSprite);
 const interactionFx = new THREE.Group();
 scene.add(interactionFx);
 const activeShots = [];
+
+if (params.has("qaCdp") || params.get("debugAim") === "1") {
+  window.__gzDebug = () => ({
+    aimActive: aimAssist.active,
+    aimMode: aimAssist.mode,
+    aimPhase: aimAssist.phase,
+    aimTime: Number(aimAssist.time.toFixed(3)),
+    aimFireTime: Number((aimAssist.fireTime || 0).toFixed(3)),
+    aimImpactTime: Number((aimAssist.impactTime || 0).toFixed(3)),
+    aimDuration: Number((aimAssist.duration || 0).toFixed(3)),
+    aimFired: aimAssist.fired,
+    aimImpacted: aimAssist.impacted,
+    activeShots: activeShots.length,
+    missionState: mission01.state,
+    controlMode: state.controlMode,
+  });
+}
 const activeImpacts = [];
 const targetScreenPoint = new THREE.Vector2();
 const targetWorldPoint = new THREE.Vector3();
@@ -3418,7 +3629,7 @@ const finalParticles = new THREE.Points(
 finalParticles.renderOrder = 57;
 finalFxGroup.add(finalParticles);
 
-const aimReticle = makeMissionSprite(missionFxTextures.targetLockReticle, { opacity: 0.0, renderOrder: 47 });
+const aimReticle = makeMissionSprite(missionFxTextures.closingTargetLockRing, { opacity: 0.0, renderOrder: 47 });
 aimReticle.visible = false;
 scene.add(aimReticle);
 
@@ -3430,7 +3641,7 @@ const aimVignette = makeMissionSprite(missionFxTextures.slowMotionVignette, { op
 aimVignette.visible = false;
 scene.add(aimVignette);
 
-const aimField = makeMissionSprite(missionFxTextures.timeDilationField, { opacity: 0.0, renderOrder: 45 });
+const aimField = makeMissionSprite(missionFxTextures.closingStabilizeField, { opacity: 0.0, renderOrder: 45 });
 aimField.visible = false;
 scene.add(aimField);
 
@@ -3454,8 +3665,17 @@ scene.add(robotGroup);
 const robotHudModel = new THREE.Group();
 robotGroup.add(robotHudModel);
 
-function makeRobotMaterial({ color, emissive = 0x000000, emissiveIntensity = 0, roughness = 0.52, metalness = 0.04, opacity = 1 }) {
+function makeRobotMaterial({
+  color,
+  map = null,
+  emissive = 0x000000,
+  emissiveIntensity = 0,
+  roughness = 0.52,
+  metalness = 0.04,
+  opacity = 1,
+}) {
   return new THREE.MeshStandardMaterial({
+    map,
     color,
     emissive,
     emissiveIntensity,
@@ -3586,65 +3806,63 @@ robotInnerGlow.renderOrder = 52;
 robotHudModel.add(robotInnerGlow);
 robotModelParts.glow.push(robotInnerGlow);
 
-for (const x of [-0.037, 0.037]) {
-  const lens = new THREE.Mesh(new THREE.SphereGeometry(0.031, 30, 16), robotLensMaterial);
-  lens.position.set(x, 0.002, 0.077);
-  lens.scale.set(0.98, 0.96, 0.13);
-  lens.renderOrder = 54;
-  robotHudModel.add(lens);
+const robotFaceDecalMaterial = new THREE.MeshBasicMaterial({
+  map: companionTextures.face.idle,
+  transparent: true,
+  opacity: 0.98,
+  depthWrite: false,
+  depthTest: false,
+});
+const robotFaceEmissiveMaterial = new THREE.MeshBasicMaterial({
+  map: companionTextures.faceEmissive.idle,
+  transparent: true,
+  opacity: 0.18,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  depthTest: false,
+});
+const robotFaceDecal = new THREE.Mesh(new THREE.PlaneGeometry(0.178, 0.142), robotFaceDecalMaterial);
+robotFaceDecal.position.set(0, -0.003, 0.091);
+robotFaceDecal.renderOrder = 56;
+robotHudModel.add(robotFaceDecal);
+const robotFaceEmissive = new THREE.Mesh(new THREE.PlaneGeometry(0.178, 0.142), robotFaceEmissiveMaterial);
+robotFaceEmissive.position.set(0, -0.003, 0.094);
+robotFaceEmissive.renderOrder = 57;
+robotHudModel.add(robotFaceEmissive);
+robotModelParts.faceDecal = [robotFaceDecal, robotFaceEmissive];
 
-  const glasses = new THREE.Mesh(
-    new THREE.TorusGeometry(0.031, 0.0032, 10, 64),
-    robotAccentMaterial
-  );
-  glasses.position.set(x, 0.002, 0.084);
-  glasses.renderOrder = 54;
-  robotHudModel.add(glasses);
-  robotModelParts.accent.push(glasses);
+const sidePanelMaterial = new THREE.MeshBasicMaterial({
+  map: companionTextures.sidePanel,
+  transparent: true,
+  opacity: 0.78,
+  depthWrite: false,
+  depthTest: false,
+});
+const sidePanelGlowMaterial = new THREE.MeshBasicMaterial({
+  map: companionTextures.sidePanelEmissive,
+  transparent: true,
+  opacity: 0.22,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  depthTest: false,
+});
+for (const side of [-1, 1]) {
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.040, 0.070), sidePanelMaterial.clone());
+  panel.position.set(side * 0.090, -0.004, 0.052);
+  panel.rotation.y = side * -0.54;
+  panel.renderOrder = 55;
+  robotHudModel.add(panel);
 
-  const innerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.025, 0.0015, 8, 56),
-    new THREE.MeshBasicMaterial({
-      color: 0xb339d4,
-      transparent: true,
-      opacity: 0.12,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      depthTest: false,
-    })
-  );
-  innerRing.position.copy(glasses.position);
-  innerRing.renderOrder = 55;
-  robotHudModel.add(innerRing);
-  robotModelParts.glow.push(innerRing);
-
-  robotHudModel.add(makeRobotArc(x, -0.007, 0.014, 0x4c2378, 0.98));
-}
-
-const bridge = makeRobotCapsule(0.020, 0.0018, 0x5b34d6, 0.92);
-bridge.position.set(0, 0.004, 0.084);
-robotHudModel.add(bridge);
-robotModelParts.accent.push(bridge);
-
-const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.018, 20, 12), robotMouthMaterial);
-mouth.position.set(0, -0.038, 0.081);
-mouth.scale.set(1.02, 0.42, 0.13);
-mouth.renderOrder = 54;
-robotHudModel.add(mouth);
-for (let i = 0; i < 3; i += 1) {
-  const slat = makeRobotCapsule(0.018 - i * 0.0022, 0.0012, 0x3d4658, 0.88);
-  slat.position.set(0, -0.034 - i * 0.0048, 0.087);
-  robotHudModel.add(slat);
+  const panelGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.040, 0.070), sidePanelGlowMaterial.clone());
+  panelGlow.position.copy(panel.position);
+  panelGlow.position.z += 0.003;
+  panelGlow.rotation.copy(panel.rotation);
+  panelGlow.renderOrder = 56;
+  robotHudModel.add(panelGlow);
+  robotModelParts.glow.push(panelGlow);
 }
 
 for (const side of [-1, 1]) {
-  const sideDot = new THREE.Mesh(new THREE.SphereGeometry(0.0072, 18, 12), robotAccentMaterial);
-  sideDot.scale.set(0.62, 1.38, 0.60);
-  sideDot.position.set(side * 0.091, -0.005, 0.034);
-  sideDot.renderOrder = 53;
-  robotHudModel.add(sideDot);
-  robotModelParts.accent.push(sideDot);
-
   const antennaBase = new THREE.Mesh(new THREE.SphereGeometry(0.014, 18, 10), robotAccentMaterial);
   antennaBase.position.set(side * 0.054, 0.069, 0.016);
   antennaBase.scale.set(1.20, 0.76, 0.72);
@@ -3818,6 +4036,24 @@ function updateRobotPanel() {
   robotRelicCounter.textContent = `${robotCompanion.relicCurrent}/1`;
 }
 
+function companionFaceForState(stateName) {
+  if (robotCompanion.blinkTime > 0) return "blink";
+  if (robotCompanion.panelOpen) return "talk";
+  if (stateName === "alert") return "alert";
+  if (stateName === "stage_clear") return "success";
+  return "idle";
+}
+
+function setCompanionFaceTexture(faceState) {
+  const nextFace = companionTextures.face[faceState] ? faceState : "idle";
+  if (robotCompanion.faceState === nextFace) return;
+  robotCompanion.faceState = nextFace;
+  robotFaceDecalMaterial.map = companionTextures.face[nextFace];
+  robotFaceDecalMaterial.needsUpdate = true;
+  robotFaceEmissiveMaterial.map = companionTextures.faceEmissive[nextFace] || companionTextures.faceEmissive.idle;
+  robotFaceEmissiveMaterial.needsUpdate = true;
+}
+
 function setRobotCompanionState(stateName, message) {
   const nextState = robotFxTextures[stateName] ? stateName : "idle";
   const changed = robotCompanion.state !== nextState;
@@ -3832,6 +4068,7 @@ function setRobotCompanionState(stateName, message) {
   }
   robotGlowMaterial.color.setHex(glow);
   robotHudLight.color.setHex(glow);
+  setCompanionFaceTexture(companionFaceForState(nextState));
   if (changed && nextState === "alert") playMissionAudio("robot_alert_ping");
   if (changed && nextState === "stage_clear") playMissionAudio("robot_stage_clear");
   updateRobotPanel();
@@ -3891,11 +4128,21 @@ function toggleRobotPanel() {
   robotCompanion.panelOpen = !robotCompanion.panelOpen;
   playMissionAudio(robotCompanion.panelOpen ? "robot_open_hint" : "robot_close_hint");
   robotCompanion.pulse = 1;
+  setCompanionFaceTexture(companionFaceForState(robotCompanion.state));
   updateRobotPanel();
 }
 
 function updateRobotCompanion(delta, elapsed) {
   robotCompanion.pulse = Math.max(0, robotCompanion.pulse - delta * 2.4);
+  robotCompanion.blinkTimer -= delta;
+  if (robotCompanion.blinkTimer <= 0 && robotCompanion.state !== "alert") {
+    robotCompanion.blinkTime = 0.16;
+    robotCompanion.blinkTimer = 4.2 + random() * 2.8;
+  }
+  if (robotCompanion.blinkTime > 0) {
+    robotCompanion.blinkTime = Math.max(0, robotCompanion.blinkTime - delta);
+  }
+  setCompanionFaceTexture(companionFaceForState(robotCompanion.state));
   if (robotCompanion.focusTimer > 0) {
     robotCompanion.focusTimer = Math.max(0, robotCompanion.focusTimer - delta);
     if (robotCompanion.focusTimer <= 0) robotCompanion.focus = null;
@@ -3932,16 +4179,45 @@ function validTargetForMissionPhase(target) {
 
 function aimRangeForTarget(target, shooter) {
   const gemBoost = mission01.gems * 0.08;
-  if (target?.userData?.missionRole === "small" || shooter === "astronaut") return 1.05 + gemBoost;
-  return 1.48 + gemBoost * 1.2;
+  if (target?.userData?.missionRole === "small" || shooter === "astronaut") return 1.16 + gemBoost;
+  return 1.72 + gemBoost * 1.2;
 }
 
 function aimSuccessForDistance(distance, maxRange, target, shooter) {
   const rangeT = THREE.MathUtils.clamp(distance / Math.max(0.01, maxRange), 0, 1);
   const base = shooter === "ship" ? 0.94 : 0.90;
   const largePenalty = target?.userData?.missionRole === "large" ? 0.04 : 0;
-  const chance = base - rangeT * 0.34 - largePenalty + mission01.gems * 0.035;
+  const velocity = target?.userData?.screenVelocity2D || target?.userData?.velocity2D || new THREE.Vector2();
+  const velocityPenalty = THREE.MathUtils.clamp(velocity.length() * 0.11, 0, 0.16);
+  const chance = base - rangeT * 0.34 - largePenalty - velocityPenalty + mission01.gems * 0.035;
   return THREE.MathUtils.clamp(chance, 0.42, 0.98);
+}
+
+function aimModeForTarget(target) {
+  if (params.get("aimCinematic") === "1") return "major";
+  if (target?.userData?.missionRole === "large") return "major";
+  return "normal";
+}
+
+function predictionLeadForTarget(target, mode) {
+  if (target?.userData?.motion?.predictionLead) return target.userData.motion.predictionLead;
+  return mode === "major" ? 0.34 : 0.16;
+}
+
+function predictedTargetPoint(target, mode) {
+  const point = backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+  const velocity = target?.userData?.screenVelocity2D || target?.userData?.velocity2D || new THREE.Vector2();
+  return point.add(velocity.clone().multiplyScalar(predictionLeadForTarget(target, mode)));
+}
+
+function configureAimAssistTiming(mode) {
+  const timing = aimTimingSchedule(mode);
+  aimAssist.mode = mode;
+  aimAssist.timing = timing;
+  aimAssist.fireTime = timing.fireTime;
+  aimAssist.impactTime = timing.impactTime;
+  aimAssist.projectileTravel = timing.projectileTravel;
+  aimAssist.duration = Math.min(8.0, timing.duration);
 }
 
 function setCompanionAimFeedback(message, openPanel = false) {
@@ -3969,8 +4245,9 @@ function beginAimAssistTarget(target, clickPoint) {
   const shooter = shooterForTarget(target);
   if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
   if (shooter === "ship") enterShipMode();
+  const mode = aimModeForTarget(target);
   const origin = shooter === "astronaut" ? astronautState.position : state.position;
-  const targetPoint = backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+  const targetPoint = predictedTargetPoint(target, mode);
   const distance = origin.distanceTo(targetPoint);
   const maxRange = aimRangeForTarget(target, shooter);
   if (distance > maxRange) {
@@ -3986,16 +4263,21 @@ function beginAimAssistTarget(target, clickPoint) {
   const missAmount = THREE.MathUtils.lerp(0.14, 0.30, 1 - successChance);
   const missPoint = targetPoint.clone().add(missSide.multiplyScalar((random() > 0.5 ? 1 : -1) * missAmount));
   setCompanionAimFeedback(`AUTOAIM ${Math.round(successChance * 100)}% · ${willHit ? "LOCK" : "DESVÍO"}`);
+  configureAimAssistTiming(mode);
 
   aimAssist.active = true;
+  aimAssist.phase = "lock";
   aimAssist.kind = "target";
   aimAssist.target = target;
   aimAssist.shooter = shooter;
   aimAssist.clickPoint.copy(clickPoint);
   aimAssist.firePoint.copy(targetPoint);
+  aimAssist.predictedPoint.copy(targetPoint);
+  aimAssist.targetVelocity.copy(target.userData.screenVelocity2D || target.userData.velocity2D || new THREE.Vector2());
   aimAssist.time = 0;
   aimAssist.fired = false;
   aimAssist.impacted = false;
+  aimAssist.projectile = null;
   aimAssist.distance = distance;
   aimAssist.maxRange = maxRange;
   aimAssist.successChance = successChance;
@@ -4024,15 +4306,20 @@ function beginAimAssistRelic(clickPoint) {
     return;
   }
   enterAstronautMode();
+  configureAimAssistTiming(params.get("aimCinematic") === "1" ? "major" : "major");
   aimAssist.active = true;
+  aimAssist.phase = "lock";
   aimAssist.kind = "relic";
   aimAssist.target = null;
   aimAssist.shooter = "astronaut";
   aimAssist.clickPoint.copy(clickPoint);
   aimAssist.firePoint.set(relicGroup.position.x, relicGroup.position.y);
+  aimAssist.predictedPoint.copy(aimAssist.firePoint);
+  aimAssist.targetVelocity.set(0, 0);
   aimAssist.time = 0;
   aimAssist.fired = false;
   aimAssist.impacted = false;
+  aimAssist.projectile = null;
   aimAssist.recoil = 0;
   aimAssist.recoilRoll = 0;
   aimAssist.orientationAngle = astronautGroup.rotation.z;
@@ -4059,7 +4346,9 @@ function clearAimAssistSprites() {
   aimGuideLine.visible = false;
   fireReleaseFlash.visible = false;
   aimAssist.active = false;
+  aimAssist.phase = "idle";
   aimAssist.target = null;
+  aimAssist.projectile = null;
   aimAssist.recoil = 0;
   aimAssist.recoilRoll = 0;
   aimAssist.angularVelocity = 0;
@@ -4075,21 +4364,41 @@ function updateAimAssist(delta, elapsed) {
   aimAssist.time += delta;
   const t = aimAssist.time;
   const progress = THREE.MathUtils.clamp(t / aimAssist.duration, 0, 1);
+  const timing = aimAssist.timing || AIM_TIMINGS.normal;
+  const lockEnd = timing.lock;
+  const stabilizeEnd = lockEnd + timing.stabilize;
+  const orientEnd = stabilizeEnd + timing.orient;
+  const fireWindow = aimAssist.fireTime;
+  aimAssist.phase =
+    t < lockEnd
+      ? "lock"
+      : t < stabilizeEnd
+        ? "stabilize"
+        : t < orientEnd
+          ? "orient"
+          : !aimAssist.fired
+            ? "fire"
+            : !aimAssist.impacted
+              ? "projectile_travel"
+              : t < aimAssist.impactTime + (timing.impactHold || 0)
+                ? "impact"
+                : "recover";
   const targetPoint =
     aimAssist.kind === "target" && aimAssist.target
-      ? backgroundObjectScreenPoint(aimAssist.target, new THREE.Vector2()).clone()
+      ? predictedTargetPoint(aimAssist.target, aimAssist.mode)
       : aimAssist.firePoint.clone();
   aimAssist.firePoint.copy(targetPoint);
+  aimAssist.predictedPoint.copy(targetPoint);
   const origin = aimAssist.shooter === "astronaut" ? astronautState.position : state.position;
   const aimVector = targetPoint.clone().sub(origin);
   const aimAngle = Math.atan2(aimVector.y, aimVector.x);
   const aimDirection = aimVector.lengthSq() > 0.0001 ? aimVector.clone().normalize() : new THREE.Vector2(1, 0);
   const settledDirection = directionFromAngle(aimAngle);
-  const baseDirection = t < 0.24 ? aimAssist.baseDirection : settledDirection;
+  const baseDirection = t < Math.min(0.42, lockEnd * 0.72) ? aimAssist.baseDirection : settledDirection;
   const baseAngle = directionAngles[baseDirection] ?? 0;
   const desiredRotation = normalizeAngle(aimAngle - baseAngle);
-  const orientationIn = THREE.MathUtils.smoothstep(t, 0.10, 0.30);
-  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, 0.76, 0.98);
+  const orientationIn = THREE.MathUtils.smoothstep(t, lockEnd * 0.55, stabilizeEnd + timing.orient * 0.35);
+  const orientationOut = 1 - THREE.MathUtils.smoothstep(t, aimAssist.impactTime + (timing.impactHold || 0), aimAssist.duration);
   const orientation = orientationIn * orientationOut;
   const angularDelta = shortestAngle(aimAssist.orientationAngle, desiredRotation);
   aimAssist.angularVelocity += angularDelta * 19.5 * delta;
@@ -4125,27 +4434,27 @@ function updateAimAssist(delta, elapsed) {
     aimAssist.played.lock = true;
     playAudioEvent("target_lock");
   }
-  if (!aimAssist.played.slow && t >= 0.08) {
+  if (!aimAssist.played.slow && t >= lockEnd * 0.25) {
     aimAssist.played.slow = true;
     playAudioEvent("slow_motion_enter");
   }
-  if (!aimAssist.played.orient && t >= 0.12) {
+  if (!aimAssist.played.orient && t >= stabilizeEnd * 0.72) {
     aimAssist.played.orient = true;
     playAudioEvent("zero_g_rotate_whoosh");
     spawnOrientationBurst(origin, aimDirection, aimAssist.shooter);
   }
 
   aimReticle.position.set(targetPoint.x, targetPoint.y, 0.18);
-  aimReticle.scale.setScalar(0.16 + Math.sin(elapsed * 9.0) * 0.015 + progress * 0.04);
+  aimReticle.scale.setScalar((aimAssist.mode === "major" ? 0.19 : 0.16) + Math.sin(elapsed * 9.0) * 0.015 + progress * 0.04);
   aimReticle.material.rotation = elapsed * 0.9;
-  aimReticle.material.opacity = 0.82 * (1 - THREE.MathUtils.smoothstep(progress, 0.72, 1));
+  aimReticle.material.opacity = 0.86 * (1 - THREE.MathUtils.smoothstep(progress, 0.84, 1));
 
   aimClickPulse.position.set(aimAssist.clickPoint.x, aimAssist.clickPoint.y, 0.17);
   aimClickPulse.scale.setScalar(0.12 + progress * 0.42);
   aimClickPulse.material.opacity = Math.max(0, 0.70 * (1 - progress * 1.3));
 
-  aimVignette.material.opacity = 0.20 * Math.sin(Math.PI * Math.min(1, progress));
-  aimField.material.opacity = 0.12 * Math.sin(Math.PI * Math.min(1, progress));
+  aimVignette.material.opacity = (aimAssist.mode === "major" ? 0.26 : 0.20) * Math.sin(Math.PI * Math.min(1, progress));
+  aimField.material.opacity = (aimAssist.mode === "major" ? 0.20 : 0.12) * Math.sin(Math.PI * Math.min(1, progress));
   aimField.material.rotation = -elapsed * 0.16;
 
   aimRotationStreaks.position.set(origin.x, origin.y, 0.17);
@@ -4157,7 +4466,7 @@ function updateAimAssist(delta, elapsed) {
   aimGuideLine.material.opacity = 0;
 
   const alignmentError = Math.abs(shortestAngle(aimAssist.orientationAngle, aimAssist.targetRotation));
-  if (!aimAssist.fired && t >= aimAssist.fireTime && (alignmentError < 0.18 || t >= aimAssist.fireTime + 0.16)) {
+  if (!aimAssist.fired && t >= fireWindow && (alignmentError < 0.18 || t >= fireWindow + 0.24)) {
     aimAssist.fired = true;
     fireReleaseFlash.visible = true;
     fireReleaseFlash.position.set(origin.x, origin.y, 0.19);
@@ -4169,8 +4478,16 @@ function updateAimAssist(delta, elapsed) {
     playMissionAudio(aimAssist.shooter === "ship" ? "ship_heavy_fire_cue" : "astronaut_tool_fire_cue");
     spawnOrientationBurst(origin, aimDirection, aimAssist.shooter);
     if (aimAssist.kind === "target" && aimAssist.target) {
-      if (aimAssist.willHit) launchShotAtTarget(aimAssist.target, aimAssist.shooter);
-      else launchShotAtPoint(aimAssist.missPoint, aimAssist.shooter);
+      aimAssist.projectile = aimAssist.willHit
+        ? launchShotAtTarget(aimAssist.target, aimAssist.shooter, { mode: aimAssist.mode })
+        : launchShotAtPoint(aimAssist.missPoint, aimAssist.shooter, { mode: aimAssist.mode, miss: true });
+    }
+    if (aimAssist.kind === "relic") {
+      aimAssist.projectile = launchShotAtPoint(aimAssist.firePoint, aimAssist.shooter, {
+        mode: aimAssist.mode,
+        miss: false,
+        relic: true,
+      });
     }
     if (aimAssist.shooter === "astronaut") triggerAstronautAction();
   }
@@ -4181,21 +4498,11 @@ function updateAimAssist(delta, elapsed) {
     if (fireReleaseFlash.material.opacity <= 0.01) fireReleaseFlash.visible = false;
   }
 
-  if (!aimAssist.impacted && t >= aimAssist.impactTime) {
+  if (!aimAssist.impacted && t >= aimAssist.impactTime + 0.45 && !aimAssist.projectile) {
     aimAssist.impacted = true;
-    aimAssist.hitStop = Math.max(aimAssist.hitStop, 0.12);
-    if (aimAssist.kind === "target" && aimAssist.target) {
-      if (aimAssist.willHit) damageTarget(aimAssist.target, aimAssist.shooter);
-      else {
-        spawnImpact(aimAssist.missPoint, false);
-        playMissionAudio("invalid_target_blip");
-        setCompanionAimFeedback(`MISS · AUTOAIM ${Math.round(aimAssist.successChance * 100)}%`);
-      }
-    }
-    if (aimAssist.kind === "relic") touchMissionRelic();
   }
 
-  if (!aimAssist.played.exit && t >= 0.60) {
+  if (!aimAssist.played.exit && t >= Math.max(0.60, aimAssist.impactTime)) {
     aimAssist.played.exit = true;
     playAudioEvent("slow_motion_exit");
   }
@@ -4307,6 +4614,36 @@ function directionFromAngle(angle) {
     }
   }
   return best;
+}
+
+function directionTo8WayIndex(direction) {
+  return {
+    up: 0,
+    up_right: 1,
+    right: 2,
+    down_right: 3,
+    down: 4,
+    down_left: 5,
+    left: 6,
+    up_left: 7,
+  }[direction] ?? 2;
+}
+
+function setTurbo8Frame(sprite, atlas, frameIndex) {
+  const texture = atlas.texture;
+  const safeFrame = THREE.MathUtils.clamp(frameIndex, 0, 7);
+  texture.repeat.set(1 / 4, 1 / 2);
+  texture.offset.set((safeFrame % 4) / 4, 1 - (Math.floor(safeFrame / 4) + 1) / 2);
+  if (sprite.material.map !== texture) {
+    sprite.material.map = texture;
+    sprite.userData.aspect = atlas.aspect;
+    sprite.material.needsUpdate = true;
+  }
+}
+
+function textureHasImageData(texture) {
+  const image = texture?.image;
+  return Boolean(image && (image.width || image.naturalWidth || image.videoWidth));
 }
 
 function astronautViewFromAimDirection(direction) {
@@ -4578,14 +4915,8 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
   backgroundCamera.lookAt(travelVelocity.x * 0.045, travelVelocity.y * 0.05 + ascentEnergy * 0.14, -5);
 
   for (const planet of integratedBackground.planets) {
-    const activeProfileStage = STAGE_WORLD_PROFILES.indexOf(currentWorldProfile());
-    const profileDistance = Math.abs((planet.userData.profileStage ?? 0) - activeProfileStage);
-    const profilePresence =
-      profileDistance === 0
-        ? 1
-        : 0.02;
-    planet.visible = profilePresence > 0.03;
-    if (!planet.visible) continue;
+    const profilePresence = 1;
+    planet.visible = true;
     const base = planet.userData.base;
     const parallax = planet.userData.parallax;
     const orbitAngle = elapsed * planet.userData.orbitSpeed + planet.userData.orbitPhase;
@@ -4630,9 +4961,20 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     }
     const base = asteroid.userData.base;
     const parallax = asteroid.userData.parallax;
-    const orbitAngle = elapsed * asteroid.userData.orbitSpeed + asteroid.userData.phase;
-    const orbitX = Math.cos(orbitAngle) * asteroid.userData.orbitRadius.x;
-    const orbitY = Math.sin(orbitAngle * 0.74) * asteroid.userData.orbitRadius.y;
+    if (!asteroid.userData.screenVelocity2D) asteroid.userData.screenVelocity2D = new THREE.Vector2();
+    if (!asteroid.userData.velocity2D) asteroid.userData.velocity2D = new THREE.Vector2();
+    const previousScreenPoint = asteroid.userData.screenPoint?.clone?.() || null;
+    const motion = asteroid.userData.motion;
+    const orbitAngle = elapsed * (motion?.orbitSpeed ?? asteroid.userData.orbitSpeed) + (motion?.phase ?? asteroid.userData.phase);
+    const orbitRadius = motion?.orbitRadius ?? asteroid.userData.orbitRadius;
+    const driftRadius = motion?.driftRadius ?? new THREE.Vector2(0, 0);
+    const driftSpeed = motion?.driftSpeed ?? 0;
+    const orbitX =
+      Math.cos(orbitAngle) * orbitRadius.x +
+      Math.sin(elapsed * driftSpeed + (motion?.phase ?? 0) * 1.7) * driftRadius.x;
+    const orbitY =
+      Math.sin(orbitAngle * 0.74) * orbitRadius.y +
+      Math.cos(elapsed * driftSpeed * 0.86 + (motion?.phase ?? 0) * 0.9) * driftRadius.y;
     const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.78 + parallax * 0.28), WORLD_WRAP_X);
     const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.88 + parallax * 0.16), WORLD_WRAP_Y);
     if (asteroid.userData.destroyed) asteroid.userData.destroyTime += delta;
@@ -4672,6 +5014,16 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
         destroyedFade;
     }
     backgroundObjectScreenPoint(asteroid, targetScreenPoint);
+    if (previousScreenPoint && delta > 0) {
+      asteroid.userData.screenVelocity2D.set(
+        (targetScreenPoint.x - previousScreenPoint.x) / delta,
+        (targetScreenPoint.y - previousScreenPoint.y) / delta
+      );
+      asteroid.userData.velocity2D.copy(asteroid.userData.screenVelocity2D);
+    } else {
+      asteroid.userData.screenVelocity2D?.set?.(0, 0);
+      asteroid.userData.velocity2D?.set?.(0, 0);
+    }
     asteroid.userData.screenPoint = targetScreenPoint.clone();
   }
 
@@ -4767,40 +5119,99 @@ function placeBeamSprite(sprite, origin, target) {
   sprite.scale.set(length, sprite.userData.thickness, 1);
 }
 
-function createShotLine(origin, target, shooter) {
-  const texture = shooter === "ship" ? premiumFxFrames.speedStreaks[3].texture : premiumFxFrames.speedStreaks[2].texture;
+function makeProjectileSprite(texture, opacity, renderOrder) {
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      opacity: shooter === "ship" ? 0.82 : 0.64,
+      opacity,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false,
     })
   );
-  sprite.renderOrder = 31;
-  sprite.userData.isBeam = true;
-  sprite.userData.thickness = shooter === "ship" ? 0.070 : 0.032;
-  placeBeamSprite(sprite, origin, target);
+  sprite.renderOrder = renderOrder;
   return sprite;
+}
+
+function makeProjectileBeam(color, opacity, renderOrder) {
+  const beam = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    })
+  );
+  beam.renderOrder = renderOrder;
+  return beam;
+}
+
+function currentProjectileTargetPoint(shot) {
+  if (shot.userData.target && !shot.userData.miss) {
+    return predictedTargetPoint(shot.userData.target, shot.userData.mode);
+  }
+  return shot.userData.targetPoint.clone();
+}
+
+function createProjectileShot(origin, targetPoint, shooter, { target = null, miss = false, mode = "normal", relic = false } = {}) {
+  const group = new THREE.Group();
+  const isMajor = mode === "major";
+  const coreTexture =
+    shooter === "ship" ? missionFxTextures.closingShipProjectile : missionFxTextures.closingAstronautProjectile;
+  const trailTexture =
+    shooter === "ship" || isMajor ? missionFxTextures.closingLongTrail : missionFxTextures.closingShortTrail;
+  const trail = makeProjectileSprite(trailTexture, isMajor ? 0.62 : 0.46, 34);
+  const core = makeProjectileSprite(coreTexture, isMajor ? 0.92 : 0.82, 35);
+  const beamGlow = makeProjectileBeam(shooter === "ship" ? 0x42eaff : 0xff7be8, isMajor ? 0.30 : 0.18, 33);
+  const beamCore = makeProjectileBeam(shooter === "ship" ? 0xffffff : 0xffe8ff, isMajor ? 0.72 : 0.44, 34);
+  group.add(beamGlow, beamCore, trail, core);
+  group.position.set(origin.x, origin.y, 0.13);
+  group.userData = {
+    isProjectile: true,
+    shooter,
+    target,
+    targetPoint: targetPoint.clone(),
+    origin: origin.clone(),
+    miss,
+    relic,
+    mode,
+    time: 0,
+    duration: aimTimingSchedule(mode).projectileTravel,
+    damageApplied: false,
+    core,
+    trail,
+    beamGlow,
+    beamCore,
+  };
+  return group;
 }
 
 function spawnMuzzle(point, shooter) {
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
-      map: shooter === "ship" ? missionFxTextures.shipCore : missionFxTextures.toolMuzzle,
+      map: premiumFxFrames.closingMuzzleCharge[0].texture,
       transparent: true,
-      opacity: shooter === "ship" ? 0.70 : 0.78,
+      opacity: shooter === "ship" ? 0.84 : 0.70,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false,
     })
   );
   sprite.position.set(point.x, point.y, 0.1);
-  sprite.scale.setScalar(shooter === "ship" ? 0.18 : 0.11);
+  sprite.scale.setScalar(shooter === "ship" ? 0.26 : 0.15);
   sprite.renderOrder = 32;
-  sprite.userData = { time: 0, duration: 0.16, strong: shooter === "ship" };
+  sprite.userData = {
+    time: 0,
+    duration: 0.22,
+    strong: shooter === "ship",
+    stripFrames: premiumFxFrames.closingMuzzleCharge,
+    baseScale: shooter === "ship" ? 0.26 : 0.15,
+    baseOpacity: shooter === "ship" ? 0.84 : 0.70,
+  };
   interactionFx.add(sprite);
   activeImpacts.push(sprite);
 }
@@ -4864,7 +5275,7 @@ function spawnImpact(point, strong = false) {
   const baseOpacity = strong ? 0.92 : 0.62;
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
-      map: premiumFxFrames.impactRing[0].texture,
+      map: premiumFxFrames.closingImpactRing[0].texture,
       transparent: true,
       opacity: baseOpacity,
       blending: THREE.AdditiveBlending,
@@ -4879,7 +5290,7 @@ function spawnImpact(point, strong = false) {
     time: 0,
     duration: strong ? 0.60 : 0.38,
     strong,
-    stripFrames: premiumFxFrames.impactRing,
+    stripFrames: premiumFxFrames.closingImpactRing,
     baseScale,
     baseOpacity,
   };
@@ -5118,31 +5529,36 @@ function damageTarget(target, shooter) {
   }
 }
 
-function launchShotAtTarget(target, shooter = shooterForTarget(target)) {
+function launchShotAtTarget(target, shooter = shooterForTarget(target), options = {}) {
   if (!target || state.transition) return;
   if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
   if (shooter === "ship") enterShipMode();
 
   const origin = shooter === "astronaut" ? astronautState.position.clone() : state.position.clone();
-  const targetPoint = backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
-  const shot = createShotLine(origin, targetPoint, shooter);
-  shot.userData = { ...shot.userData, target, shooter, time: 0, duration: 0.18, origin };
+  const mode = options.mode || aimModeForTarget(target);
+  const targetPoint = predictedTargetPoint(target, mode);
+  const shot = createProjectileShot(origin, targetPoint, shooter, { target, mode });
   spawnMuzzle(origin, shooter);
   interactionFx.add(shot);
   activeShots.push(shot);
+  return shot;
 }
 
-function launchShotAtPoint(point, shooter = "ship") {
+function launchShotAtPoint(point, shooter = "ship", options = {}) {
   if (state.transition) return;
   if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
   if (shooter === "ship") enterShipMode();
 
   const origin = shooter === "astronaut" ? astronautState.position.clone() : state.position.clone();
-  const shot = createShotLine(origin, point, shooter);
-  shot.userData = { ...shot.userData, target: null, targetPoint: point.clone(), shooter, time: 0, duration: 0.18, origin, miss: true };
+  const shot = createProjectileShot(origin, point, shooter, {
+    miss: options.miss ?? true,
+    mode: options.mode || "normal",
+    relic: options.relic || false,
+  });
   spawnMuzzle(origin, shooter);
   interactionFx.add(shot);
   activeShots.push(shot);
+  return shot;
 }
 
 function fireAtTarget(target) {
@@ -5155,25 +5571,58 @@ function updateInteractionFx(delta) {
   for (let i = activeShots.length - 1; i >= 0; i -= 1) {
     const shot = activeShots[i];
     shot.userData.time += delta;
-    const t = shot.userData.time / shot.userData.duration;
-    const targetPoint = shot.userData.target
-      ? shot.userData.target.userData.screenPoint || backgroundObjectScreenPoint(shot.userData.target, new THREE.Vector2())
-      : shot.userData.targetPoint;
-    const origin = shot.userData.shooter === "astronaut" ? astronautState.position : state.position;
-    if (shot.userData.isBeam) {
-      placeBeamSprite(shot, origin, targetPoint);
-    } else {
-      const positions = shot.geometry.attributes.position;
-      positions.setXYZ(0, origin.x, origin.y, 0.08);
-      positions.setXYZ(1, targetPoint.x, targetPoint.y, 0.08);
-      positions.needsUpdate = true;
-    }
-    const baseOpacity = shot.userData.shooter === "ship" ? 0.78 : 0.70;
-    shot.material.opacity = Math.max(0, baseOpacity * (1 - t));
+    const t = THREE.MathUtils.clamp(shot.userData.time / shot.userData.duration, 0, 1);
+    const origin = shot.userData.origin;
+    const targetPoint = currentProjectileTargetPoint(shot);
+    const eased = THREE.MathUtils.smoothstep(t, 0, 1);
+    const current = origin.clone().lerp(targetPoint, eased);
+    const deltaPoint = targetPoint.clone().sub(origin);
+    const direction = deltaPoint.lengthSq() > 0.0001 ? deltaPoint.normalize() : new THREE.Vector2(1, 0);
+    const angle = Math.atan2(direction.y, direction.x);
+    const lead = 0.04 + t * 0.06;
+    shot.position.set(current.x, current.y, 0.13);
+    shot.userData.core.position.set(direction.x * lead, direction.y * lead, 0);
+    shot.userData.trail.position.set(-direction.x * (0.10 + t * 0.10), -direction.y * (0.10 + t * 0.10), -0.01);
+    shot.userData.core.material.rotation = angle;
+    shot.userData.trail.material.rotation = angle;
+    const majorScale = shot.userData.mode === "major" ? 1.36 : 1.0;
+    const pulse = 1 + Math.sin((shot.userData.time + t) * 18) * 0.08;
+    const beamLength = (0.20 + t * 0.42) * majorScale;
+    const beamFade = 1 - t * 0.20;
+    shot.userData.beamCore.position.set(-direction.x * beamLength * 0.50, -direction.y * beamLength * 0.50, -0.004);
+    shot.userData.beamGlow.position.set(-direction.x * beamLength * 0.56, -direction.y * beamLength * 0.56, -0.006);
+    shot.userData.beamCore.rotation.z = angle;
+    shot.userData.beamGlow.rotation.z = angle;
+    shot.userData.beamCore.scale.set(beamLength, 0.020 * majorScale, 1);
+    shot.userData.beamGlow.scale.set(beamLength * 1.18, 0.065 * majorScale, 1);
+    shot.userData.beamCore.material.opacity = (shot.userData.mode === "major" ? 0.78 : 0.46) * beamFade;
+    shot.userData.beamGlow.material.opacity = (shot.userData.mode === "major" ? 0.34 : 0.18) * (1 - t * 0.30);
+    shot.userData.core.scale.set(0.22 * majorScale * pulse, 0.055 * majorScale, 1);
+    shot.userData.trail.scale.set((0.30 + t * 0.30) * majorScale, 0.070 * majorScale, 1);
+    shot.userData.core.material.opacity = (shot.userData.mode === "major" ? 0.94 : 0.82) * (1 - t * 0.12);
+    shot.userData.trail.material.opacity = (shot.userData.mode === "major" ? 0.58 : 0.42) * (1 - t * 0.22);
     if (t >= 1) {
+      if (!shot.userData.damageApplied) {
+        shot.userData.damageApplied = true;
+        if (shot.userData.relic) {
+          touchMissionRelic();
+        } else if (shot.userData.target && !shot.userData.miss) {
+          damageTarget(shot.userData.target, shot.userData.shooter);
+        } else {
+          spawnImpact(targetPoint, false);
+          playMissionAudio("invalid_target_blip");
+          setCompanionAimFeedback(`MISS · AUTOAIM ${Math.round(aimAssist.successChance * 100)}%`);
+        }
+        if (aimAssist.projectile === shot) {
+          aimAssist.impacted = true;
+          aimAssist.hitStop = Math.max(aimAssist.hitStop, shot.userData.mode === "major" ? 0.18 : 0.10);
+        }
+      }
       interactionFx.remove(shot);
-      if (shot.geometry?.dispose) shot.geometry.dispose();
-      shot.material.dispose();
+      for (const child of shot.children) {
+        child.geometry?.dispose?.();
+        child.material?.dispose?.();
+      }
       activeShots.splice(i, 1);
     }
   }
@@ -5707,12 +6156,13 @@ function updateShipFx(elapsed, shipVelocity) {
     1
   );
 
-  velocityWake.visible = moving || turbo > 0.03;
+  const wakeFrame = premiumFxFrames.speedStreaks[Math.min(3, Math.floor((speed + turbo) * 2.7))] || premiumFxFrames.speedStreaks[2];
+  const wakeReady = textureHasImageData(wakeFrame.texture);
+  velocityWake.visible = (moving || turbo > 0.03) && wakeReady;
   velocityWake.position.set(behind.x * (0.28 + turbo * 0.14) * stageScale, behind.y * (0.28 + turbo * 0.14) * stageScale, -0.01);
   velocityWake.material.rotation = Math.atan2(direction.y, direction.x);
   velocityWake.material.opacity = (0.08 + speed * 0.24 + turbo * 0.34) * (moving ? 1 : 0.55);
-  const wakeFrame = premiumFxFrames.speedStreaks[Math.min(3, Math.floor((speed + turbo) * 2.7))] || premiumFxFrames.speedStreaks[2];
-  if (velocityWake.material.map !== wakeFrame.texture) {
+  if (wakeReady && velocityWake.material.map !== wakeFrame.texture) {
     velocityWake.material.map = wakeFrame.texture;
     velocityWake.material.needsUpdate = true;
   }
@@ -5724,25 +6174,50 @@ function updateShipFx(elapsed, shipVelocity) {
 
   const side = new THREE.Vector2(-direction.y, direction.x);
   const turboTier = THREE.MathUtils.clamp(mission01.gems, 0, 3);
-  const flameFrame = premiumFxFrames.turboFlame[
-    Math.min(3, Math.floor((elapsed * (9 + turboTier * 3) + turboTier) % premiumFxFrames.turboFlame.length))
-  ];
-  turboFlameSprites.forEach((flame, index) => {
-    const sideOffset = (index === 0 ? -1 : 1) * shipSprite.scale.x * 0.19;
-    const length = shipSprite.scale.x * (0.62 + turboTier * 0.14) * (0.55 + turbo * 1.12);
-    const width = shipSprite.scale.y * (0.22 + turboTier * 0.035) * (0.42 + turbo * 1.04);
-    flame.visible = turbo > 0.045;
-    flame.material.map = flameFrame.texture;
-    flame.material.needsUpdate = true;
-    flame.position.set(
-      behind.x * shipSprite.scale.y * (0.56 + turbo * 0.22) + side.x * sideOffset,
-      behind.y * shipSprite.scale.y * (0.56 + turbo * 0.22) + side.y * sideOffset,
-      0.018
-    );
-    flame.material.rotation = Math.atan2(behind.y, behind.x);
-    flame.scale.set(length, width, 1);
-    flame.material.opacity = Math.min(0.96, turbo * (0.50 + turboTier * 0.15));
+  const directionName = moving
+    ? directionFromAngle(Math.atan2(direction.y, direction.x))
+    : state.direction !== "idle"
+      ? state.direction
+      : "up";
+  const turboFrameIndex = directionTo8WayIndex(directionName);
+  turboFlameSprites.forEach((flame) => {
+    flame.visible = false;
+    flame.material.opacity = 0;
   });
+  const turboAtlasesReady =
+    textureHasImageData(turbo8Frames.wake.texture) &&
+    textureHasImageData(turbo8Frames.compression.texture) &&
+    textureHasImageData(turbo8Frames.glow.texture);
+  turbo8Group.visible = turbo > 0.035 && turboAtlasesReady;
+  if (turboAtlasesReady) {
+    setTurbo8Frame(turbo8FxSprites.wake, turbo8Frames.wake, turboFrameIndex);
+    setTurbo8Frame(turbo8FxSprites.compression, turbo8Frames.compression, turboFrameIndex);
+    setTurbo8Frame(turbo8FxSprites.glow, turbo8Frames.glow, turboFrameIndex);
+  }
+  turbo8FxSprites.wake.visible = turbo8Group.visible;
+  turbo8FxSprites.compression.visible = turbo8Group.visible;
+  turbo8FxSprites.glow.visible = turbo8Group.visible;
+  turbo8FxSprites.wake.position.set(behind.x * shipSprite.scale.y * (0.64 + turbo * 0.28), behind.y * shipSprite.scale.y * (0.64 + turbo * 0.28), 0.024);
+  turbo8FxSprites.compression.position.set(direction.x * 0.010, direction.y * 0.010, 0.020);
+  turbo8FxSprites.glow.position.set(behind.x * shipSprite.scale.y * 0.36, behind.y * shipSprite.scale.y * 0.36, 0.030);
+  turbo8FxSprites.wake.scale.set(
+    shipSprite.scale.x * (1.05 + turbo * 1.06 + turboTier * 0.18),
+    shipSprite.scale.y * (0.70 + turbo * 0.58 + turboTier * 0.08),
+    1
+  );
+  turbo8FxSprites.compression.scale.set(
+    shipSprite.scale.x * (1.08 + turbo * 0.48),
+    shipSprite.scale.x * (1.08 + turbo * 0.48),
+    1
+  );
+  turbo8FxSprites.glow.scale.set(
+    shipSprite.scale.x * (0.58 + turbo * 0.58),
+    shipSprite.scale.y * (0.50 + turbo * 0.44),
+    1
+  );
+  turbo8FxSprites.wake.material.opacity = Math.min(0.74, turbo * (0.44 + turboTier * 0.11));
+  turbo8FxSprites.compression.material.opacity = Math.min(0.44, turbo * (0.24 + turboTier * 0.07));
+  turbo8FxSprites.glow.material.opacity = Math.min(0.86, turbo * (0.54 + turboTier * 0.13));
 
   let i = 0;
   for (const particle of motionParticles.children) {
@@ -5759,7 +6234,7 @@ function updateShipFx(elapsed, shipVelocity) {
     );
     const particleSize = (0.007 + depth * 0.010 + speed * 0.008 + turbo * 0.010) * stageScale;
     particle.scale.set(particleSize, particleSize, 1);
-    particle.material.opacity = moving ? (0.030 + speed * 0.075 + turbo * 0.12) * depth : 0.010 + pulse * 0.012;
+    particle.material.opacity = moving ? (0.030 + speed * 0.075 + turbo * 0.035) * depth : 0.010 + pulse * 0.012;
     i += 1;
   }
 }
@@ -5840,7 +6315,7 @@ function animate() {
   updateShipFx(elapsed, travelVelocity);
   updateTransition(delta, elapsed);
   updateAstronaut(delta, elapsed, input.velocity);
-  updateInteractionFx(delta);
+  updateInteractionFx(rawDelta);
   updateAimAssist(rawDelta, elapsed);
   updateMission01(delta, elapsed);
   updateFinalSequence(rawDelta, elapsed);
@@ -5875,14 +6350,30 @@ if (params.get("autoMission") === "1") {
 if (params.get("autoTurbo") === "1") {
   hideMenu();
   window.setTimeout(() => {
-    if (!mission01.started) startMission01();
+    if (!mission01.started) {
+      mission01.started = true;
+      mission01.state = "navigation";
+      updateMissionHud("RUTA ABIERTA", "TURBO DE NAVE ACTIVO", "QA / PROPULSIÓN 8 DIRECCIONES");
+    }
+    enterShipMode();
     const previewGems = Number(params.get("gems"));
     if (Number.isFinite(previewGems)) {
       mission01.gems = THREE.MathUtils.clamp(Math.round(previewGems), 0, 3);
       updateGemHud();
     }
     input.keys.add("f");
-    input.keys.add(params.get("turboDir") || "w");
+    const turboPreviewKeyMap = {
+      up: ["w"],
+      up_right: ["w", "d"],
+      right: ["d"],
+      down_right: ["s", "d"],
+      down: ["s"],
+      down_left: ["s", "a"],
+      left: ["a"],
+      up_left: ["w", "a"],
+    };
+    const turboPreviewKeys = turboPreviewKeyMap[params.get("turboDir") || "up"] || ["w"];
+    turboPreviewKeys.forEach((key) => input.keys.add(key));
     robotCompanion.focus = "turbo";
     robotCompanion.focusTimer = 4;
     robotCompanion.pulse = 1;
@@ -5894,16 +6385,29 @@ if (params.get("autoAim")) {
   window.setTimeout(() => {
     if (!mission01.started) startMission01();
     const mode = params.get("autoAim");
+    const fireWhenReady = (selectTarget, attempts = 24) => {
+      const target = selectTarget();
+      if (target && target.visible && target.userData.active !== false && !target.userData.destroyed) {
+        fireAtTarget(target);
+        return;
+      }
+      if (attempts > 0) window.setTimeout(() => fireWhenReady(selectTarget, attempts - 1), 220);
+    };
     if (mode === "ship") {
       completeSmallMissionTargets();
       window.setTimeout(() => {
-        const target = mission01.largeObstacles.find((obstacle) => obstacle.userData.active && !obstacle.userData.destroyed);
-        if (target) fireAtTarget(target);
+        fireWhenReady(() =>
+          mission01.largeObstacles.find((obstacle) => obstacle.userData.active && !obstacle.userData.destroyed)
+        );
       }, 360);
       return;
     }
-    const target = mission01.smallAsteroids.find((asteroid) => asteroid.userData.active && !asteroid.userData.destroyed);
-    if (target) fireAtTarget(target);
+    fireWhenReady(() => {
+      if (!mission01.smallAsteroids.some((asteroid) => asteroid.userData.active && !asteroid.userData.destroyed)) {
+        setMissionTargetsActive(mission01.smallAsteroids, true);
+      }
+      return mission01.smallAsteroids.find((asteroid) => asteroid.userData.active && !asteroid.userData.destroyed);
+    });
   }, 1150);
 }
 animate();

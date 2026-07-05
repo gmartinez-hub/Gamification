@@ -83,7 +83,7 @@ body {
 
 .robot-panel {
   position: fixed;
-  top: 116px;
+  top: 150px;
   right: 18px;
   z-index: 12;
   width: min(278px, calc(100vw - 36px));
@@ -467,7 +467,7 @@ body {
   }
 
   .robot-panel {
-    top: 92px;
+    top: 142px;
     right: 14px;
     width: min(250px, calc(100vw - 28px));
   }

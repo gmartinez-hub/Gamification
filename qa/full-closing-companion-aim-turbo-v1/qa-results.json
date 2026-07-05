@@ -1,0 +1,663 @@
+{
+  "baseUrl": "http://127.0.0.1:8796/",
+  "startedAt": "2026-07-05T02:49:19.798Z",
+  "cases": [
+    {
+      "name": "01-companion-panel",
+      "url": "http://127.0.0.1:8796/?autoMission=1&robotPanel=1&qaCdp=1783219759799",
+      "delayMs": 2600,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◇◇◇ GEMAS 0/3\nCOMPANION / FRAGMENTOS\nOBJETIVO ACTUAL\nRecuperá 3 fragmentos de señal.\nQUÉ HACER\nUsá el astronauta para destruir fragmentos pequeños.\nClickeá cerca del fragmento: el autoaim corrige la orientación.\nRUMBO NORTE. FALTAN 3 FRAGMENTOS\nFRAGMENTOS\n0/3\nNÚCLEOS\n0/1\nRELIQUIA\n0/1",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "small_asteroids",
+          "controlMode": "astronaut"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/01-companion-panel-full.png",
+          "bytes": 615271,
+          "clip": null
+        },
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/01-companion-panel-robot-crop.png",
+          "bytes": 46492,
+          "clip": {
+            "x": 1090,
+            "y": 20,
+            "width": 330,
+            "height": 330
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "02-aim-normal-lock",
+      "url": "http://127.0.0.1:8796/?autoMission=1&autoAim=small&forceHit=1&qaCdp=1783219765782",
+      "delayMs": 0,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◇◇◇ GEMAS 0/3\nCOMPANION / AUTOAIM\nOBJETIVO ACTUAL\nFUERA DE RANGO · 186% DEL ALCANCE\nQUÉ HACER\nAcercate al objetivo correcto antes de disparar.\nEl rango y la alineación definen el porcentaje de éxito; si estás lejos, puede desviarse.\nFUERA DE RANGO · 186% DEL ALCANCE\nFRAGMENTOS\n0/3\nNÚCLEOS\n0/1\nRELIQUIA\n0/1",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "small_asteroids",
+          "controlMode": "astronaut"
+        }
+      },
+      "waitDebug": {
+        "aimActive": false,
+        "aimMode": "normal",
+        "aimPhase": "idle",
+        "aimTime": 0,
+        "aimFireTime": 0.54,
+        "aimImpactTime": 0.76,
+        "aimDuration": 1.04,
+        "aimFired": false,
+        "aimImpacted": false,
+        "activeShots": 0,
+        "missionState": "small_asteroids",
+        "controlMode": "astronaut"
+      },
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/02-aim-normal-lock-full.png",
+          "bytes": 619649,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "03-aim-normal-impact",
+      "url": "http://127.0.0.1:8796/?autoMission=1&autoAim=small&forceHit=1&qaCdp=1783219797520",
+      "delayMs": 0,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◇◇◇ GEMAS 0/3\nCOMPANION / FRAGMENTOS\nOBJETIVO ACTUAL\nRecuperá 3 fragmentos de señal.\nQUÉ HACER\nUsá el astronauta para destruir fragmentos pequeños.\nClickeá cerca del fragmento: el autoaim corrige la orientación.\nFUERA DE RANGO · 186% DEL ALCANCE\nFRAGMENTOS\n0/3\nNÚCLEOS\n0/1\nRELIQUIA\n0/1",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "small_asteroids",
+          "controlMode": "astronaut"
+        }
+      },
+      "waitDebug": {
+        "aimActive": false,
+        "aimMode": "normal",
+        "aimPhase": "idle",
+        "aimTime": 0,
+        "aimFireTime": 0.54,
+        "aimImpactTime": 0.76,
+        "aimDuration": 1.04,
+        "aimFired": false,
+        "aimImpacted": false,
+        "activeShots": 0,
+        "missionState": "small_asteroids",
+        "controlMode": "astronaut"
+      },
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/03-aim-normal-impact-full.png",
+          "bytes": 635830,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "04-aim-major-cinematic-orient",
+      "url": "http://127.0.0.1:8796/?autoMission=1&autoAim=ship&forceHit=1&aimCinematic=1&qaCdp=1783219834491",
+      "delayMs": 0,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◇◇◇ GEMAS 0/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": true,
+          "aimMode": "major",
+          "aimPhase": "orient",
+          "aimTime": 2.211,
+          "aimFireTime": 3.5,
+          "aimImpactTime": 5.15,
+          "aimDuration": 6.5,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "large_obstacle",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": {
+        "aimActive": true,
+        "aimMode": "major",
+        "aimPhase": "orient",
+        "aimTime": 2.178,
+        "aimFireTime": 3.5,
+        "aimImpactTime": 5.15,
+        "aimDuration": 6.5,
+        "aimFired": false,
+        "aimImpacted": false,
+        "activeShots": 0,
+        "missionState": "large_obstacle",
+        "controlMode": "ship"
+      },
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/04-aim-major-cinematic-orient-full.png",
+          "bytes": 749199,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "05-aim-major-projectile",
+      "url": "http://127.0.0.1:8796/?autoMission=1&autoAim=ship&forceHit=1&aimCinematic=1&qaCdp=1783219855865",
+      "delayMs": 0,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◇◇◇ GEMAS 0/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": true,
+          "aimMode": "major",
+          "aimPhase": "projectile_travel",
+          "aimTime": 3.597,
+          "aimFireTime": 3.5,
+          "aimImpactTime": 5.15,
+          "aimDuration": 6.5,
+          "aimFired": true,
+          "aimImpacted": false,
+          "activeShots": 1,
+          "missionState": "large_obstacle",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": {
+        "aimActive": true,
+        "aimMode": "major",
+        "aimPhase": "fire",
+        "aimTime": 3.531,
+        "aimFireTime": 3.5,
+        "aimImpactTime": 5.15,
+        "aimDuration": 6.5,
+        "aimFired": true,
+        "aimImpacted": false,
+        "activeShots": 1,
+        "missionState": "large_obstacle",
+        "controlMode": "ship"
+      },
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/05-aim-major-projectile-full.png",
+          "bytes": 759428,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "06-stage3-targets",
+      "url": "http://127.0.0.1:8796/?autoMission=1&stage=2&autoAim=ship&forceHit=1&aimCinematic=1&qaCdp=1783219886633",
+      "delayMs": 0,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◇◇◇ GEMAS 0/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": true,
+          "aimMode": "major",
+          "aimPhase": "stabilize",
+          "aimTime": 1.386,
+          "aimFireTime": 3.5,
+          "aimImpactTime": 5.15,
+          "aimDuration": 6.5,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "large_obstacle",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": {
+        "aimActive": true,
+        "aimMode": "major",
+        "aimPhase": "stabilize",
+        "aimTime": 1.353,
+        "aimFireTime": 3.5,
+        "aimImpactTime": 5.15,
+        "aimDuration": 6.5,
+        "aimFired": false,
+        "aimImpacted": false,
+        "activeShots": 0,
+        "missionState": "large_obstacle",
+        "controlMode": "ship"
+      },
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/06-stage3-targets-full.png",
+          "bytes": 815857,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-up",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=up&qaCdp=1783219902609",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-up-full.png",
+          "bytes": 695514,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-up_right",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=up_right&qaCdp=1783219908217",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-up_right-full.png",
+          "bytes": 706770,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-right",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=right&qaCdp=1783219913887",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-right-full.png",
+          "bytes": 664372,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-down_right",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=down_right&qaCdp=1783219919523",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-down_right-full.png",
+          "bytes": 707985,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-down",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=down&qaCdp=1783219925138",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-down-full.png",
+          "bytes": 699922,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-down_left",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=down_left&qaCdp=1783219930692",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-down_left-full.png",
+          "bytes": 723879,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-left",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=left&qaCdp=1783219936306",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-left-full.png",
+          "bytes": 664601,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "turbo-up_left",
+      "url": "http://127.0.0.1:8796/?autoTurbo=1&gems=3&turboDir=up_left&qaCdp=1783219941844",
+      "delayMs": 3000,
+      "meta": {
+        "title": "Nave Gamification Prototype",
+        "canvas": {
+          "width": 1440,
+          "height": 900
+        },
+        "bodyText": "◆◆◆ GEMAS 3/3",
+        "hasRobotPanel": false,
+        "hasGemHud": true,
+        "hasMissionText": false,
+        "debug": {
+          "aimActive": false,
+          "aimMode": "normal",
+          "aimPhase": "idle",
+          "aimTime": 0,
+          "aimFireTime": 0.54,
+          "aimImpactTime": 0.76,
+          "aimDuration": 1.04,
+          "aimFired": false,
+          "aimImpacted": false,
+          "activeShots": 0,
+          "missionState": "navigation",
+          "controlMode": "ship"
+        }
+      },
+      "waitDebug": null,
+      "screenshots": [
+        {
+          "path": "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1/turbo-up_left-full.png",
+          "bytes": 708121,
+          "clip": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": []
+    }
+  ],
+  "completedAt": "2026-07-05T02:52:27.338Z",
+  "summary": {
+    "totalCases": 14,
+    "screenshotCount": 15,
+    "totalConsoleErrors": 0,
+    "totalPageErrors": 0,
+    "totalFailedResponses": 0
+  }
+}
