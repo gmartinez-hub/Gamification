@@ -1,5 +1,5 @@
-qa-*
-qa/
+/qa-*
+/qa/
 handoff/
 **/*_pack*/
 gravedad_zero_*_pack_v1/
