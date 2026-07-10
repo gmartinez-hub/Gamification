@@ -42,7 +42,7 @@ for (const relativePath of paths) {
   await cp(source, destination, { force: true });
 }
 
-const runtimeDirectories = ["assets/runtime/v3", "assets/runtime/v3-derived"];
+const runtimeDirectories = ["assets/runtime/v3", "assets/runtime/v3-derived", "assets/runtime/v4"];
 for (const relativePath of runtimeDirectories) {
   await cp(path.join(root, relativePath), path.join(destinationRoot, relativePath), {
     recursive: true,

@@ -13,6 +13,7 @@ import {
   ShipMotionRig,
   ShipVisualRig,
 } from "./visual/VisualPackRig.js";
+import { createCompleteV4Controller } from "./v4/CompleteV4Controller.js";
 
 const canvas = document.querySelector("#scene");
 const stageButton = document.querySelector("#stageButton");
@@ -7077,6 +7078,14 @@ function updateShipFx(elapsed, shipVelocity) {
   );
 }
 
+const completeV4 = createCompleteV4Controller({
+  THREE, scene, backgroundScene, camera, backgroundCamera, renderer, viewport,
+  state, input, mission01, astronautState, shipGroup, astronautGroup, relicGroup,
+  robotCompanion, aimAssist, speedState,
+  dom: { missionTitle, missionSubtitle, missionStatus, missionProgress, gemHud, gemBadge, shieldHud, regionHud, robotPanel, robotStateLabel, robotGoal, robotAction, robotTip, robotMessage },
+  callbacks: { updateRobotPanel, updateMissionHud, playAudioEvent, playMissionAudio, enterShipMode, enterAstronautMode },
+});
+
 function animate() {
   const rawDelta = Math.min(clock.getDelta(), 0.033);
   const elapsed = clock.elapsedTime;
@@ -7090,12 +7099,14 @@ function animate() {
   const keyY = keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
   const targetVelocity = new THREE.Vector2(keyX, keyY);
   if (targetVelocity.length() > 1) targetVelocity.normalize();
+  completeV4.beforeInput({ rawDelta, delta, elapsed, targetVelocity });
 
   input.smoothPointer.set(0, 0);
   input.velocity.lerp(targetVelocity, 1 - Math.pow(0.004, delta * speedState.currentTuning.acceleration));
 
   const shipVelocity = state.controlMode === "ship" ? input.velocity : new THREE.Vector2();
   const travelVelocity = shipVelocity.clone().multiplyScalar(speedState.visualMultiplier);
+  completeV4.applyForces({ rawDelta, delta, elapsed, inputVelocity: input.velocity, shipVelocity, travelVelocity });
 
   if (state.controlMode === "ship") {
     setDirection(input.debugDirection || resolveDirection(input.velocity.x, input.velocity.y));
@@ -7164,6 +7175,7 @@ function animate() {
   updateFinalSequence(rawDelta, elapsed);
   updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
+  completeV4.update({ rawDelta, delta, elapsed, shipVelocity, travelVelocity });
 
   renderer.clear();
   renderer.render(backgroundScene, backgroundCamera);
@@ -7307,4 +7319,5 @@ if (params.get("autoAim")) {
     });
   }, 1150);
 }
+completeV4.start();
 animate();
