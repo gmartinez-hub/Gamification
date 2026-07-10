@@ -1,4 +1,5 @@
 qa-*
+qa/
 background-lab/
 tools/
 assets/*.png

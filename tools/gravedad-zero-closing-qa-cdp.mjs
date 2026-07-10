@@ -1,10 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const CDP_HOST = "http://127.0.0.1:9224";
-const BASE_URL = "http://127.0.0.1:8796/";
-const OUT_DIR = "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1";
+const CDP_HOST = process.env.GZ_QA_CDP_HOST || "http://127.0.0.1:9224";
+const BASE_URL = process.env.GZ_QA_BASE_URL || "http://127.0.0.1:8796/";
+const OUT_DIR = process.env.GZ_QA_OUT_DIR || "/Users/gabrielmartinez/Gamification/qa/full-closing-companion-aim-turbo-v1";
 const VIEWPORT = { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false };
+const FAST_QA = process.env.GZ_QA_FAST === "1";
+const CASE_FILTER = process.env.GZ_QA_CASE_FILTER || "";
+const NAV_DELAY_MS = FAST_QA ? 9000 : 60000;
+const TARGET_DELAY_MS = FAST_QA ? 7000 : 13000;
+const RECORD_MS = FAST_QA ? 1800 : 4600;
+const RECORD_EVERY_MS = FAST_QA ? 360 : 230;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -102,8 +108,16 @@ async function connectCdp() {
   return { ws, send, waitFor, collectors };
 }
 
+function caseUrl(query) {
+  const url = new URL(BASE_URL);
+  const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+  for (const [key, value] of params.entries()) url.searchParams.set(key, value);
+  url.searchParams.set("qaCdp", String(Date.now()));
+  return url.toString();
+}
+
 async function runCase(cdp, qa, testCase) {
-  const url = `${BASE_URL}${testCase.query}${testCase.query.includes("?") ? "&" : "?"}qaCdp=${Date.now()}`;
+  const url = caseUrl(testCase.query);
   const collector = { console: [], pageErrors: [], failedResponses: [] };
   const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
@@ -154,12 +168,41 @@ async function runCase(cdp, qa, testCase) {
       debug: typeof window.__gzDebug === "function" ? window.__gzDebug() : null
     };
   })()`;
-  const metaResult = await cdp.send(
+  const beforeMetaResult = await cdp.send(
     "Runtime.evaluate",
     { expression: metaExpression, returnByValue: true, awaitPromise: true },
     sessionId
   );
-  const meta = metaResult.result?.value || {};
+  const metaBefore = beforeMetaResult.result?.value || {};
+
+  const recordings = [];
+  if (testCase.recordMs) {
+    const frameDir = path.join(OUT_DIR, `${testCase.name}-frames`);
+    await fs.mkdir(frameDir, { recursive: true });
+    const started = Date.now();
+    let frameIndex = 0;
+    while (Date.now() - started < testCase.recordMs) {
+      const result = await cdp.send(
+        "Page.captureScreenshot",
+        {
+          format: "png",
+          captureBeyondViewport: false,
+          clip: testCase.recordClip ? { ...testCase.recordClip, scale: 1 } : undefined,
+        },
+        sessionId
+      );
+      const file = path.join(frameDir, `frame-${String(frameIndex).padStart(4, "0")}.png`);
+      await fs.writeFile(file, Buffer.from(result.data, "base64"));
+      frameIndex += 1;
+      await delay(testCase.recordEveryMs || RECORD_EVERY_MS);
+    }
+    recordings.push({
+      frameDir,
+      frames: frameIndex,
+      durationMs: testCase.recordMs,
+      everyMs: testCase.recordEveryMs || RECORD_EVERY_MS,
+    });
+  }
 
   const screenshots = [];
   for (const shot of testCase.shots) {
@@ -178,16 +221,25 @@ async function runCase(cdp, qa, testCase) {
     screenshots.push({ path: file, bytes: stat.size, clip: shot.clip || null });
   }
 
+  const afterMetaResult = await cdp.send(
+    "Runtime.evaluate",
+    { expression: metaExpression, returnByValue: true, awaitPromise: true },
+    sessionId
+  );
+  const meta = afterMetaResult.result?.value || metaBefore;
+
   qa.cases.push({
     name: testCase.name,
     url,
     delayMs: testCase.delayMs,
     meta,
+    metaBefore,
     waitDebug,
     screenshots,
     consoleErrors: collector.console,
     pageErrors: collector.pageErrors,
     failedResponses: collector.failedResponses,
+    recordings,
   });
 
   cdp.collectors.delete(sessionId);
@@ -207,62 +259,104 @@ const testCases = [
     name: "01-companion-panel",
     query: "?autoMission=1&robotPanel=1",
     delayMs: 2600,
+    recordMs: RECORD_MS,
+    recordClip: { x: 1090, y: 20, width: 330, height: 330 },
     shots: [
       { suffix: "full" },
       { suffix: "robot-crop", clip: { x: 1090, y: 20, width: 330, height: 330 } },
     ],
   },
   {
-    name: "02-aim-normal-lock",
-    query: "?autoMission=1&autoAim=small&forceHit=1",
+    name: "02-stage1-north-60s",
+    query: "?autoTurbo=1&stage=1&gems=0&turboDir=up",
+    delayMs: NAV_DELAY_MS,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "03-stage1-east-60s",
+    query: "?autoTurbo=1&stage=1&gems=0&turboDir=right",
+    delayMs: NAV_DELAY_MS,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "04-stage2-chase-targets",
+    query: "?autoMission=1&stage=2&autoAim=small&qaApproachTarget=1&qaAimDistance=1.45&qaTargetIndex=1",
     delayMs: 0,
-    waitForDebug: (debug) => debug?.aimActive && debug.aimMode === "normal" && debug.aimTime >= 0.35 && !debug.aimFired,
+    waitForDebug: (debug) => debug?.aimActive && debug.aimMode === "normal" && debug.aimTime >= 0.55,
     waitTimeoutMs: 30000,
+    postWaitDelayMs: TARGET_DELAY_MS,
+    recordMs: RECORD_MS,
     shots: [{ suffix: "full" }],
   },
   {
-    name: "03-aim-normal-impact",
-    query: "?autoMission=1&autoAim=small&forceHit=1",
+    name: "05-stage3-miss-real-a",
+    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=0",
     delayMs: 0,
-    waitForDebug: (debug) => debug?.activeShots > 0 || debug?.aimPhase === "projectile",
-    waitTimeoutMs: 35000,
-    postWaitDelayMs: 180,
+    waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
+    waitTimeoutMs: 36000,
+    postWaitDelayMs: 520,
+    recordMs: RECORD_MS,
     shots: [{ suffix: "full" }],
   },
   {
-    name: "04-aim-major-cinematic-orient",
-    query: "?autoMission=1&autoAim=ship&forceHit=1&aimCinematic=1",
+    name: "06-stage3-miss-real-b",
+    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=1",
     delayMs: 0,
-    waitForDebug: (debug) => debug?.aimActive && debug.aimMode === "major" && debug.aimTime >= 2.15 && !debug.aimFired,
-    waitTimeoutMs: 35000,
+    waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
+    waitTimeoutMs: 36000,
+    postWaitDelayMs: 520,
     shots: [{ suffix: "full" }],
   },
   {
-    name: "05-aim-major-projectile",
-    query: "?autoMission=1&autoAim=ship&forceHit=1&aimCinematic=1",
+    name: "07-stage3-miss-real-c",
+    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=2",
     delayMs: 0,
-    waitForDebug: (debug) => debug?.activeShots > 0 || debug?.aimPhase === "projectile",
-    waitTimeoutMs: 52000,
-    postWaitDelayMs: 360,
+    waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
+    waitTimeoutMs: 36000,
+    postWaitDelayMs: 520,
     shots: [{ suffix: "full" }],
   },
   {
-    name: "06-stage3-targets",
-    query: "?autoMission=1&stage=2&autoAim=ship&forceHit=1&aimCinematic=1",
+    name: "08-hit-normal-real",
+    query: "?autoMission=1&stage=1&autoAim=small&qaApproachTarget=1&qaAimDistance=0.24&qaTargetIndex=0",
+    delayMs: 0,
+    waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
+    waitTimeoutMs: 36000,
+    postWaitDelayMs: 520,
+    recordMs: RECORD_MS,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "09-major-shot-real",
+    query: "?autoMission=1&stage=2&autoAim=ship&qaApproachTarget=1&qaAimDistance=0.62&qaTargetIndex=0&aimCinematic=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.aimActive && debug.aimMode === "major" && debug.aimTime >= 1.35,
     waitTimeoutMs: 35000,
+    postWaitDelayMs: 900,
+    recordMs: RECORD_MS,
     shots: [{ suffix: "full" }],
   },
-  ...["up", "up_right", "right", "down_right", "down", "down_left", "left", "up_left"].map((direction) => ({
-    name: `turbo-${direction}`,
+  {
+    name: "10-final-cinematic",
+    query: "?autoFinal=1",
+    delayMs: 2200,
+    recordMs: RECORD_MS,
+    shots: [{ suffix: "full" }],
+  },
+  ...["up", "up_right", "right", "down_right", "down", "down_left", "left", "up_left"].map((direction, index) => ({
+    name: `${String(11 + index).padStart(2, "0")}-turbo-${direction}`,
     query: `?autoTurbo=1&gems=3&turboDir=${direction}`,
-    delayMs: 3000,
+    delayMs: FAST_QA ? 2600 : 4200,
+    recordMs: direction === "right" ? RECORD_MS : 0,
     shots: [{ suffix: "full" }],
   })),
 ];
 
-for (const testCase of testCases) {
+const selectedTestCases = CASE_FILTER
+  ? testCases.filter((testCase) => testCase.name.includes(CASE_FILTER))
+  : testCases;
+
+for (const testCase of selectedTestCases) {
   await runCase(cdp, qa, testCase);
 }
 
@@ -270,6 +364,11 @@ qa.completedAt = new Date().toISOString();
 qa.summary = {
   totalCases: qa.cases.length,
   screenshotCount: qa.cases.reduce((sum, testCase) => sum + testCase.screenshots.length, 0),
+  recordingCount: qa.cases.reduce((sum, testCase) => sum + testCase.recordings.length, 0),
+  totalRealHits: qa.cases.reduce((sum, testCase) => sum + (testCase.meta.debug?.qaTelemetry?.realHits || 0), 0),
+  totalRealMisses: qa.cases.reduce((sum, testCase) => sum + (testCase.meta.debug?.qaTelemetry?.realMisses || 0), 0),
+  totalForcedHits: qa.cases.reduce((sum, testCase) => sum + (testCase.meta.debug?.qaTelemetry?.forcedHits || 0), 0),
+  totalForcedMisses: qa.cases.reduce((sum, testCase) => sum + (testCase.meta.debug?.qaTelemetry?.forcedMisses || 0), 0),
   totalConsoleErrors: qa.cases.reduce((sum, testCase) => sum + testCase.consoleErrors.length, 0),
   totalPageErrors: qa.cases.reduce((sum, testCase) => sum + testCase.pageErrors.length, 0),
   totalFailedResponses: qa.cases.reduce((sum, testCase) => sum + testCase.failedResponses.length, 0),

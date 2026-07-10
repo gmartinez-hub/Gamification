@@ -46,6 +46,8 @@ const loader = new THREE.TextureLoader();
 const clock = new THREE.Clock();
 const viewport = { width: 1, height: 1, aspect: 1 };
 const params = new URLSearchParams(window.location.search);
+const debugHudEnabled = params.get("debugHud") === "1";
+document.body.classList.toggle("debug-hud", debugHudEnabled);
 
 const WORLD_HEIGHT = 72;
 const WORLD_MIN_Y = -18;
@@ -53,6 +55,9 @@ const WORLD_MAX_Y = WORLD_HEIGHT + 18;
 const WORLD_HALF_WIDTH = 26;
 const WORLD_WRAP_X = WORLD_HALF_WIDTH * 2;
 const WORLD_WRAP_Y = WORLD_MAX_Y - WORLD_MIN_Y;
+const EXPANDED_WORLD_WRAP_X = 1008;
+const EXPANDED_WORLD_WRAP_Y = 1008;
+const MISSION_ZONE_WRAP_SPAN = 1008;
 
 const STAGES = ["stage1", "stage2", "stage3"];
 const DIRECTIONS = [
@@ -966,6 +971,36 @@ function makeStreakTexture() {
   return texture;
 }
 
+function makeImpulseTexture() {
+  const c = document.createElement("canvas");
+  c.width = 768;
+  c.height = 128;
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  const core = ctx.createLinearGradient(0, 64, 768, 64);
+  core.addColorStop(0, "rgba(35,210,255,0)");
+  core.addColorStop(0.18, "rgba(42,225,255,0.16)");
+  core.addColorStop(0.54, "rgba(220,78,255,0.34)");
+  core.addColorStop(0.82, "rgba(255,255,255,0.22)");
+  core.addColorStop(1, "rgba(255,255,255,0)");
+  const edge = ctx.createRadialGradient(592, 64, 4, 592, 64, 104);
+  edge.addColorStop(0, "rgba(255,255,255,0.36)");
+  edge.addColorStop(0.42, "rgba(68,225,255,0.18)");
+  edge.addColorStop(1, "rgba(68,225,255,0)");
+
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.roundRect(32, 42, 680, 44, 22);
+  ctx.fill();
+  ctx.fillStyle = edge;
+  ctx.fillRect(456, 0, 256, 128);
+
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function makeAuraTexture() {
   const size = 512;
   const c = document.createElement("canvas");
@@ -1318,6 +1353,8 @@ function createIntegratedPlanet({
     spawnStage: profileStage,
     materialLocked: true,
     identityKind: kind,
+    worldWrapX: EXPANDED_WORLD_WRAP_X,
+    worldWrapY: EXPANDED_WORLD_WRAP_Y,
   };
 
   const sphere = new THREE.Mesh(
@@ -1427,6 +1464,8 @@ function createIntegratedAsteroid({
     destroyed: false,
     destroyTime: 0,
     hitPulse: 0,
+    worldWrapX: interactive ? MISSION_ZONE_WRAP_SPAN : EXPANDED_WORLD_WRAP_X,
+    worldWrapY: interactive ? MISSION_ZONE_WRAP_SPAN : EXPANDED_WORLD_WRAP_Y,
   };
 
   const mesh = new THREE.Mesh(
@@ -1580,29 +1619,29 @@ function missionObjectiveCopy(config) {
 const TARGET_MOTION_PROFILES = [
   {
     name: "stage1_drift",
-    orbitRadius: [0.12, 0.24],
-    orbitSpeed: [0.22, 0.36],
-    driftRadius: [0.04, 0.12],
-    driftSpeed: [0.18, 0.28],
+    orbitRadius: [0.14, 0.28],
+    orbitSpeed: [0.24, 0.40],
+    driftRadius: [0.05, 0.14],
+    driftSpeed: [0.20, 0.30],
     predictionLead: 0.16,
     chaseRequired: false,
   },
   {
     name: "stage2_chase",
-    orbitRadius: [0.22, 0.42],
-    orbitSpeed: [0.34, 0.58],
-    driftRadius: [0.12, 0.28],
-    driftSpeed: [0.24, 0.42],
-    predictionLead: 0.24,
+    orbitRadius: [0.34, 0.62],
+    orbitSpeed: [0.58, 0.92],
+    driftRadius: [0.22, 0.42],
+    driftSpeed: [0.42, 0.66],
+    predictionLead: 0.30,
     chaseRequired: true,
   },
   {
     name: "stage3_volatile",
-    orbitRadius: [0.30, 0.58],
-    orbitSpeed: [0.48, 0.82],
-    driftRadius: [0.18, 0.34],
-    driftSpeed: [0.38, 0.62],
-    predictionLead: 0.34,
+    orbitRadius: [0.48, 0.82],
+    orbitSpeed: [0.92, 1.38],
+    driftRadius: [0.30, 0.56],
+    driftSpeed: [0.62, 0.92],
+    predictionLead: 0.42,
     chaseRequired: true,
   },
 ];
@@ -1697,6 +1736,17 @@ const aimAssist = {
   willHit: true,
   missPoint: new THREE.Vector2(),
   played: {},
+};
+
+const qaTelemetry = {
+  aimAttempts: 0,
+  realHits: 0,
+  realMisses: 0,
+  forcedHits: 0,
+  forcedMisses: 0,
+  lastAim: null,
+  lastImpact: null,
+  lastCompanionMessage: "",
 };
 
 const AIM_TIMINGS = {
@@ -1801,9 +1851,9 @@ const menuScreens = {
 
 [
   { kind: "ocean", radius: 2.8, position: new THREE.Vector3(8.4, 0, -11.2), routeY: -9.0, opacity: 0.94, map: worldTextures.oceanPrime, profileStage: 0 },
-  { kind: "dark", radius: 2.48, position: new THREE.Vector3(8.6, -0.05, -10.95), routeY: -9.0, opacity: 0.92, map: worldTextures.mechanicalMoonPremium, profileStage: 1 },
-  { kind: "dark", radius: 2.62, position: new THREE.Vector3(8.1, -0.10, -10.85), routeY: -9.0, opacity: 0.93, map: worldTextures.darkCraterPremium, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.42, unlit: true, profileStage: 2 },
-  { kind: "dark", radius: 1.72, position: new THREE.Vector3(-10.6, 0, -9.8), routeY: 4.6, opacity: 0.90, map: worldTextures.cyberEarth, profileStage: 1 },
+  { kind: "dark", radius: 2.48, position: new THREE.Vector3(69.2, -0.05, -10.95), routeY: 51.8, opacity: 0.88, map: worldTextures.mechanicalMoonPremium, profileStage: 1 },
+  { kind: "dark", radius: 2.62, position: new THREE.Vector3(-72.5, -0.10, -10.85), routeY: 111.6, opacity: 0.90, map: worldTextures.darkCraterPremium, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.42, unlit: true, profileStage: 2 },
+  { kind: "dark", radius: 1.72, position: new THREE.Vector3(-10.6, 0, -9.8), routeY: 4.6, opacity: 0.76, map: worldTextures.cyberEarth, profileStage: 1 },
   { kind: "ocean", radius: 1.35, position: new THREE.Vector3(11.8, 0, -14.0), routeY: 18.0, opacity: 0.78, map: worldTextures.nebulaCore, profileStage: 1 },
   { kind: "dark", radius: 2.25, position: new THREE.Vector3(-8.8, 0, -11.8), routeY: 32.5, opacity: 0.92, map: worldTextures.darkCraterPremium, emissiveMap: worldTextures.deepDarkEmissiveOverlay, emissiveIntensity: 0.36, unlit: true, profileStage: 2 },
   { kind: "ocean", radius: 1.72, position: new THREE.Vector3(9.6, 0, -10.6), routeY: 48.0, opacity: 0.82, map: worldTextures.auroraGas, profileStage: 1 },
@@ -1829,9 +1879,68 @@ function resetMissionTarget(target, active = false) {
   setGroupOpacity(target, 1);
 }
 
-function placeMissionTarget(target, spec, routeY) {
-  target.userData.base.set(spec.x, routeY + spec.y, spec.z);
-  target.userData.routeY = routeY;
+function missionZoneSpecForStage(stageIndex) {
+  return missionZoneSpecs[THREE.MathUtils.clamp(stageIndex, 0, missionZoneSpecs.length - 1)] || missionZoneSpecs[0];
+}
+
+const MISSION_ZONE_LAYOUT = [
+  { stage: 0, name: "SECTOR_01", center: new THREE.Vector2(0, WORLD_MIN_Y + 10), targetRingRadius: 2.60, minDistanceFromPlayer: 1.85 },
+  { stage: 1, name: "SECTOR_02", center: new THREE.Vector2(92, WORLD_MIN_Y + 78), targetRingRadius: 3.65, minDistanceFromPlayer: 2.80 },
+  { stage: 2, name: "SECTOR_03", center: new THREE.Vector2(-96, WORLD_MIN_Y + 146), targetRingRadius: 4.70, minDistanceFromPlayer: 3.65 },
+  { stage: 3, name: "FINAL", center: new THREE.Vector2(18, WORLD_MIN_Y + 214), targetRingRadius: 5.45, minDistanceFromPlayer: 4.25 },
+];
+
+function missionZoneLayoutForStage(stageIndex) {
+  return MISSION_ZONE_LAYOUT[THREE.MathUtils.clamp(stageIndex, 0, MISSION_ZONE_LAYOUT.length - 1)] || MISSION_ZONE_LAYOUT[0];
+}
+
+function missionTargetParallax(z) {
+  return THREE.MathUtils.mapLinear(z, -18, 2, 0.05, 0.50);
+}
+
+function missionTargetAnchor(stageIndex, spec, role, index) {
+  const zone = missionZoneSpecForStage(stageIndex);
+  const layout = missionZoneLayoutForStage(stageIndex);
+  const parallax = missionTargetParallax(spec.z);
+  const trackingX = layout.center.x * (0.78 + parallax * 0.28);
+  const trackingY = layout.center.y * (0.88 + parallax * 0.16);
+  const stageScale = 1 + stageIndex * 0.16;
+  const roleScale = role === "large" ? 1.38 : 1.0;
+  const angle = -Math.PI * 0.5 + index * 1.74 + stageIndex * 0.56 + (role === "large" ? 0.74 : 0);
+  const radius =
+    (layout.targetRingRadius + index * (role === "large" ? 0.36 : 0.22)) *
+    stageScale *
+    (role === "large" ? 1.10 : 1);
+  const screenOffset = new THREE.Vector2(
+    spec.x * 0.16 + Math.cos(angle) * radius * roleScale,
+    spec.y * 0.16 + Math.sin(angle) * radius * 0.72
+  );
+  if (screenOffset.length() < layout.minDistanceFromPlayer) {
+    screenOffset.setLength(layout.minDistanceFromPlayer + index * 0.18 + (role === "large" ? 0.30 : 0));
+  }
+  return {
+    x: trackingX + screenOffset.x,
+    y: trackingY + screenOffset.y,
+    zone,
+    layout,
+    parallax,
+  };
+}
+
+function placeMissionTarget(target, spec) {
+  const stageIndex = target.userData.stageIndex ?? mission01.currentStageIndex ?? state.stageIndex;
+  const role = target.userData.missionRole ?? "small";
+  const index = target.userData.targetIndex ?? 0;
+  const anchor = missionTargetAnchor(stageIndex, spec, role, index);
+  target.userData.base.set(anchor.x, anchor.y, spec.z);
+  target.userData.routeY = anchor.y;
+  target.userData.zoneCenter = new THREE.Vector2(anchor.zone.x, anchor.zone.y);
+  target.userData.sectorAnchor = anchor.layout.center.clone();
+  target.userData.targetOrbitRing = anchor.layout.targetRingRadius;
+  target.userData.targetSpawnMinDistance = anchor.layout.minDistanceFromPlayer;
+  target.userData.parallax = anchor.parallax;
+  target.userData.worldWrapX = MISSION_ZONE_WRAP_SPAN;
+  target.userData.worldWrapY = MISSION_ZONE_WRAP_SPAN;
   target.position.copy(target.userData.base);
   target.userData.radius = spec.radius;
   target.userData.hitRadius = spec.radius * (target.userData.missionRole === "large" ? 3.45 : 3.7);
@@ -1849,7 +1958,8 @@ function spawnStageTargets(stageIndex) {
   if (existing) return existing;
 
   const config = currentMissionConfig(safeStageIndex);
-  const routeBase = state.worldOffset.y * 0.944 + safeStageIndex * 0.18;
+  const layout = missionZoneLayoutForStage(safeStageIndex);
+  const routeBase = layout.center.y;
   const pool = { small: [], large: [] };
 
   config.smallTargets.forEach((spec, index) => {
@@ -1869,6 +1979,7 @@ function spawnStageTargets(stageIndex) {
     target.userData.maxHp = 1;
     target.userData.hp = 1;
     target.userData.hitRadius = spec.radius * 3.7;
+    placeMissionTarget(target, spec);
     target.visible = false;
     pool.small.push(target);
   });
@@ -1891,6 +2002,7 @@ function spawnStageTargets(stageIndex) {
     target.userData.maxHp = 2;
     target.userData.hp = 2;
     target.userData.hitRadius = spec.radius * 3.45;
+    placeMissionTarget(target, spec);
     target.visible = false;
     pool.large.push(target);
   });
@@ -1911,7 +2023,6 @@ function resetStageMission(stageIndex) {
   const safeStageIndex = THREE.MathUtils.clamp(stageIndex, 0, missionStageConfigs.length - 1);
   const config = currentMissionConfig(safeStageIndex);
   const pool = spawnStageTargets(safeStageIndex);
-  const routeBase = state.worldOffset.y * 0.944;
 
   mission01.started = true;
   mission01.state = "small_asteroids";
@@ -1931,11 +2042,11 @@ function resetStageMission(stageIndex) {
   mission01.zoneIndex = safeStageIndex;
 
   pool.small.forEach((target, index) => {
-    placeMissionTarget(target, config.smallTargets[index], routeBase + index * 0.34);
+    placeMissionTarget(target, config.smallTargets[index]);
     resetMissionTarget(target, false);
   });
   pool.large.forEach((target, index) => {
-    placeMissionTarget(target, config.largeTargets[index], routeBase + 1.42 + index * 0.36);
+    placeMissionTarget(target, config.largeTargets[index]);
     resetMissionTarget(target, false);
   });
 
@@ -1959,6 +2070,11 @@ function startMissionForStage(stageIndex) {
   hideMenu();
   if (state.stageIndex !== safeStageIndex) applyStage(safeStageIndex);
   if (mission01.finalComplete || mission01.finalStarted) return;
+  if (params.get("autoMission") === "1" || params.get("qaZone") === "1") {
+    const zone = missionZoneSpecForStage(safeStageIndex);
+    state.worldOffset.set(zone.x, zone.y);
+    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+  }
   spawnStageTargets(safeStageIndex);
   clearPreviousStageTargets();
   resetStageMission(safeStageIndex);
@@ -2155,6 +2271,7 @@ const assetUsageAudit = {
 const proceduralWorld = {
   group: new THREE.Group(),
   chunks: new Map(),
+  chunkIdentities: new Map(),
   chunkSize: 112,
   visibleRadius: 3,
   releaseRadius: 4,
@@ -2354,12 +2471,16 @@ function regionForChunk(chunkX, chunkY) {
   return chunkX >= 0 ? REGION_CONFIGS.east : REGION_CONFIGS.west;
 }
 
-function currentWorldProfile() {
-  if (mission01.finalStarted || mission01.finalComplete || mission01.gems >= 3) return STAGE_WORLD_PROFILES[3];
+function currentWorldProfileIndex() {
+  if (mission01.finalStarted || mission01.finalComplete || mission01.gems >= 3) return 3;
   const activeStage = mission01.started
     ? Math.max(state.stageIndex, mission01.currentStageIndex, mission01.gems)
     : Math.max(state.stageIndex, mission01.gems);
-  return STAGE_WORLD_PROFILES[THREE.MathUtils.clamp(activeStage, 0, STAGE_WORLD_PROFILES.length - 2)];
+  return THREE.MathUtils.clamp(activeStage, 0, STAGE_WORLD_PROFILES.length - 2);
+}
+
+function currentWorldProfile() {
+  return STAGE_WORLD_PROFILES[currentWorldProfileIndex()];
 }
 
 function visualRadiusForBody(object) {
@@ -2375,6 +2496,13 @@ function isOutsideViewportWithMargin(point, radius = 0, margin = 0.35) {
   );
 }
 
+function centralBodyClearanceFade(position, radius = 0.24) {
+  const distance = Math.hypot(position.x, position.y);
+  const guard = THREE.MathUtils.clamp(0.78 + radius * 1.65, 0.92, 1.46);
+  const fade = THREE.MathUtils.smoothstep(distance, guard * 0.74, guard);
+  return fade * fade;
+}
+
 function screenPointForProceduralBase(base, parallax) {
   const span = proceduralWorld.chunkSize * (proceduralWorld.releaseRadius * 2 + 1);
   return new THREE.Vector2(
@@ -2383,11 +2511,12 @@ function screenPointForProceduralBase(base, parallax) {
   );
 }
 
-function placeProceduralBodyOffscreen(object, rand, bandName = "offscreenNear") {
+function placeProceduralBodyOffscreen(object, rand, bandName = "offscreenNear", forceBand = false) {
   const band = ORGANIC_SPAWN_BANDS[bandName] || ORGANIC_SPAWN_BANDS.offscreenNear;
   const radius = visualRadiusForBody(object);
   let point = screenPointForProceduralBase(object.userData.base, object.userData.parallax);
-  if (!isOutsideViewportWithMargin(point, radius, 0.22)) {
+  const tooFarForUsefulEntry = isOutsideViewportWithMargin(point, radius, 3.2);
+  if (forceBand || tooFarForUsefulEntry || !isOutsideViewportWithMargin(point, radius, 0.22)) {
     const side = Math.floor(rand() * 4);
     const span = band.min + rand() * (band.max - band.min);
     const xSign = rand() > 0.5 ? 1 : -1;
@@ -2501,10 +2630,10 @@ function createLineCage(rand, radius, color) {
   return group;
 }
 
-function createProceduralBody(kind, chunkX, chunkY, rand, index) {
+function createProceduralBody(kind, chunkX, chunkY, rand, index, profileOverride = null, regionOverride = null) {
   const chunkSize = proceduralWorld.chunkSize;
-  const region = regionForChunk(chunkX, chunkY);
-  const profile = currentWorldProfile();
+  const region = regionOverride || regionForChunk(chunkX, chunkY);
+  const profile = profileOverride || currentWorldProfile();
   const base = new THREE.Vector3(
     chunkX * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
     chunkY * chunkSize + (rand() - 0.5) * chunkSize * 0.92,
@@ -2729,17 +2858,25 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index) {
 function spawnChunkObjects(chunkX, chunkY) {
   const key = getChunkKey(chunkX, chunkY);
   if (proceduralWorld.chunks.has(key)) return proceduralWorld.chunks.get(key);
-  const rand = seededRandom(chunkX, chunkY, state.stageIndex);
   const region = regionForChunk(chunkX, chunkY);
-  const profile = currentWorldProfile();
+  let identity = proceduralWorld.chunkIdentities.get(key);
+  if (!identity) {
+    identity = {
+      profileIndex: currentWorldProfileIndex(),
+      regionName: region.name,
+    };
+    proceduralWorld.chunkIdentities.set(key, identity);
+  }
+  const rand = seededRandom(chunkX, chunkY, identity.profileIndex);
+  const profile = STAGE_WORLD_PROFILES[identity.profileIndex] || currentWorldProfile();
   const chunk = { key, x: chunkX, y: chunkY, region: region.name, profile: profile.name, group: new THREE.Group(), objects: [] };
   const density = region.density * profile.density * speedState.currentTuning.spawnDensity;
   const planetPool = [...profile.planetFamilies, ...region.planetFamilies];
   const syntheticPool = [...profile.syntheticFamilies, ...region.syntheticFamilies];
-  const vividCount = rand() > 0.48 ? 1 : 0;
-  const planetCount = rand() > 0.68 / density ? 2 : 1;
-  const syntheticCount = rand() > 0.58 / density ? 2 : 1;
-  const debrisCount = Math.max(1, Math.round((1 + Math.floor(rand() * 3)) * region.debris * profile.debris));
+  const vividCount = profile.vividFamilies.length && rand() > 0.34 / density ? 1 : 0;
+  const planetCount = 1 + (rand() > 0.58 / density ? 1 : 0) + (density > 1.18 && rand() > 0.72 ? 1 : 0);
+  const syntheticCount = 1 + (rand() > 0.48 / density ? 1 : 0) + (density > 1.16 && rand() > 0.78 ? 1 : 0);
+  const debrisCount = Math.max(1, Math.round((1.4 + Math.floor(rand() * 3)) * region.debris * profile.debris));
   const selections = [];
   for (let i = 0; i < vividCount; i += 1) {
     selections.push(profile.vividFamilies[Math.floor(rand() * profile.vividFamilies.length)]);
@@ -2755,7 +2892,7 @@ function spawnChunkObjects(chunkX, chunkY) {
   }
 
   selections.forEach((kind, index) => {
-    const body = createProceduralBody(kind, chunkX, chunkY, rand, index);
+    const body = createProceduralBody(kind, chunkX, chunkY, rand, index, profile, region);
     body.userData.chunkKey = key;
     placeProceduralBodyOffscreen(body, rand, body.userData.vividBody ? "offscreenFar" : "offscreenNear");
     chunk.objects.push(body);
@@ -2807,8 +2944,94 @@ function wrapWorldObject(object) {
   };
 }
 
+const worldDepthDirector = {
+  pool: [],
+  maxPool: 18,
+  cooldown: 0,
+};
+
+function depthFamilyForCurrentStage() {
+  const profile = currentWorldProfile();
+  return {
+    hero: profile.vividFamilies[0] || profile.planetFamilies[0] || "planet_ocean_large",
+    landmark: profile.syntheticFamilies[0] || "gravity_node",
+    medium:
+      profile.planetFamilies.find((kind) => kind.includes("moon")) ||
+      profile.syntheticFamilies[1] ||
+      "mechanical_moon",
+  };
+}
+
+function depthKindCategory(kind) {
+  if (kind?.startsWith("planet_")) return "hero";
+  if (
+    kind === "synthetic_core" ||
+    kind === "gravity_node" ||
+    kind === "broken_gate" ||
+    kind === "relic_fragment_cluster" ||
+    kind === "orbital_station_body"
+  ) {
+    return "landmark";
+  }
+  if (kind === "moon" || kind === "mechanical_moon" || kind === "tech_moon" || kind === "asteroid_belt_patch") {
+    return "medium";
+  }
+  return "debris";
+}
+
+function visibleDepthComposition() {
+  const counts = { hero: 0, landmark: 0, medium: 0, debris: 0 };
+  for (const object of proceduralWorld.objects) {
+    if (!object.visible || (object.userData.reveal ?? 0) < 0.35) continue;
+    const radius = visualRadiusForBody(object);
+    if (isOutsideViewportWithMargin(object.position, radius, -0.05)) continue;
+    counts[depthKindCategory(object.userData.kind)] += 1;
+  }
+  return counts;
+}
+
+function prepareDepthDirectorEntry(object, elapsed) {
+  const inward = new THREE.Vector2(-object.position.x, -object.position.y || -0.15);
+  if (inward.lengthSq() < 0.0001) inward.set(-0.4, -0.12);
+  inward.normalize();
+  const stageBoost = 1 + currentWorldProfileIndex() * 0.18;
+  object.userData.entryVelocity = inward.multiplyScalar((0.34 + random() * 0.16) * stageBoost);
+  object.userData.entryStartedAt = elapsed;
+}
+
+function spawnDepthDirectorBody(kind, bandName = "offscreenFar", elapsed = clock.elapsedTime) {
+  if (worldDepthDirector.pool.length >= worldDepthDirector.maxPool) return null;
+  const center = currentChunkCoords();
+  const profile = currentWorldProfile();
+  const region = regionForChunk(center.x, center.y);
+  const rand = seededRandom(center.x + worldDepthDirector.pool.length + 19, center.y - worldDepthDirector.pool.length - 23, currentWorldProfileIndex());
+  const body = createProceduralBody(kind, center.x, center.y, rand, worldDepthDirector.pool.length + 20, profile, region);
+  body.userData.depthDirector = true;
+  body.userData.materialLocked = true;
+  body.userData.textureProfile = profile.name;
+  body.userData.spawnStage = state.stageIndex;
+  body.userData.drift.multiplyScalar(1.8);
+  placeProceduralBodyOffscreen(body, rand, bandName, true);
+  prepareDepthDirectorEntry(body, elapsed);
+  worldDepthDirector.pool.push(body);
+  proceduralWorld.objects.push(body);
+  return body;
+}
+
+function ensureViewportDepthComposition(delta, elapsed) {
+  worldDepthDirector.cooldown = Math.max(0, worldDepthDirector.cooldown - delta);
+  if (worldDepthDirector.cooldown > 0) return;
+  worldDepthDirector.cooldown = 0.85;
+  const counts = visibleDepthComposition();
+  const family = depthFamilyForCurrentStage();
+  if (counts.hero < 1) spawnDepthDirectorBody(family.hero, "offscreenNear", elapsed);
+  if (counts.landmark < 1) spawnDepthDirectorBody(family.landmark, "offscreenNear", elapsed);
+  if (counts.medium < 2) spawnDepthDirectorBody(family.medium, "offscreenNear", elapsed);
+}
+
 function updateChunkObjects(delta, elapsed, travelVelocity) {
   ensureChunksAroundPlayer();
+  ensureViewportDepthComposition(delta, elapsed);
   proceduralWorld.audioCooldown = Math.max(0, proceduralWorld.audioCooldown - delta);
   let nearestSynthetic = Infinity;
   for (const object of proceduralWorld.objects) {
@@ -2825,10 +3048,28 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
       Math.sin(phase * 0.83) * object.userData.orbitRadius.y -
       travelVelocity.y * object.userData.parallax * 0.22 +
       drift.y * elapsed;
+    if (object.userData.depthDirector && object.userData.entryVelocity) {
+      const entryAge = THREE.MathUtils.clamp(elapsed - (object.userData.entryStartedAt ?? elapsed), 0, 7.5);
+      object.position.x += object.userData.entryVelocity.x * entryAge;
+      object.position.y += object.userData.entryVelocity.y * entryAge;
+    }
     object.position.z = object.userData.base.z + Math.sin(phase * 0.52) * 0.34;
     const visualRadius = visualRadiusForBody(object);
     const enteringView = !isOutsideViewportWithMargin(object.position, visualRadius, 0.08);
     if (enteringView) object.userData.discovered = true;
+    if (
+      object.userData.depthDirector &&
+      object.userData.discovered &&
+      isOutsideViewportWithMargin(object.position, visualRadius, 1.05)
+    ) {
+      const rand = seededRandom(
+        Math.round(state.worldOffset.x) + object.userData.spawnStage + 37,
+        Math.round(state.worldOffset.y) - object.userData.spawnStage - 41,
+        object.userData.profileStage ?? currentWorldProfileIndex()
+      );
+      placeProceduralBodyOffscreen(object, rand, object.userData.vividBody ? "offscreenFar" : "offscreenNear");
+      prepareDepthDirectorEntry(object, elapsed);
+    }
     const revealTarget = object.userData.discovered ? 1 : 0;
     object.userData.reveal = THREE.MathUtils.lerp(
       object.userData.reveal ?? 0,
@@ -2851,10 +3092,11 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
     const decorativeFade =
       object.userData.kind === "debris_cluster" || object.userData.kind === "foreground_shards" ? 0.58 : 1;
     const pulse = 0.88 + Math.sin(elapsed * (object.userData.kind === "gravity_node" ? 2.6 : 1.2) + object.userData.phase) * 0.12;
+    const clearanceFade = centralBodyClearanceFade(object.position, visualRadius);
     object.traverse((child) => {
       if (!child.material || child.userData.baseOpacity === undefined) return;
       child.material.opacity = THREE.MathUtils.clamp(
-        (child.userData.baseOpacity * stageBlend * pulse * decorativeFade + finalBoost) * reveal,
+        (child.userData.baseOpacity * stageBlend * pulse * decorativeFade * clearanceFade + finalBoost) * reveal,
         0,
         0.92
       );
@@ -2885,7 +3127,7 @@ const missionZoneSpecs = [
   { label: "STAGE 1 ZONE", subtitle: "RUMBO NORTE", x: 0, y: WORLD_MIN_Y + 10, color: 0x62edff },
   { label: "STAGE 2 ZONE", subtitle: "RUMBO ESTE", x: 92, y: WORLD_MIN_Y + 78, color: 0xa36dff },
   { label: "STAGE 3 ZONE", subtitle: "RUMBO OESTE", x: -96, y: WORLD_MIN_Y + 146, color: 0xff5de1 },
-  { label: "FINAL ZONE", subtitle: "RUMBO FINAL", x: 0, y: WORLD_MIN_Y + 214, color: 0xffffff },
+  { label: "FINAL ZONE", subtitle: "RUMBO FINAL", x: 18, y: WORLD_MIN_Y + 214, color: 0xffffff },
 ];
 
 function createMissionZone(index, spec) {
@@ -2967,7 +3209,17 @@ function updateMissionZones(delta, elapsed) {
       missionZones.lastEntered = index;
       playAudioEvent("mission_zone_enter");
       playAudioEvent("route_detected_ping");
-      if (mission01.started && !mission01.finalComplete) {
+      if (index === 3 && mission01.gems >= 3 && !mission01.finalStarted && !mission01.finalComplete) {
+        startFinalSequence(new THREE.Vector2(zone.position.x, zone.position.y));
+      } else if (
+        mission01.state === "navigation" &&
+        index < missionStageConfigs.length &&
+        mission01.currentStageIndex === index &&
+        !mission01.finalStarted &&
+        !mission01.finalComplete
+      ) {
+        startMissionForStage(index);
+      } else if (mission01.started && !mission01.finalComplete) {
         const subtitle = index === 3 ? "RUMBO FINAL / ZONA FINAL" : currentMissionConfig().subtitle;
         const status = index === 3 ? "FINAL ZONE" : `SECTOR ${index + 1}`;
         updateMissionHud(status, index === 3 ? "ACTIVÁ LA SEÑAL FINAL" : missionObjectiveCopy(currentMissionConfig()), subtitle);
@@ -3352,6 +3604,7 @@ const shipSprite = makeSprite(currentAsset(), { renderOrder: 20 });
 shipGroup.add(shipSprite);
 
 const auraTexture = makeAuraTexture();
+const impulseTexture = makeImpulseTexture();
 const shipAura = new THREE.Sprite(
   new THREE.SpriteMaterial({
     map: auraTexture,
@@ -3371,6 +3624,36 @@ const velocityWake = makeSprite(premiumFxFrames.speedStreaks[2], {
 });
 velocityWake.visible = false;
 shipGroup.add(velocityWake);
+
+const cleanTurboWake = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: impulseTexture,
+    transparent: true,
+    opacity: 0,
+    color: 0x7befff,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  })
+);
+cleanTurboWake.renderOrder = 18;
+cleanTurboWake.visible = false;
+shipGroup.add(cleanTurboWake);
+
+const cleanTurboCore = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: impulseTexture,
+    transparent: true,
+    opacity: 0,
+    color: 0xffffff,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  })
+);
+cleanTurboCore.renderOrder = 19;
+cleanTurboCore.visible = false;
+shipGroup.add(cleanTurboCore);
 
 const turboFlames = new THREE.Group();
 shipGroup.add(turboFlames);
@@ -3476,6 +3759,28 @@ const interactionFx = new THREE.Group();
 scene.add(interactionFx);
 const activeShots = [];
 
+function debugMissionTargetSummary() {
+  const origin = state.controlMode === "ship" ? state.position : astronautState.position;
+  return [...mission01.smallAsteroids, ...mission01.largeObstacles]
+    .filter((target) => target.visible && target.userData.active && !target.userData.destroyed)
+    .map((target) => {
+      const screenPoint = backgroundObjectScreenPoint(target, new THREE.Vector2());
+      const motion = target.userData.motion || {};
+      const velocity = target.userData.screenVelocity2D || target.userData.velocity2D || new THREE.Vector2();
+      return {
+        role: target.userData.missionRole,
+        stageIndex: target.userData.stageIndex,
+        distance: Number(origin.distanceTo(screenPoint).toFixed(3)),
+        screen: { x: Number(screenPoint.x.toFixed(3)), y: Number(screenPoint.y.toFixed(3)) },
+        ring: Number((target.userData.targetOrbitRing || 0).toFixed(2)),
+        minDistance: Number((target.userData.targetSpawnMinDistance || 0).toFixed(2)),
+        motion: motion.name || "none",
+        chaseRequired: !!motion.chaseRequired,
+        velocity: Number(velocity.length().toFixed(3)),
+      };
+    });
+}
+
 if (params.has("qaCdp") || params.get("debugAim") === "1") {
   window.__gzDebug = () => ({
     aimActive: aimAssist.active,
@@ -3488,11 +3793,161 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
     aimFired: aimAssist.fired,
     aimImpacted: aimAssist.impacted,
     activeShots: activeShots.length,
+    activeImpacts: activeImpacts.length,
     missionState: mission01.state,
+    stageIndex: state.stageIndex,
+    currentStageIndex: mission01.currentStageIndex,
+    gems: mission01.gems,
+    finalStarted: mission01.finalStarted,
+    finalComplete: mission01.finalComplete,
     controlMode: state.controlMode,
+    worldOffset: { x: Number(state.worldOffset.x.toFixed(2)), y: Number(state.worldOffset.y.toFixed(2)) },
+    visibleDepth: visibleDepthComposition(),
+    ambientMeteors: ambientMeteorLayer.meteors.filter((meteor) => meteor.visible && meteor.material.opacity > 0.02).length,
+    smallTargets: mission01.smallAsteroids.filter((target) => target.visible && target.userData.active && !target.userData.destroyed).length,
+    largeTargets: mission01.largeObstacles.filter((target) => target.visible && target.userData.active && !target.userData.destroyed).length,
+    targets: debugMissionTargetSummary(),
+    qaTelemetry: {
+      ...qaTelemetry,
+      lastAim: qaTelemetry.lastAim ? { ...qaTelemetry.lastAim } : null,
+      lastImpact: qaTelemetry.lastImpact ? { ...qaTelemetry.lastImpact } : null,
+    },
   });
 }
 const activeImpacts = [];
+
+const ambientMeteorProfiles = [
+  { count: 16, speed: [0.10, 0.22], scale: [0.026, 0.060], opacity: [0.16, 0.30], diagonal: 0.30 },
+  { count: 30, speed: [0.16, 0.34], scale: [0.030, 0.074], opacity: [0.18, 0.34], diagonal: 0.48 },
+  { count: 46, speed: [0.24, 0.48], scale: [0.034, 0.090], opacity: [0.20, 0.38], diagonal: 0.62 },
+  { count: 22, speed: [0.14, 0.30], scale: [0.046, 0.120], opacity: [0.18, 0.34], diagonal: 0.40 },
+];
+
+const ambientMeteorLayer = {
+  group: new THREE.Group(),
+  meteors: [],
+  maxPool: 56,
+};
+ambientMeteorLayer.group.renderOrder = 10;
+scene.add(ambientMeteorLayer.group);
+
+function ambientMeteorStageIndex() {
+  if (mission01.finalStarted || mission01.finalComplete || mission01.gems >= 3) return 3;
+  return THREE.MathUtils.clamp(Math.max(state.stageIndex, mission01.currentStageIndex || 0), 0, 2);
+}
+
+function createAmbientMeteor(index) {
+  const mapPool = [worldTextures.asteroidSurface, worldTextures.asteroidPlates, worldTextures.asteroidWide, worldTextures.darkCrater];
+  const material = new THREE.MeshStandardMaterial({
+    map: mapPool[index % mapPool.length],
+    color: 0xffffff,
+    emissive: index % 3 === 0 ? 0x120a22 : 0x071426,
+    emissiveIntensity: 0.16,
+    roughness: 0.82,
+    metalness: 0.04,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const meteor = new THREE.Mesh(createIntegratedAsteroidGeometry(1), material);
+  meteor.renderOrder = 10;
+  meteor.visible = false;
+  meteor.userData = {
+    ambientMeteor: true,
+    active: false,
+    velocity: new THREE.Vector2(),
+    spin: new THREE.Vector3(0.2 + random() * 0.5, 0.2 + random() * 0.5, 0.2 + random() * 0.5),
+    age: 0,
+    life: 6,
+    fadeIn: 0.8,
+    targetOpacity: 0.24,
+    radius: 0.05,
+    depth: 0.4 + random() * 0.6,
+    entered: false,
+  };
+  ambientMeteorLayer.group.add(meteor);
+  ambientMeteorLayer.meteors.push(meteor);
+  return meteor;
+}
+
+for (let i = 0; i < ambientMeteorLayer.maxPool; i += 1) createAmbientMeteor(i);
+
+function spawnAmbientMeteor(meteor, elapsed = 0) {
+  const stageIndex = ambientMeteorStageIndex();
+  const profile = ambientMeteorProfiles[stageIndex];
+  const edge = Math.floor(random() * 4);
+  const margin = 0.16 + random() * 0.26;
+  const radius = THREE.MathUtils.lerp(profile.scale[0], profile.scale[1], random());
+  const x =
+    edge === 0
+      ? -viewport.aspect - margin
+      : edge === 1
+        ? viewport.aspect + margin
+        : THREE.MathUtils.lerp(-viewport.aspect, viewport.aspect, random());
+  const y =
+    edge === 2
+      ? -1 - margin
+      : edge === 3
+        ? 1 + margin
+        : THREE.MathUtils.lerp(-1, 1, random());
+  const inward = new THREE.Vector2(-x / Math.max(0.1, viewport.aspect), -y).normalize();
+  const diagonal = new THREE.Vector2(inward.y, -inward.x).multiplyScalar((random() > 0.5 ? 1 : -1) * profile.diagonal);
+  const speed = THREE.MathUtils.lerp(profile.speed[0], profile.speed[1], random()) * (0.86 + speedState.currentMultiplier * 0.16);
+  meteor.position.set(x, y, 0.02 - random() * 0.10);
+  meteor.scale.setScalar(radius);
+  meteor.rotation.set(random() * Math.PI, random() * Math.PI, random() * Math.PI);
+  meteor.userData.velocity.copy(inward.add(diagonal).normalize().multiplyScalar(speed));
+  meteor.userData.age = 0;
+  meteor.userData.life = 4.6 + random() * 4.4;
+  meteor.userData.fadeIn = 0.75 + random() * 0.55;
+  meteor.userData.targetOpacity = THREE.MathUtils.lerp(profile.opacity[0], profile.opacity[1], random());
+  meteor.userData.radius = radius;
+  meteor.userData.depth = 0.32 + random() * 0.68;
+  meteor.userData.spawnedAt = elapsed;
+  meteor.userData.entered = false;
+  meteor.userData.active = true;
+  meteor.visible = true;
+  meteor.material.opacity = 0;
+}
+
+function updateAmbientMeteorLayer(delta, elapsed, travelVelocity) {
+  const profile = ambientMeteorProfiles[ambientMeteorStageIndex()];
+  const targetCount = profile.count;
+  for (let i = 0; i < ambientMeteorLayer.meteors.length; i += 1) {
+    const meteor = ambientMeteorLayer.meteors[i];
+    if (i >= targetCount) {
+      meteor.material.opacity = THREE.MathUtils.lerp(meteor.material.opacity, 0, 1 - Math.pow(0.0001, delta));
+      if (meteor.material.opacity < 0.01) {
+        meteor.visible = false;
+        meteor.userData.active = false;
+      }
+      continue;
+    }
+    if (!meteor.userData.active) spawnAmbientMeteor(meteor, elapsed);
+    meteor.userData.age += delta;
+    meteor.position.x += (meteor.userData.velocity.x - travelVelocity.x * meteor.userData.depth * 0.035) * delta;
+    meteor.position.y += (meteor.userData.velocity.y - travelVelocity.y * meteor.userData.depth * 0.026) * delta;
+    meteor.rotation.x += meteor.userData.spin.x * delta;
+    meteor.rotation.y += meteor.userData.spin.y * delta;
+    meteor.rotation.z += meteor.userData.spin.z * delta;
+    const fadeIn = THREE.MathUtils.smoothstep(meteor.userData.age / meteor.userData.fadeIn, 0, 1);
+    const fadeOut = 1 - THREE.MathUtils.smoothstep(meteor.userData.age, meteor.userData.life - 0.9, meteor.userData.life);
+    meteor.material.opacity = meteor.userData.targetOpacity * fadeIn * fadeOut;
+    if (!isOutsideViewportWithMargin(new THREE.Vector2(meteor.position.x, meteor.position.y), meteor.userData.radius, 0.04)) {
+      meteor.userData.entered = true;
+    }
+    if (
+      meteor.userData.age > 1.0 &&
+      (meteor.userData.age >= meteor.userData.life ||
+        (meteor.userData.entered &&
+          isOutsideViewportWithMargin(new THREE.Vector2(meteor.position.x, meteor.position.y), meteor.userData.radius, 0.55)))
+    ) {
+      spawnAmbientMeteor(meteor, elapsed);
+    }
+  }
+}
+
 const targetScreenPoint = new THREE.Vector2();
 const targetWorldPoint = new THREE.Vector3();
 const tetherPointCount = 10;
@@ -3742,8 +4197,8 @@ const robotModelParts = {
 const robotBodyMaterial = makeRobotMaterial({
   color: 0xf4f6ff,
   emissive: 0x111629,
-  emissiveIntensity: 0.055,
-  roughness: 0.44,
+  emissiveIntensity: 0.035,
+  roughness: 0.62,
 });
 const robotFaceMaterial = makeRobotMaterial({
   color: 0xf9f6ff,
@@ -3787,7 +4242,7 @@ const robotGlowMaterial = new THREE.MeshBasicMaterial({
 });
 
 const robotBody = new THREE.Mesh(new THREE.SphereGeometry(0.090, 48, 32), robotBodyMaterial);
-robotBody.scale.set(1.10, 1.03, 0.94);
+robotBody.scale.set(1.16, 1.05, 0.98);
 robotBody.renderOrder = 52;
 robotHudModel.add(robotBody);
 robotModelParts.body.push(robotBody);
@@ -3816,17 +4271,17 @@ const robotFaceDecalMaterial = new THREE.MeshBasicMaterial({
 const robotFaceEmissiveMaterial = new THREE.MeshBasicMaterial({
   map: companionTextures.faceEmissive.idle,
   transparent: true,
-  opacity: 0.18,
+  opacity: 0.055,
   blending: THREE.AdditiveBlending,
   depthWrite: false,
   depthTest: false,
 });
 const robotFaceDecal = new THREE.Mesh(new THREE.PlaneGeometry(0.178, 0.142), robotFaceDecalMaterial);
-robotFaceDecal.position.set(0, -0.003, 0.091);
+robotFaceDecal.position.set(0, -0.004, 0.095);
 robotFaceDecal.renderOrder = 56;
 robotHudModel.add(robotFaceDecal);
 const robotFaceEmissive = new THREE.Mesh(new THREE.PlaneGeometry(0.178, 0.142), robotFaceEmissiveMaterial);
-robotFaceEmissive.position.set(0, -0.003, 0.094);
+robotFaceEmissive.position.set(0, -0.004, 0.098);
 robotFaceEmissive.renderOrder = 57;
 robotHudModel.add(robotFaceEmissive);
 robotModelParts.faceDecal = [robotFaceDecal, robotFaceEmissive];
@@ -3885,14 +4340,41 @@ for (const side of [-1, 1]) {
   robotHudModel.add(tip);
 }
 
-const robotHudLight = new THREE.PointLight(0xb58cff, 0.30, 0.32);
+const robotHudLight = new THREE.PointLight(0xb58cff, 0.16, 0.32);
 robotHudLight.position.set(0, 0.02, 0.10);
 robotHudModel.add(robotHudLight);
+
+const robotReferenceMaterial = new THREE.SpriteMaterial({
+  map: robotFxTextures.idle,
+  transparent: true,
+  opacity: 0.98,
+  depthWrite: false,
+  depthTest: false,
+});
+const robotReferenceSprite = new THREE.Sprite(robotReferenceMaterial);
+robotReferenceSprite.renderOrder = 61;
+robotReferenceSprite.scale.set(0.210, 0.210, 1);
+robotReferenceSprite.position.set(0, -0.012, 0.118);
+robotReferenceSprite.visible = false;
+robotReferenceMaterial.opacity = 0;
+robotHudModel.add(robotReferenceSprite);
+
+robotFace.visible = false;
+robotInnerGlow.visible = false;
+robotBody.visible = true;
+for (const part of robotModelParts.accent) part.visible = true;
+for (const part of robotModelParts.glow) {
+  part.visible = part !== robotInnerGlow;
+  if (part.material) part.material.opacity = Math.min(part.material.opacity ?? 0.12, 0.12);
+}
+for (const part of robotModelParts.faceDecal || []) part.visible = true;
+robotFaceEmissiveMaterial.opacity = 0.045;
+robotHudLight.intensity = 0.11;
 
 function setSpriteAsset(sprite, asset) {
   sprite.material.map = asset.texture;
   sprite.userData.aspect = asset.aspect;
-  sprite.material.needsUpdate = true;
+  if (textureHasImageData(asset.texture)) sprite.material.needsUpdate = true;
 }
 
 function scaleSprite(sprite, width) {
@@ -3905,8 +4387,8 @@ function positionHudSprites() {
   aimVignette.scale.set(fullscreenWidth, 2.08, 1);
   aimField.position.set(0, 0, 0.19);
   aimField.scale.set(Math.min(1.46, viewport.aspect * 1.04), Math.min(1.46, viewport.aspect * 1.04), 1);
-  const robotSize = viewport.aspect < 0.75 ? 0.18 : 0.16;
-  robotGroup.position.set(viewport.aspect - robotSize * 0.90 - 0.055, 0.77, 0.22);
+  const robotSize = viewport.aspect < 0.75 ? 0.165 : 0.145;
+  robotGroup.position.set(viewport.aspect - robotSize * 0.82 - 0.055, 0.735, 0.22);
   robotHudModel.scale.setScalar(robotSize / 0.16);
 }
 
@@ -3914,19 +4396,21 @@ function robotTutorialContent(missionState = mission01.state) {
   if (robotCompanion.focus === "turbo" && robotCompanion.focusTimer > 0) {
     const turbo = currentTurboUnlock();
     return {
-      label: "COMPANION / TURBO",
-      goal: `${turbo.label} disponible con ${mission01.gems}/3 gemas.`,
-      action: "Mantené F para acelerar en gravedad cero.",
-      tip: mission01.gems >= 3 ? "Warp Pulse empuja navegación, parallax y audio." : "Cada gema desbloquea más capacidad de turbo.",
+      label: "TURBO DISPONIBLE",
+      goal: `${turbo.label} · Gemas ${mission01.gems}/3.`,
+      action: "Mantené F para acelerar.",
+      tip: "Cada gema mejora el impulso sin perder control de rumbo.",
     };
   }
 
   if (robotCompanion.focus === "aim" && robotCompanion.focusTimer > 0) {
     return {
-      label: "COMPANION / AUTOAIM",
+      label: robotCompanion.message.startsWith("DESVÍO") ? "DESVÍO" : "COMPANION / AUTOAIM",
       goal: robotCompanion.message,
-      action: "Acercate al objetivo correcto antes de disparar.",
-      tip: "El rango y la alineación definen el porcentaje de éxito; si estás lejos, puede desviarse.",
+      action: robotCompanion.message.startsWith("DESVÍO")
+        ? "Acercate o estabilizá antes del próximo disparo."
+        : "Acercate al objetivo correcto antes de disparar.",
+      tip: "Distancia, velocidad del target y stage modifican el porcentaje real.",
     };
   }
 
@@ -3941,10 +4425,10 @@ function robotTutorialContent(missionState = mission01.state) {
 
   if (!mission01.started) {
     return {
-      label: "COMPANION / SISTEMA ONLINE",
-      goal: "Recuperá tres gemas para abrir la ruta final.",
-      action: "Iniciá la misión, mové la nave y usá el companion como guía.",
-      tip: "F activa turbo cuando la ruta lo permite; el autoaim requiere distancia correcta.",
+      label: "SISTEMA ONLINE",
+      goal: "La ruta está fracturada. Recuperá 3 gemas para abrir el corredor final.",
+      action: "Mové la nave y usá el companion como guía de misión.",
+      tip: "Clickeá objetivos marcados para activar autoaim.",
     };
   }
 
@@ -3967,20 +4451,24 @@ function robotTutorialContent(missionState = mission01.state) {
   }
 
   if (missionState === "small_asteroids") {
+    const config = currentMissionConfig();
     return {
-      label: "COMPANION / FRAGMENTOS",
-      goal: `Recuperá ${mission01.smallRequired} fragmentos de señal.`,
-      action: "Usá el astronauta para destruir fragmentos pequeños.",
-      tip: "Clickeá cerca del fragmento: el autoaim corrige la orientación.",
+      label: `${config.mission} · ${config.name}`,
+      goal: `Localizá ${mission01.smallRequired} fragmentos de señal y neutralizá el núcleo principal.`,
+      action: "Usá el astronauta para fragmentos pequeños.",
+      tip: "Clickeá cerca del fragmento: el autoaim corrige orientación y trayectoria.",
     };
   }
 
   if (missionState === "large_obstacle") {
+    const config = currentMissionConfig();
     return {
-      label: "COMPANION / NÚCLEOS",
+      label: `${config.mission} · ${config.name}`,
       goal: `Rompé ${mission01.largeRequired} núcleo${mission01.largeRequired === 1 ? "" : "s"} inestable${mission01.largeRequired === 1 ? "" : "s"}.`,
       action: "Volvé a la nave y usá disparo pesado.",
-      tip: "Los núcleos necesitan más impacto.",
+      tip: mission01.currentStageIndex >= 2
+        ? "Los targets se desplazan rápido. Anticipá trayectoria antes del lock."
+        : "Los objetivos están en movimiento. Acercate, estabilizá y dispará.",
     };
   }
 
@@ -3998,7 +4486,7 @@ function robotTutorialContent(missionState = mission01.state) {
       label: "COMPANION / RUMBO",
       goal: "Nuevo sector detectado.",
       action: "Seguí el indicador de rumbo hasta la próxima zona.",
-      tip: `Gemas ${mission01.gems}/3. Podés subir velocidad para viajar más rápido.`,
+      tip: `Gemas ${mission01.gems}/3. La ruta abre cuerpos y amenazas nuevas por sector.`,
     };
   }
 
@@ -4049,9 +4537,9 @@ function setCompanionFaceTexture(faceState) {
   if (robotCompanion.faceState === nextFace) return;
   robotCompanion.faceState = nextFace;
   robotFaceDecalMaterial.map = companionTextures.face[nextFace];
-  robotFaceDecalMaterial.needsUpdate = true;
+  if (textureHasImageData(companionTextures.face[nextFace])) robotFaceDecalMaterial.needsUpdate = true;
   robotFaceEmissiveMaterial.map = companionTextures.faceEmissive[nextFace] || companionTextures.faceEmissive.idle;
-  robotFaceEmissiveMaterial.needsUpdate = true;
+  if (textureHasImageData(robotFaceEmissiveMaterial.map)) robotFaceEmissiveMaterial.needsUpdate = true;
 }
 
 function setRobotCompanionState(stateName, message) {
@@ -4068,6 +4556,8 @@ function setRobotCompanionState(stateName, message) {
   }
   robotGlowMaterial.color.setHex(glow);
   robotHudLight.color.setHex(glow);
+  robotReferenceMaterial.map = robotFxTextures[nextState] || robotFxTextures.idle;
+  if (textureHasImageData(robotReferenceMaterial.map)) robotReferenceMaterial.needsUpdate = true;
   setCompanionFaceTexture(companionFaceForState(nextState));
   if (changed && nextState === "alert") playMissionAudio("robot_alert_ping");
   if (changed && nextState === "stage_clear") playMissionAudio("robot_stage_clear");
@@ -4111,6 +4601,12 @@ function syncRobotCompanion(missionState = mission01.state) {
     return;
   }
 
+  if (missionState === "navigation") {
+    const zone = missionZoneSpecForStage(mission01.zoneIndex);
+    setRobotCompanionState("hint", `${zone.subtitle}. ZONA ABIERTA`);
+    return;
+  }
+
   if (missionState === "final") {
     setRobotCompanionState("stage_clear", "RUTA ESTABILIZADA");
     return;
@@ -4148,25 +4644,25 @@ function updateRobotCompanion(delta, elapsed) {
     if (robotCompanion.focusTimer <= 0) robotCompanion.focus = null;
     if (robotCompanion.panelOpen) updateRobotPanel();
   }
-  const bob = Math.sin(elapsed * 2.2) * 0.014;
+  const bob = Math.sin(elapsed * 2.0) * 0.006;
   const pulse = robotCompanion.pulse;
   const pointerDelta = input.aimPoint.clone().sub(new THREE.Vector2(robotGroup.position.x, robotGroup.position.y));
   const pointerPull = THREE.MathUtils.clamp(1 - pointerDelta.length() / 0.48, 0, 1);
-  robotHudModel.position.x = pointerDelta.x * 0.018 * pointerPull;
-  robotHudModel.position.y = bob + pointerDelta.y * 0.014 * pointerPull;
-  robotHudModel.rotation.x = pointerDelta.y * -0.22 * pointerPull + Math.sin(elapsed * 1.4) * 0.035;
-  robotHudModel.rotation.y = pointerDelta.x * 0.26 * pointerPull + Math.sin(elapsed * 1.1) * 0.030;
+  robotHudModel.position.x = pointerDelta.x * 0.008 * pointerPull;
+  robotHudModel.position.y = bob + pointerDelta.y * 0.006 * pointerPull;
+  robotHudModel.rotation.x = pointerDelta.y * -0.075 * pointerPull + Math.sin(elapsed * 1.3) * 0.010;
+  robotHudModel.rotation.y = pointerDelta.x * 0.085 * pointerPull + Math.sin(elapsed * 1.0) * 0.010;
   robotHudModel.rotation.z =
-    Math.sin(elapsed * 1.35) * 0.026 +
-    pointerDelta.x * 0.052 * pointerPull +
-    (robotCompanion.state === "alert" ? Math.sin(elapsed * 5.2) * 0.035 : 0);
+    Math.sin(elapsed * 1.25) * 0.008 +
+    pointerDelta.x * 0.018 * pointerPull +
+    (robotCompanion.state === "alert" ? Math.sin(elapsed * 5.0) * 0.014 : 0);
   robotGlowMaterial.opacity =
     robotCompanion.state === "alert"
       ? 0.040 + Math.sin(elapsed * 7.2) * 0.010 + pulse * 0.025
       : 0.024 + Math.sin(elapsed * 3.0) * 0.006 + pulse * 0.018;
-  const baseScale = viewport.aspect < 0.75 ? 0.18 : 0.16;
-  robotHudModel.scale.setScalar((baseScale / 0.16) * (1 + pulse * 0.08));
-  robotHudLight.intensity = robotCompanion.state === "alert" ? 0.34 + pulse * 0.14 : 0.24 + pulse * 0.08;
+  const baseScale = viewport.aspect < 0.75 ? 0.165 : 0.145;
+  robotHudModel.scale.setScalar((baseScale / 0.16) * (1 + pulse * 0.028));
+  robotHudLight.intensity = robotCompanion.state === "alert" ? 0.11 + pulse * 0.055 : 0.060 + pulse * 0.025;
 }
 
 function validTargetForMissionPhase(target) {
@@ -4179,18 +4675,21 @@ function validTargetForMissionPhase(target) {
 
 function aimRangeForTarget(target, shooter) {
   const gemBoost = mission01.gems * 0.08;
-  if (target?.userData?.missionRole === "small" || shooter === "astronaut") return 1.16 + gemBoost;
+  if (target?.userData?.missionRole === "small" || shooter === "astronaut") return 1.90 + gemBoost;
   return 1.72 + gemBoost * 1.2;
 }
 
 function aimSuccessForDistance(distance, maxRange, target, shooter) {
   const rangeT = THREE.MathUtils.clamp(distance / Math.max(0.01, maxRange), 0, 1);
-  const base = shooter === "ship" ? 0.94 : 0.90;
-  const largePenalty = target?.userData?.missionRole === "large" ? 0.04 : 0;
+  const base = shooter === "ship" ? 0.86 : 0.80;
+  const largePenalty = target?.userData?.missionRole === "large" ? 0.08 : 0;
   const velocity = target?.userData?.screenVelocity2D || target?.userData?.velocity2D || new THREE.Vector2();
-  const velocityPenalty = THREE.MathUtils.clamp(velocity.length() * 0.11, 0, 0.16);
-  const chance = base - rangeT * 0.34 - largePenalty - velocityPenalty + mission01.gems * 0.035;
-  return THREE.MathUtils.clamp(chance, 0.42, 0.98);
+  const velocityPenalty = THREE.MathUtils.clamp(velocity.length() * 0.22, 0, 0.28);
+  const stagePenalty = Math.max(0, mission01.currentStageIndex || 0) * 0.035;
+  const gemBonus = mission01.gems * 0.025;
+  const chasePenalty = target?.userData?.motion?.chaseRequired ? 0.035 : 0;
+  const chance = base - rangeT * 0.50 - largePenalty - velocityPenalty - stagePenalty - chasePenalty + gemBonus;
+  return THREE.MathUtils.clamp(chance, 0.16, 0.96);
 }
 
 function aimModeForTarget(target) {
@@ -4225,6 +4724,7 @@ function setCompanionAimFeedback(message, openPanel = false) {
   robotCompanion.focusTimer = 4.8;
   robotCompanion.message = message;
   robotCompanion.pulse = 1;
+  qaTelemetry.lastCompanionMessage = message;
   if (openPanel) robotCompanion.panelOpen = true;
   updateRobotPanel();
 }
@@ -4232,8 +4732,16 @@ function setCompanionAimFeedback(message, openPanel = false) {
 function showInvalidAim(point, message = "OBJETIVO FUERA DE RANGO") {
   if (aimAssist.active) return;
   playMissionAudio("invalid_target_blip");
-  spawnImpact(point, false);
+  spawnMissSpark(point, new THREE.Vector2(1, 0));
   setCompanionAimFeedback(message, true);
+}
+
+function missFeedbackForAim(successChance, distance, maxRange, target) {
+  const velocity = target?.userData?.screenVelocity2D || target?.userData?.velocity2D || new THREE.Vector2();
+  if (distance / Math.max(0.01, maxRange) > 0.72) return "DESVÍO · MUY LEJOS";
+  if (velocity.length() > 0.36) return "DESVÍO · OBJETIVO MÓVIL";
+  if (successChance < 0.50) return "DESVÍO · FUERA DE ESTABILIDAD";
+  return `LOCK ${Math.round(successChance * 100)}% · RIESGO DE FALLO`;
 }
 
 function beginAimAssistTarget(target, clickPoint) {
@@ -4259,10 +4767,29 @@ function beginAimAssistTarget(target, clickPoint) {
   const forcedMiss = params.get("forceMiss") === "1";
   const forcedHit = params.get("forceHit") === "1";
   const willHit = forcedMiss ? false : forcedHit ? true : random() < successChance;
+  const forced = forcedMiss || forcedHit;
   const missSide = new THREE.Vector2(-(targetPoint.y - origin.y), targetPoint.x - origin.x).normalize();
   const missAmount = THREE.MathUtils.lerp(0.14, 0.30, 1 - successChance);
   const missPoint = targetPoint.clone().add(missSide.multiplyScalar((random() > 0.5 ? 1 : -1) * missAmount));
-  setCompanionAimFeedback(`AUTOAIM ${Math.round(successChance * 100)}% · ${willHit ? "LOCK" : "DESVÍO"}`);
+  const feedback = willHit ? `LOCK ${Math.round(successChance * 100)}%` : missFeedbackForAim(successChance, distance, maxRange, target);
+  qaTelemetry.aimAttempts += 1;
+  if (forcedHit) qaTelemetry.forcedHits += 1;
+  if (forcedMiss) qaTelemetry.forcedMisses += 1;
+  if (!forced && willHit) qaTelemetry.realHits += 1;
+  if (!forced && !willHit) qaTelemetry.realMisses += 1;
+  qaTelemetry.lastAim = {
+    forced,
+    willHit,
+    feedback,
+    shooter,
+    role: target?.userData?.missionRole || "unknown",
+    stageIndex: mission01.currentStageIndex,
+    distance: Number(distance.toFixed(3)),
+    maxRange: Number(maxRange.toFixed(3)),
+    successChance: Number(successChance.toFixed(3)),
+    velocity: Number((target?.userData?.screenVelocity2D || target?.userData?.velocity2D || new THREE.Vector2()).length().toFixed(3)),
+  };
+  setCompanionAimFeedback(feedback);
   configureAimAssistTiming(mode);
 
   aimAssist.active = true;
@@ -4421,10 +4948,12 @@ function updateAimAssist(delta, elapsed) {
     shipGroup.position.y += recoilOffset.y;
   } else {
     setAstronautViewFrame(astronautViewFromAimDirection(baseDirection));
-    astronautGroup.rotation.z = aimAssist.orientationAngle + aimAssist.recoilRoll;
+    const astronautAimLean = THREE.MathUtils.clamp(shortestAngle(0, aimAngle) * 0.16 * orientation, -0.16, 0.16);
+    astronautGroup.rotation.z = aimAssist.orientationAngle * 1.14 + aimAssist.recoilRoll + astronautAimLean;
     if (astronautSprite) {
-      astronautSprite.position.x += recoilOffset.x + sideVector.x * 0.012 * orientation;
-      astronautSprite.position.y += recoilOffset.y + sideVector.y * 0.012 * orientation;
+      astronautSprite.rotation.z += astronautAimLean * 0.72 - aimAssist.recoil * 0.34;
+      astronautSprite.position.x += recoilOffset.x * 1.25 + sideVector.x * 0.022 * orientation;
+      astronautSprite.position.y += recoilOffset.y * 1.25 + sideVector.y * 0.018 * orientation + Math.sin(progress * Math.PI) * 0.010;
     }
   }
   aimAssist.recoil = Math.max(0, aimAssist.recoil - delta * 0.42);
@@ -4784,7 +5313,44 @@ function finishStageTransition() {
   transitionStreak.visible = false;
   stageButton.disabled = false;
   updateStageHud();
-  startMissionForStage(state.stageIndex);
+  beginStageNavigation(state.stageIndex);
+}
+
+function beginStageNavigation(stageIndex) {
+  const finalZoneIndex = missionZoneSpecs.length - 1;
+  const safeZoneIndex = THREE.MathUtils.clamp(stageIndex, 0, finalZoneIndex);
+  const missionStageIndex = THREE.MathUtils.clamp(safeZoneIndex, 0, missionStageConfigs.length - 1);
+  const config = safeZoneIndex < missionStageConfigs.length ? currentMissionConfig(missionStageIndex) : null;
+  clearPreviousStageTargets();
+  if (safeZoneIndex < STAGES.length && state.stageIndex !== safeZoneIndex) applyStage(safeZoneIndex);
+  mission01.started = true;
+  mission01.state = "navigation";
+  mission01.currentStageIndex = missionStageIndex;
+  mission01.zoneIndex = safeZoneIndex;
+  mission01.smallRequired = config?.smallRequired ?? 0;
+  mission01.largeRequired = config?.largeRequired ?? 0;
+  mission01.smallDestroyed = 0;
+  mission01.largeDestroyed = 0;
+  mission01.smallAsteroids = [];
+  mission01.largeObstacles = [];
+  mission01.largeObstacle = null;
+  mission01.relicTouched = false;
+  mission01.unlockStarted = false;
+  mission01.relicState = "hidden";
+  mission01.revealTime = 0;
+  mission01.relicDestroyTime = 0;
+  missionZones.lastEntered = null;
+  if (mission01.relicGroup) mission01.relicGroup.visible = false;
+  if (energyBeam) energyBeam.visible = false;
+  if (unlockFlash) unlockFlash.visible = false;
+  enterShipMode();
+  const zone = missionZoneSpecForStage(safeZoneIndex);
+  const objective = safeZoneIndex === finalZoneIndex ? "ALCANZÁ LA ZONA FINAL" : "NAVEGÁ HASTA LA ZONA DE MISIÓN";
+  updateMissionHud(zone.label, objective, zone.subtitle);
+  updateGemHud();
+  updateStageHud();
+  syncRobotCompanion("navigation");
+  playAudioEvent("route_detected_ping");
 }
 
 function applyStage(stageIndex) {
@@ -4922,8 +5488,8 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     const orbitAngle = elapsed * planet.userData.orbitSpeed + planet.userData.orbitPhase;
     const orbitX = Math.cos(orbitAngle) * planet.userData.orbitRadius.x;
     const orbitY = Math.sin(orbitAngle * 0.82) * planet.userData.orbitRadius.y;
-    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.74 + parallax * 0.30), WORLD_WRAP_X);
-    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.84 + parallax * 0.18), WORLD_WRAP_Y);
+    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.74 + parallax * 0.30), planet.userData.worldWrapX || WORLD_WRAP_X);
+    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.84 + parallax * 0.18), planet.userData.worldWrapY || WORLD_WRAP_Y);
     planet.position.x =
       relativeX +
       orbitX;
@@ -4933,7 +5499,7 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     planet.position.z = base.z + Math.sin(orbitAngle * 0.55) * planet.userData.orbitRadius.y * 0.38;
     planet.rotation.y += delta * planet.userData.spin;
     planet.rotation.z += delta * planet.userData.spin * 0.20;
-    setGroupOpacity(planet, profilePresence);
+    setGroupOpacity(planet, profilePresence * centralBodyClearanceFade(planet.position, visualRadiusForBody(planet)));
   }
 
   for (const star of integratedBackground.stars.children) {
@@ -4975,8 +5541,8 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     const orbitY =
       Math.sin(orbitAngle * 0.74) * orbitRadius.y +
       Math.cos(elapsed * driftSpeed * 0.86 + (motion?.phase ?? 0) * 0.9) * driftRadius.y;
-    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.78 + parallax * 0.28), WORLD_WRAP_X);
-    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.88 + parallax * 0.16), WORLD_WRAP_Y);
+    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.78 + parallax * 0.28), asteroid.userData.worldWrapX || WORLD_WRAP_X);
+    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.88 + parallax * 0.16), asteroid.userData.worldWrapY || WORLD_WRAP_Y);
     if (asteroid.userData.destroyed) asteroid.userData.destroyTime += delta;
     asteroid.userData.hitPulse = Math.max(0, asteroid.userData.hitPulse - delta * 2.8);
     const destroyedFade = asteroid.userData.destroyed
@@ -5138,6 +5704,7 @@ function makeProjectileBeam(color, opacity, renderOrder) {
   const beam = new THREE.Mesh(
     new THREE.PlaneGeometry(1, 1),
     new THREE.MeshBasicMaterial({
+      map: impulseTexture,
       color,
       transparent: true,
       opacity,
@@ -5164,10 +5731,11 @@ function createProjectileShot(origin, targetPoint, shooter, { target = null, mis
     shooter === "ship" ? missionFxTextures.closingShipProjectile : missionFxTextures.closingAstronautProjectile;
   const trailTexture =
     shooter === "ship" || isMajor ? missionFxTextures.closingLongTrail : missionFxTextures.closingShortTrail;
-  const trail = makeProjectileSprite(trailTexture, isMajor ? 0.62 : 0.46, 34);
-  const core = makeProjectileSprite(coreTexture, isMajor ? 0.92 : 0.82, 35);
-  const beamGlow = makeProjectileBeam(shooter === "ship" ? 0x42eaff : 0xff7be8, isMajor ? 0.30 : 0.18, 33);
-  const beamCore = makeProjectileBeam(shooter === "ship" ? 0xffffff : 0xffe8ff, isMajor ? 0.72 : 0.44, 34);
+  const projectileTone = shooter === "astronaut" ? 0.72 : 1;
+  const trail = makeProjectileSprite(trailTexture, (isMajor ? 0.28 : 0.18) * projectileTone, 34);
+  const core = makeProjectileSprite(coreTexture, (isMajor ? 0.62 : 0.46) * projectileTone, 35);
+  const beamGlow = makeProjectileBeam(shooter === "ship" ? 0x42eaff : 0xd88cff, (isMajor ? 0.06 : 0.035) * projectileTone, 33);
+  const beamCore = makeProjectileBeam(shooter === "ship" ? 0xffffff : 0xfff2ff, (isMajor ? 0.12 : 0.060) * projectileTone, 34);
   group.add(beamGlow, beamCore, trail, core);
   group.position.set(origin.x, origin.y, 0.13);
   group.userData = {
@@ -5186,31 +5754,34 @@ function createProjectileShot(origin, targetPoint, shooter, { target = null, mis
     trail,
     beamGlow,
     beamCore,
+    projectileTone,
   };
   return group;
 }
 
 function spawnMuzzle(point, shooter) {
+  const baseOpacity = shooter === "ship" ? 0.42 : 0.34;
+  const baseScale = shooter === "ship" ? 0.145 : 0.090;
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: premiumFxFrames.closingMuzzleCharge[0].texture,
       transparent: true,
-      opacity: shooter === "ship" ? 0.84 : 0.70,
+      opacity: baseOpacity,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false,
     })
   );
   sprite.position.set(point.x, point.y, 0.1);
-  sprite.scale.setScalar(shooter === "ship" ? 0.26 : 0.15);
+  sprite.scale.setScalar(baseScale);
   sprite.renderOrder = 32;
   sprite.userData = {
     time: 0,
-    duration: 0.22,
+    duration: 0.16,
     strong: shooter === "ship",
     stripFrames: premiumFxFrames.closingMuzzleCharge,
-    baseScale: shooter === "ship" ? 0.26 : 0.15,
-    baseOpacity: shooter === "ship" ? 0.84 : 0.70,
+    baseScale,
+    baseOpacity,
   };
   interactionFx.add(sprite);
   activeImpacts.push(sprite);
@@ -5218,39 +5789,39 @@ function spawnMuzzle(point, shooter) {
 
 function spawnOrientationBurst(origin, aimDirection, shooter) {
   const side = new THREE.Vector2(-aimDirection.y, aimDirection.x);
-  const frameSet = premiumFxFrames.speedStreaks;
-  const count = shooter === "ship" ? 2 : 1;
-  for (let i = 0; i < count; i += 1) {
-    const frame = frameSet[(i + 1) % frameSet.length];
-    const sprite = makeSprite(frame, {
-      opacity: shooter === "ship" ? 0.14 : 0.10,
+  const backward = aimDirection.clone().multiplyScalar(shooter === "ship" ? -0.050 : -0.034);
+  const lateral = shooter === "ship" ? 0.006 : 0.003;
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: impulseTexture,
+      transparent: true,
+      opacity: shooter === "ship" ? 0.040 : 0.030,
       blending: THREE.AdditiveBlending,
-      renderOrder: 33,
+      depthWrite: false,
       depthTest: false,
-    });
-    const lateral = (i - (count - 1) * 0.5) * (shooter === "ship" ? 0.018 : 0.012);
-    const backward = aimDirection.clone().multiplyScalar(shooter === "ship" ? -0.085 : -0.050);
-    sprite.position.set(
-      origin.x + side.x * lateral + backward.x,
-      origin.y + side.y * lateral + backward.y,
-      0.12
-    );
-    sprite.material.rotation = Math.atan2(-aimDirection.y, -aimDirection.x) + (i % 2 ? 0.08 : -0.08);
-    sprite.scale.set(shooter === "ship" ? 0.17 + i * 0.035 : 0.12, shooter === "ship" ? 0.042 : 0.032, 1);
-    sprite.userData = {
-      time: 0,
-      duration: shooter === "ship" ? 0.18 : 0.14,
-      burst: true,
-      strong: shooter === "ship",
-      drift: new THREE.Vector2(backward.x * 0.34 + side.x * lateral * 0.7, backward.y * 0.34 + side.y * lateral * 0.7),
-      baseScale: sprite.scale.x,
-      baseScaleX: sprite.scale.x,
-      baseScaleY: sprite.scale.y,
-      baseOpacity: sprite.material.opacity,
-    };
-    interactionFx.add(sprite);
-    activeImpacts.push(sprite);
-  }
+    })
+  );
+  sprite.renderOrder = 33;
+  sprite.position.set(
+    origin.x + side.x * lateral + backward.x,
+    origin.y + side.y * lateral + backward.y,
+    0.12
+  );
+  sprite.material.rotation = Math.atan2(-aimDirection.y, -aimDirection.x);
+  sprite.scale.set(shooter === "ship" ? 0.060 : 0.042, shooter === "ship" ? 0.010 : 0.007, 1);
+  sprite.userData = {
+    time: 0,
+    duration: shooter === "ship" ? 0.13 : 0.10,
+    burst: true,
+    strong: false,
+    drift: new THREE.Vector2(backward.x * 0.12, backward.y * 0.12),
+    baseScale: sprite.scale.x,
+    baseScaleX: sprite.scale.x,
+    baseScaleY: sprite.scale.y,
+    baseOpacity: sprite.material.opacity,
+  };
+  interactionFx.add(sprite);
+  activeImpacts.push(sprite);
 }
 
 function createLegacyShotLine(origin, target, shooter) {
@@ -5293,6 +5864,34 @@ function spawnImpact(point, strong = false) {
     stripFrames: premiumFxFrames.closingImpactRing,
     baseScale,
     baseOpacity,
+  };
+  interactionFx.add(sprite);
+  activeImpacts.push(sprite);
+}
+
+function spawnMissSpark(point, direction = new THREE.Vector2(1, 0)) {
+  const side = direction.lengthSq() > 0.0001 ? new THREE.Vector2(-direction.y, direction.x).normalize() : new THREE.Vector2(0, 1);
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: missionFxTextures.closingMissSpark,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    })
+  );
+  sprite.position.set(point.x + side.x * 0.030, point.y + side.y * 0.030, 0.10);
+  sprite.scale.set(0.13, 0.13, 1);
+  sprite.renderOrder = 34;
+  sprite.userData = {
+    time: 0,
+    duration: 0.30,
+    burst: true,
+    strong: false,
+    drift: new THREE.Vector2(side.x * 0.12 + direction.x * 0.035, side.y * 0.12 + direction.y * 0.035),
+    baseScale: 0.13,
+    baseOpacity: 0.72,
   };
   interactionFx.add(sprite);
   activeImpacts.push(sprite);
@@ -5405,7 +6004,7 @@ function acquireStageGem() {
   updateGemHud();
 }
 
-function startFinalSequence() {
+function startFinalSequence(anchorPoint = null) {
   if (mission01.finalStarted || mission01.finalComplete) return;
   mission01.finalStarted = true;
   mission01.finalTime = 0;
@@ -5413,7 +6012,8 @@ function startFinalSequence() {
   mission01.finalSignalAcquired = false;
   finalFxGroup.visible = true;
   finalFxGroup.position.set(0, 0, 0.18);
-  finalCore.position.set(relicGroup.position.x || 0, relicGroup.position.y || 0.1, 0.2);
+  const finalPoint = anchorPoint || new THREE.Vector2(relicGroup.position.x || 0, relicGroup.position.y || 0.1);
+  finalCore.position.set(finalPoint.x, finalPoint.y, 0.2);
   finalCore.scale.setScalar(0.34);
   finalCore.material.opacity = 0.82;
   finalShockwave.position.copy(finalCore.position);
@@ -5473,10 +6073,10 @@ function touchMissionRelic() {
   window.setTimeout(() => {
     playAudioEvent("stage_route_unlocked");
     if (isFinalStageGem) {
-      startFinalSequence();
+      beginStageNavigation(3);
       return;
     }
-    if (!state.transition) startStageTransition();
+    beginStageNavigation(mission01.currentStageIndex + 1);
   }, 760);
 }
 
@@ -5567,6 +6167,30 @@ function fireAtTarget(target) {
   beginAimAssistTarget(target, point);
 }
 
+function nearestActiveMissionTarget(targets, origin) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const target of targets) {
+    if (!target?.userData.active || target.userData.destroyed || !target.visible) continue;
+    const point = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+    const distance = point.distanceTo(origin);
+    if (distance < bestDistance) {
+      best = target;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function activeMissionTargetByIndex(targets, index, origin) {
+  if (!Number.isFinite(index)) return nearestActiveMissionTarget(targets, origin);
+  const activeTargets = targets
+    .filter((target) => target?.userData.active && !target.userData.destroyed && target.visible)
+    .sort((a, b) => (a.userData.targetIndex ?? 0) - (b.userData.targetIndex ?? 0));
+  if (!activeTargets.length) return null;
+  return activeTargets[THREE.MathUtils.clamp(Math.round(index), 0, activeTargets.length - 1)];
+}
+
 function updateInteractionFx(delta) {
   for (let i = activeShots.length - 1; i >= 0; i -= 1) {
     const shot = activeShots[i];
@@ -5580,38 +6204,55 @@ function updateInteractionFx(delta) {
     const direction = deltaPoint.lengthSq() > 0.0001 ? deltaPoint.normalize() : new THREE.Vector2(1, 0);
     const angle = Math.atan2(direction.y, direction.x);
     const lead = 0.04 + t * 0.06;
+    const projectileTone = shot.userData.projectileTone ?? 1;
+    const projectileScale = shot.userData.shooter === "astronaut" ? 0.70 : 0.86;
     shot.position.set(current.x, current.y, 0.13);
     shot.userData.core.position.set(direction.x * lead, direction.y * lead, 0);
-    shot.userData.trail.position.set(-direction.x * (0.10 + t * 0.10), -direction.y * (0.10 + t * 0.10), -0.01);
+    shot.userData.trail.position.set(-direction.x * (0.08 + t * 0.07), -direction.y * (0.08 + t * 0.07), -0.01);
     shot.userData.core.material.rotation = angle;
     shot.userData.trail.material.rotation = angle;
-    const majorScale = shot.userData.mode === "major" ? 1.36 : 1.0;
-    const pulse = 1 + Math.sin((shot.userData.time + t) * 18) * 0.08;
-    const beamLength = (0.20 + t * 0.42) * majorScale;
-    const beamFade = 1 - t * 0.20;
-    shot.userData.beamCore.position.set(-direction.x * beamLength * 0.50, -direction.y * beamLength * 0.50, -0.004);
-    shot.userData.beamGlow.position.set(-direction.x * beamLength * 0.56, -direction.y * beamLength * 0.56, -0.006);
+    const majorScale = shot.userData.mode === "major" ? 1.24 : 1.0;
+    const pulse = 1 + Math.sin((shot.userData.time + t) * 18) * 0.025;
+    const beamLength = (0.10 + t * 0.12) * majorScale * projectileScale;
+    const beamFade = 1 - t * 0.26;
+    shot.userData.beamCore.position.set(-direction.x * beamLength * 0.42, -direction.y * beamLength * 0.42, -0.004);
+    shot.userData.beamGlow.position.set(-direction.x * beamLength * 0.46, -direction.y * beamLength * 0.46, -0.006);
     shot.userData.beamCore.rotation.z = angle;
     shot.userData.beamGlow.rotation.z = angle;
-    shot.userData.beamCore.scale.set(beamLength, 0.020 * majorScale, 1);
-    shot.userData.beamGlow.scale.set(beamLength * 1.18, 0.065 * majorScale, 1);
-    shot.userData.beamCore.material.opacity = (shot.userData.mode === "major" ? 0.78 : 0.46) * beamFade;
-    shot.userData.beamGlow.material.opacity = (shot.userData.mode === "major" ? 0.34 : 0.18) * (1 - t * 0.30);
-    shot.userData.core.scale.set(0.22 * majorScale * pulse, 0.055 * majorScale, 1);
-    shot.userData.trail.scale.set((0.30 + t * 0.30) * majorScale, 0.070 * majorScale, 1);
-    shot.userData.core.material.opacity = (shot.userData.mode === "major" ? 0.94 : 0.82) * (1 - t * 0.12);
-    shot.userData.trail.material.opacity = (shot.userData.mode === "major" ? 0.58 : 0.42) * (1 - t * 0.22);
+    shot.userData.beamCore.scale.set(beamLength, 0.0055 * majorScale * projectileScale * pulse, 1);
+    shot.userData.beamGlow.scale.set(beamLength * 1.08, 0.017 * majorScale * projectileScale, 1);
+    shot.userData.beamCore.material.opacity = (shot.userData.mode === "major" ? 0.13 : 0.060) * beamFade * projectileTone;
+    shot.userData.beamGlow.material.opacity = (shot.userData.mode === "major" ? 0.070 : 0.030) * (1 - t * 0.34) * projectileTone;
+    shot.userData.core.scale.set(0.12 * majorScale * pulse * projectileScale, 0.030 * majorScale * projectileScale, 1);
+    shot.userData.trail.scale.set((0.13 + t * 0.08) * majorScale * projectileScale, 0.026 * majorScale * projectileScale, 1);
+    shot.userData.core.material.opacity = (shot.userData.mode === "major" ? 0.66 : 0.46) * (1 - t * 0.10) * projectileTone;
+    shot.userData.trail.material.opacity = (shot.userData.mode === "major" ? 0.26 : 0.16) * (1 - t * 0.22) * projectileTone;
     if (t >= 1) {
       if (!shot.userData.damageApplied) {
         shot.userData.damageApplied = true;
         if (shot.userData.relic) {
           touchMissionRelic();
         } else if (shot.userData.target && !shot.userData.miss) {
+          qaTelemetry.lastImpact = {
+            hit: true,
+            miss: false,
+            forced: qaTelemetry.lastAim?.forced || false,
+            role: shot.userData.target.userData.missionRole || "unknown",
+            shooter: shot.userData.shooter,
+            mode: shot.userData.mode,
+          };
           damageTarget(shot.userData.target, shot.userData.shooter);
         } else {
-          spawnImpact(targetPoint, false);
+          qaTelemetry.lastImpact = {
+            hit: false,
+            miss: true,
+            forced: qaTelemetry.lastAim?.forced || false,
+            shooter: shot.userData.shooter,
+            mode: shot.userData.mode,
+          };
+          spawnMissSpark(targetPoint, direction);
           playMissionAudio("invalid_target_blip");
-          setCompanionAimFeedback(`MISS · AUTOAIM ${Math.round(aimAssist.successChance * 100)}%`);
+          setCompanionAimFeedback(`DESVÍO · AUTOAIM ${Math.round(aimAssist.successChance * 100)}%`);
         }
         if (aimAssist.projectile === shot) {
           aimAssist.impacted = true;
@@ -5639,7 +6280,7 @@ function updateInteractionFx(delta) {
       const frame = impact.userData.stripFrames[frameIndex];
       if (frame?.texture && impact.material.map !== frame.texture) {
         impact.material.map = frame.texture;
-        impact.material.needsUpdate = true;
+        if (textureHasImageData(frame.texture)) impact.material.needsUpdate = true;
       }
     }
     if (impact.userData.burst) {
@@ -6051,6 +6692,15 @@ stageButton.addEventListener("click", () => {
     return;
   }
   if (state.controlMode === "astronaut") enterShipMode();
+  else if (mission01.state === "navigation") {
+    const zone = missionZoneSpecForStage(mission01.zoneIndex);
+    updateMissionHud(zone.label, mission01.zoneIndex === 3 ? "ALCANZÁ LA ZONA FINAL" : "NAVEGÁ HASTA LA ZONA DE MISIÓN", zone.subtitle);
+    robotCompanion.panelOpen = true;
+    robotCompanion.focus = "mission";
+    robotCompanion.focusTimer = 4;
+    updateRobotPanel();
+    playAudioEvent("route_detected_ping");
+  }
   else startStageTransition();
 });
 
@@ -6148,47 +6798,47 @@ function updateShipFx(elapsed, shipVelocity) {
   const stageScale = { stage1: 0.82, stage2: 1, stage3: 1.16 }[currentStage()];
   const pulse = 0.5 + Math.sin(elapsed * 2.35) * 0.5;
 
-  shipAura.material.opacity = 0.16 + pulse * 0.035 + speed * 0.20 + turbo * 0.28 + (state.transition ? 0.16 : 0);
-  shipAura.rotation.z = elapsed * (0.16 + turbo * 0.18);
+  shipAura.material.opacity = 0.11 + pulse * 0.024 + speed * 0.12 + turbo * 0.08 + (state.transition ? 0.12 : 0);
+  shipAura.rotation.z = elapsed * (0.14 + turbo * 0.10);
   shipAura.scale.set(
-    shipSprite.scale.x * (1.72 + turbo * 0.56),
-    shipSprite.scale.y * (1.16 + turbo * 0.36),
+    shipSprite.scale.x * (1.50 + turbo * 0.14),
+    shipSprite.scale.y * (1.06 + turbo * 0.10),
     1
   );
 
   const wakeFrame = premiumFxFrames.speedStreaks[Math.min(3, Math.floor((speed + turbo) * 2.7))] || premiumFxFrames.speedStreaks[2];
   const wakeReady = textureHasImageData(wakeFrame.texture);
-  velocityWake.visible = (moving || turbo > 0.03) && wakeReady;
+  velocityWake.visible = moving && wakeReady && turbo < 0.08;
   velocityWake.position.set(behind.x * (0.28 + turbo * 0.14) * stageScale, behind.y * (0.28 + turbo * 0.14) * stageScale, -0.01);
   velocityWake.material.rotation = Math.atan2(direction.y, direction.x);
-  velocityWake.material.opacity = (0.08 + speed * 0.24 + turbo * 0.34) * (moving ? 1 : 0.55);
+  velocityWake.material.opacity = (0.035 + speed * 0.09) * (1 - turbo * 0.72);
   if (wakeReady && velocityWake.material.map !== wakeFrame.texture) {
     velocityWake.material.map = wakeFrame.texture;
     velocityWake.material.needsUpdate = true;
   }
   velocityWake.scale.set(
-    shipSprite.scale.x * (1.24 + speed * 0.34 + turbo * 0.92),
-    shipSprite.scale.y * (0.34 + speed * 0.08 + turbo * 0.18),
+    shipSprite.scale.x * (1.16 + speed * 0.26 + turbo * 0.48),
+    shipSprite.scale.y * (0.30 + speed * 0.06 + turbo * 0.10),
     1
   );
 
   const side = new THREE.Vector2(-direction.y, direction.x);
   const turboTier = THREE.MathUtils.clamp(mission01.gems, 0, 3);
+  turboFlameSprites.forEach((flame) => {
+    flame.visible = false;
+    flame.material.opacity = 0;
+  });
   const directionName = moving
     ? directionFromAngle(Math.atan2(direction.y, direction.x))
     : state.direction !== "idle"
       ? state.direction
       : "up";
   const turboFrameIndex = directionTo8WayIndex(directionName);
-  turboFlameSprites.forEach((flame) => {
-    flame.visible = false;
-    flame.material.opacity = 0;
-  });
   const turboAtlasesReady =
     textureHasImageData(turbo8Frames.wake.texture) &&
     textureHasImageData(turbo8Frames.compression.texture) &&
     textureHasImageData(turbo8Frames.glow.texture);
-  turbo8Group.visible = turbo > 0.035 && turboAtlasesReady;
+  turbo8Group.visible = moving && turbo > 0.035 && turboAtlasesReady;
   if (turboAtlasesReady) {
     setTurbo8Frame(turbo8FxSprites.wake, turbo8Frames.wake, turboFrameIndex);
     setTurbo8Frame(turbo8FxSprites.compression, turbo8Frames.compression, turboFrameIndex);
@@ -6197,44 +6847,76 @@ function updateShipFx(elapsed, shipVelocity) {
   turbo8FxSprites.wake.visible = turbo8Group.visible;
   turbo8FxSprites.compression.visible = turbo8Group.visible;
   turbo8FxSprites.glow.visible = turbo8Group.visible;
-  turbo8FxSprites.wake.position.set(behind.x * shipSprite.scale.y * (0.64 + turbo * 0.28), behind.y * shipSprite.scale.y * (0.64 + turbo * 0.28), 0.024);
-  turbo8FxSprites.compression.position.set(direction.x * 0.010, direction.y * 0.010, 0.020);
-  turbo8FxSprites.glow.position.set(behind.x * shipSprite.scale.y * 0.36, behind.y * shipSprite.scale.y * 0.36, 0.030);
+  turbo8FxSprites.wake.position.set(behind.x * shipSprite.scale.y * (0.54 + turbo * 0.14), behind.y * shipSprite.scale.y * (0.54 + turbo * 0.14), 0.024);
+  turbo8FxSprites.compression.position.set(direction.x * 0.006, direction.y * 0.006, 0.020);
+  turbo8FxSprites.glow.position.set(behind.x * shipSprite.scale.y * 0.32, behind.y * shipSprite.scale.y * 0.32, 0.030);
   turbo8FxSprites.wake.scale.set(
-    shipSprite.scale.x * (1.05 + turbo * 1.06 + turboTier * 0.18),
-    shipSprite.scale.y * (0.70 + turbo * 0.58 + turboTier * 0.08),
+    shipSprite.scale.x * (0.88 + turbo * 0.34 + turboTier * 0.06),
+    shipSprite.scale.y * (0.36 + turbo * 0.15 + turboTier * 0.025),
     1
   );
   turbo8FxSprites.compression.scale.set(
-    shipSprite.scale.x * (1.08 + turbo * 0.48),
-    shipSprite.scale.x * (1.08 + turbo * 0.48),
+    shipSprite.scale.x * (0.72 + turbo * 0.16),
+    shipSprite.scale.x * (0.72 + turbo * 0.16),
     1
   );
   turbo8FxSprites.glow.scale.set(
-    shipSprite.scale.x * (0.58 + turbo * 0.58),
-    shipSprite.scale.y * (0.50 + turbo * 0.44),
+    shipSprite.scale.x * (0.34 + turbo * 0.20),
+    shipSprite.scale.y * (0.26 + turbo * 0.14),
     1
   );
-  turbo8FxSprites.wake.material.opacity = Math.min(0.74, turbo * (0.44 + turboTier * 0.11));
-  turbo8FxSprites.compression.material.opacity = Math.min(0.44, turbo * (0.24 + turboTier * 0.07));
-  turbo8FxSprites.glow.material.opacity = Math.min(0.86, turbo * (0.54 + turboTier * 0.13));
+  turbo8FxSprites.wake.material.opacity = Math.min(0.28, turbo * (0.20 + turboTier * 0.030));
+  turbo8FxSprites.compression.material.opacity = Math.min(0.14, turbo * (0.085 + turboTier * 0.020));
+  turbo8FxSprites.glow.material.opacity = Math.min(0.30, turbo * (0.22 + turboTier * 0.035));
+
+  const cleanTurboVisible = moving && turbo > 0.035;
+  const cleanTurboAngle = Math.atan2(direction.y, direction.x);
+  const cleanTurboPulse = 0.92 + pulse * 0.08;
+  cleanTurboWake.visible = cleanTurboVisible;
+  cleanTurboCore.visible = cleanTurboVisible;
+  cleanTurboWake.material.rotation = cleanTurboAngle;
+  cleanTurboCore.material.rotation = cleanTurboAngle;
+  cleanTurboWake.position.set(
+    behind.x * shipSprite.scale.y * (0.50 + turbo * 0.18) * stageScale,
+    behind.y * shipSprite.scale.y * (0.50 + turbo * 0.18) * stageScale,
+    0.018
+  );
+  cleanTurboCore.position.set(
+    behind.x * shipSprite.scale.y * (0.38 + turbo * 0.12) * stageScale,
+    behind.y * shipSprite.scale.y * (0.38 + turbo * 0.12) * stageScale,
+    0.026
+  );
+  cleanTurboWake.scale.set(
+    shipSprite.scale.x * (1.12 + turbo * 0.42 + turboTier * 0.045) * cleanTurboPulse,
+    shipSprite.scale.y * (0.24 + turbo * 0.045),
+    1
+  );
+  cleanTurboCore.scale.set(
+    shipSprite.scale.x * (0.72 + turbo * 0.30 + turboTier * 0.035),
+    shipSprite.scale.y * (0.070 + turbo * 0.018),
+    1
+  );
+  cleanTurboWake.material.opacity = Math.min(0.10, turbo * (0.055 + turboTier * 0.010));
+  cleanTurboCore.material.opacity = Math.min(0.18, turbo * (0.12 + turboTier * 0.018));
 
   let i = 0;
   for (const particle of motionParticles.children) {
     const depth = particle.userData.depth;
     const phase = particle.userData.phase + elapsed * (0.85 + speed * 2.2);
-    const side = new THREE.Vector2(-direction.y, direction.x);
-    const trail = (0.08 + (i % 6) * 0.034) * (0.9 + speed * 1.5 + turbo * 1.25) * stageScale;
-    const spread = Math.sin(phase) * (0.025 + speed * 0.048 + turbo * 0.030) * depth;
+    const trail = (0.07 + (i % 6) * 0.026) * (0.82 + speed * 0.76 + turbo * 0.18) * stageScale;
+    const spread = Math.sin(phase) * (0.012 + speed * 0.020) * depth;
     const orbit = Math.cos(phase * 0.63) * (0.012 + depth * 0.012);
     particle.position.set(
       behind.x * trail + side.x * spread + direction.x * orbit,
       behind.y * trail + side.y * spread + direction.y * orbit,
       0.015
     );
-    const particleSize = (0.007 + depth * 0.010 + speed * 0.008 + turbo * 0.010) * stageScale;
+    const particleSize = (0.006 + depth * 0.008 + speed * 0.004) * stageScale;
     particle.scale.set(particleSize, particleSize, 1);
-    particle.material.opacity = moving ? (0.030 + speed * 0.075 + turbo * 0.035) * depth : 0.010 + pulse * 0.012;
+    const spraySuppression = 1 - THREE.MathUtils.clamp(turbo * 1.80, 0, 0.98);
+    particle.material.opacity = moving
+      ? (0.014 + speed * 0.030) * depth * spraySuppression
+      : 0.008 + pulse * 0.010;
     i += 1;
   }
 }
@@ -6309,6 +6991,7 @@ function animate() {
 
   updateIntegratedBackground(delta, elapsed, travelVelocity);
   updateChunkObjects(delta, elapsed, travelVelocity);
+  updateAmbientMeteorLayer(delta, elapsed, travelVelocity);
   updateOrbitalObjects(delta, elapsed, travelVelocity);
   updateMissionZones(delta, elapsed);
   updateShipEngineAudio(travelVelocity, state.transition, rawDelta);
@@ -6380,14 +7063,70 @@ if (params.get("autoTurbo") === "1") {
     updateRobotPanel();
   }, 450);
 }
+
+if (params.get("autoFinal") === "1") {
+  hideMenu();
+  window.setTimeout(() => {
+    mission01.started = true;
+    mission01.state = "final";
+    mission01.gems = 3;
+    mission01.currentStageIndex = missionStageConfigs.length - 1;
+    state.stageIndex = missionStageConfigs.length - 1;
+    state.worldOffset.set(missionZoneSpecs[3].x, missionZoneSpecs[3].y);
+    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    updateGemHud();
+    updateStageHud();
+    enterShipMode();
+    startFinalSequence(new THREE.Vector2(0.22, 0.08));
+  }, 520);
+}
+
+function centerQaViewOnTarget(target) {
+  if (!target?.userData?.base) return;
+  const parallax = target.userData.parallax ?? missionTargetParallax(target.userData.base.z || -2);
+  const desired = new THREE.Vector2(0.34, 0.02);
+  state.worldOffset.x = (target.userData.base.x - desired.x) / (0.78 + parallax * 0.28);
+  state.worldOffset.y = (target.userData.base.y - desired.y) / (0.88 + parallax * 0.16);
+  state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+}
+
+function positionQaShooterForTarget(target) {
+  if (!target) return;
+  const shooter = shooterForTarget(target);
+  const mode = aimModeForTarget(target);
+  const targetPoint = predictedTargetPoint(target, mode);
+  const maxRange = aimRangeForTarget(target, shooter);
+  const requestedDistance = Number(params.get("qaAimDistance"));
+  const distance = Number.isFinite(requestedDistance)
+    ? requestedDistance
+    : maxRange * (mission01.currentStageIndex >= 2 ? 0.78 : 0.68);
+  const offset = new THREE.Vector2(-0.86, 0.24).normalize().multiplyScalar(distance);
+  if (shooter === "astronaut") {
+    enterAstronautMode();
+    astronautState.position.copy(targetPoint.clone().add(offset));
+  } else {
+    enterShipMode();
+    state.position.copy(targetPoint.clone().add(offset));
+  }
+}
+
 if (params.get("autoAim")) {
   hideMenu();
   window.setTimeout(() => {
     if (!mission01.started) startMission01();
     const mode = params.get("autoAim");
+    const qaTargetIndex = Number(params.get("qaTargetIndex"));
     const fireWhenReady = (selectTarget, attempts = 24) => {
       const target = selectTarget();
       if (target && target.visible && target.userData.active !== false && !target.userData.destroyed) {
+        if (params.get("qaApproachTarget") === "1") {
+          centerQaViewOnTarget(target);
+          window.setTimeout(() => {
+            positionQaShooterForTarget(target);
+            fireAtTarget(target);
+          }, 180);
+          return;
+        }
         fireAtTarget(target);
         return;
       }
@@ -6396,9 +7135,7 @@ if (params.get("autoAim")) {
     if (mode === "ship") {
       completeSmallMissionTargets();
       window.setTimeout(() => {
-        fireWhenReady(() =>
-          mission01.largeObstacles.find((obstacle) => obstacle.userData.active && !obstacle.userData.destroyed)
-        );
+        fireWhenReady(() => activeMissionTargetByIndex(mission01.largeObstacles, qaTargetIndex, state.position));
       }, 360);
       return;
     }
@@ -6406,7 +7143,7 @@ if (params.get("autoAim")) {
       if (!mission01.smallAsteroids.some((asteroid) => asteroid.userData.active && !asteroid.userData.destroyed)) {
         setMissionTargetsActive(mission01.smallAsteroids, true);
       }
-      return mission01.smallAsteroids.find((asteroid) => asteroid.userData.active && !asteroid.userData.destroyed);
+      return activeMissionTargetByIndex(mission01.smallAsteroids, qaTargetIndex, astronautState.position);
     });
   }, 1150);
 }

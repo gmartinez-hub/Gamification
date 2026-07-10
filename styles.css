@@ -26,6 +26,10 @@ body {
   pointer-events: none;
 }
 
+body.debug-hud .hud {
+  display: flex;
+}
+
 .stage-label,
 .stage-button,
 .speed-button {
