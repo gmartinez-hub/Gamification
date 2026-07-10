@@ -1,0 +1,21 @@
+export const WORLD_TUNING = {
+  chunkSize: 96,
+  activeRadius: 2,
+  releaseRadius: 3,
+  maxHeroVisible: 2,
+  maxMediumVisible: 4,
+  minLandmarkVisible: 1,
+  maxLandmarkVisible: 2,
+  maxDebrisVisible: 6,
+  safeZoneRadius: 0.58,
+  heroOverlapRatioMax: 0.12,
+  heroAxialSpeed: [0.004, 0.018] as const,
+  mediumAxialSpeed: [0.02, 0.08] as const,
+  transitionBandWidth: 140,
+  stageRegionCenters: [
+    { x: 0, y: -8 },
+    { x: 92, y: 60 },
+    { x: -96, y: 128 },
+    { x: 18, y: 196 },
+  ],
+} as const;

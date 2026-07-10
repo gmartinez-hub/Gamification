@@ -321,6 +321,31 @@ body.debug-hud .hud {
   pointer-events: none;
 }
 
+.region-hud,
+.shield-hud {
+  position: fixed;
+  z-index: 7;
+  left: 22px;
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(224, 246, 255, 0.82);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.72);
+}
+
+.region-hud {
+  bottom: 40px;
+}
+
+.shield-hud {
+  bottom: 22px;
+  color: rgba(142, 238, 255, 0.88);
+}
+
+.shield-hud.is-low {
+  color: #ff7cbf;
+}
+
 .gem-badge[hidden] {
   display: none;
 }

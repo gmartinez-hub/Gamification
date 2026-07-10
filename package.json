@@ -1,0 +1,23 @@
+{
+  "name": "gravedad-zero-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && node scripts/copy-runtime-assets.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "qa:headless": "node tools/gravedad-zero-closing-qa-cdp.mjs",
+    "qa:release": "npm run typecheck && npm run test && npm run build && npm run qa:headless"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.0"
+  }
+}

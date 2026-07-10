@@ -1,6 +1,9 @@
 .DS_Store
 *.log
 qa-*.png
+qa/**
+!qa/v2-procedural-universe/
+!qa/v2-procedural-universe/**
 node_modules/
 dist/
 assets/ship/debug/

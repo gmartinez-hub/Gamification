@@ -1,5 +1,14 @@
 qa-*
 qa/
+handoff/
+**/*_pack*/
+gravedad_zero_*_pack_v1/
+docs/internal/
+**/concepts/
+QA_contact_sheet*
+**/video_frames/
+*.mov
+*.zip
 background-lab/
 tools/
 assets/*.png
