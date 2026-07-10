@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "../vendor/three.module.js";
 import "./styles.css";
 import { AudioDirector } from "./audio.js";
 import { UI } from "./ui.js";
