@@ -4,6 +4,8 @@ qa-*.png
 qa/**
 !qa/v2-procedural-universe/
 !qa/v2-procedural-universe/**
+!qa/visual-pack-3/
+!qa/visual-pack-3/**
 node_modules/
 dist/
 assets/ship/debug/
