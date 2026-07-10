@@ -1,4 +1,4 @@
-export const V4_BASELINE_SHA = "8fe04792c063da061ebfc8a3d4a4efcb25e4bd50";
+export const V4_BASELINE_SHA = "e479b52fca72ab7e2816d4620309095535a397ae";
 
 export const REGIONS = [
   {
@@ -6,8 +6,8 @@ export const REGIONS = [
     stage: 0,
     name: "OCEANIC FRONTIER",
     center: { x: 0, y: -8 },
-    hero: { x: 22, y: -2, texture: "/assets/runtime/space/planet_ocean_cyber.png", scale: 0.92 },
-    landmark: { id: "fractured_beacon", name: "BALIZA FRACTURADA", x: -17, y: 1, kind: "beacon" },
+    hero: { x: 52, y: 2, texture: "/assets/runtime/space/planet_ocean_cyber.png", scale: 1.18 },
+    landmark: { id: "fractured_beacon", name: "BALIZA FRACTURADA", x: -28, y: 3, kind: "beacon" },
     light: { primary: "#5ce9ff", secondary: "#315bff" },
   },
   {
@@ -15,8 +15,8 @@ export const REGIONS = [
     stage: 1,
     name: "MECHANICAL NETWORK",
     center: { x: 92, y: 60 },
-    hero: { x: 112, y: 65, texture: "/assets/runtime/space/planet_tech_white.png", scale: 0.88 },
-    landmark: { id: "broken_ring", name: "ANILLO ORBITAL ROTO", x: 81, y: 69, kind: "ring" },
+    hero: { x: 145, y: 68, texture: "/assets/runtime/space/planet_tech_white.png", scale: 1.10 },
+    landmark: { id: "broken_ring", name: "ANILLO ORBITAL ROTO", x: 63, y: 70, kind: "ring" },
     light: { primary: "#ac82ff", secondary: "#ed55ff" },
   },
   {
@@ -24,8 +24,8 @@ export const REGIONS = [
     stage: 2,
     name: "SYNTHETIC DARK ZONE",
     center: { x: -96, y: 128 },
-    hero: { x: -116, y: 132, texture: "/assets/runtime/space/planet_dark_magenta.png", scale: 0.96 },
-    landmark: { id: "synthetic_rift", name: "RIFT SINTÉTICO", x: -84, y: 140, kind: "rift" },
+    hero: { x: -149, y: 138, texture: "/assets/runtime/space/planet_dark_magenta.png", scale: 1.16 },
+    landmark: { id: "synthetic_rift", name: "RIFT SINTÉTICO", x: -65, y: 141, kind: "rift" },
     light: { primary: "#ff5bdc", secondary: "#7a55ff" },
   },
   {
@@ -33,7 +33,7 @@ export const REGIONS = [
     stage: 3,
     name: "RELIC ANOMALY",
     center: { x: 18, y: 196 },
-    hero: { x: 36, y: 203, texture: "/assets/runtime/space/planet_ringed_white.png", scale: 0.82 },
+    hero: { x: 68, y: 208, texture: "/assets/runtime/space/planet_ringed_white.png", scale: 1.04 },
     landmark: { id: "relic_portal", name: "PORTAL DE RELIQUIA", x: 18, y: 196, kind: "portal" },
     light: { primary: "#f2efff", secondary: "#bd62ff" },
   },
@@ -46,12 +46,12 @@ export const ROUTES = [
 ];
 
 export const GRAVITY_FIELDS = [
-  { id: "ocean_attractor", stage: 0, type: "attract", x: 22, y: -2, radius: 28, strength: 0.18 },
-  { id: "ocean_current", stage: 0, type: "current", x: 26, y: 14, radius: 25, strength: 0.075, direction: { x: 0.34, y: 0.94 } },
-  { id: "mechanical_ring", stage: 1, type: "tangential", x: 81, y: 69, radius: 34, strength: 0.26 },
-  { id: "mechanical_well", stage: 1, type: "attract", x: 112, y: 65, radius: 27, strength: 0.17 },
-  { id: "synthetic_rift", stage: 2, type: "pulse", x: -84, y: 140, radius: 32, strength: 0.31, period: 5.2 },
-  { id: "synthetic_shift", stage: 2, type: "unstable", x: -116, y: 132, radius: 30, strength: 0.22, period: 7.4 },
+  { id: "ocean_attractor", stage: 0, type: "attract", x: 52, y: 2, radius: 64, strength: 0.15 },
+  { id: "ocean_current", stage: 0, type: "current", x: 18, y: 13, radius: 34, strength: 0.075, direction: { x: 0.34, y: 0.94 } },
+  { id: "mechanical_ring", stage: 1, type: "tangential", x: 63, y: 70, radius: 36, strength: 0.26 },
+  { id: "mechanical_well", stage: 1, type: "attract", x: 145, y: 68, radius: 59, strength: 0.16 },
+  { id: "synthetic_rift", stage: 2, type: "pulse", x: -65, y: 141, radius: 34, strength: 0.31, period: 5.2 },
+  { id: "synthetic_shift", stage: 2, type: "unstable", x: -149, y: 138, radius: 61, strength: 0.20, period: 7.4 },
   { id: "relic_node_a", stage: 3, type: "attract", x: 7, y: 191, radius: 19, strength: 0.22 },
   { id: "relic_node_b", stage: 3, type: "repel", x: 29, y: 191, radius: 19, strength: 0.22 },
   { id: "relic_node_c", stage: 3, type: "pulse", x: 18, y: 207, radius: 21, strength: 0.27, period: 4.6 },

@@ -1,0 +1,9 @@
+{
+  "name": "GRAVEDAD ZERO V4.0.1 Composition Recovery",
+  "repository": "gmartinez-hub/Gamification",
+  "branch": "feat/v2-procedural-universe-visual-pack-3",
+  "requiredAncestor": "e479b52fca72ab7e2816d4620309095535a397ae",
+  "mode": "upload-only",
+  "localQA": false,
+  "runtimeReferenceAsset": false
+}
