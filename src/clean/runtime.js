@@ -171,7 +171,7 @@ class Game {
     const nebula = new THREE.Mesh(
       new THREE.PlaneGeometry(8, 4.5),
       new THREE.MeshBasicMaterial({
-        map: this.texture("/assets/runtime/three-textures/nebula-magenta-cyan-background.png"),
+        color: 0x17204a,
         transparent: true,
         opacity: .32,
         depthWrite: false,
@@ -761,7 +761,7 @@ class Game {
       meteor.userData.world.copy(new THREE.Vector2(region.center.x, region.center.y).add(fromCenter.multiplyScalar(-1)));
     }
     meteor.position.copy(this.worldToScene(meteor.userData.world));
-    meteor.rotation += delta * .18;
+    meteor.material.rotation += delta * .18;
     const actorWorld = this.state.worldPosition;
     const collision = distance(actorWorld, meteor.userData.world) < meteor.userData.radius + 18;
     if (collision && elapsed - meteor.userData.lastHit > .8) {
@@ -787,7 +787,7 @@ class Game {
       }
     }
     target.position.copy(this.worldToScene(data.world));
-    target.rotation += delta * .16;
+    target.material.rotation += delta * .16;
     target.material.opacity = data.scanned ? .94 : .38;
     if (data.scanned) target.material.color.set(data.hp <= 1 ? 0xffffff : 0xffa2f1);
   }
@@ -826,7 +826,7 @@ class Game {
       this.state.velocity.addScaledVector(repel, .015);
     }
     core.position.copy(this.worldToScene(data.world));
-    core.rotation += delta * .25;
+    core.material.rotation += delta * .25;
     const ratio = data.hp / data.maxHp;
     core.material.color.setRGB(1, .45 + ratio * .45, .72 + ratio * .28);
   }
