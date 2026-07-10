@@ -4,6 +4,15 @@ import { ASSET_CATALOG, assetPath as v2AssetPath } from "./assets/AssetCatalog.t
 import { updateAimRotation } from "./combat/AimCombat.ts";
 import { resolveMeteorCollision } from "./meteors/MeteorCollision.ts";
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
+import {
+  AstronautVisualRig,
+  BiomeVisualLighting,
+  DirectionalThrusterSystem,
+  RelicGem,
+  ShieldFx,
+  ShipMotionRig,
+  ShipVisualRig,
+} from "./visual/VisualPackRig.js";
 
 const canvas = document.querySelector("#scene");
 const stageButton = document.querySelector("#stageButton");
@@ -206,6 +215,12 @@ function loadWorldTexture(path, { color = true, repeat = [1, 1] } = {}) {
   return texture;
 }
 
+function loadVisualDataTexture(path) {
+  const texture = loader.load(textureUrl(path));
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return texture;
+}
+
 function makeStripFrameTexture(texture, frame, frameCount = 4) {
   const frameTexture = texture.clone();
   frameTexture.repeat.set(1 / frameCount, 1);
@@ -342,9 +357,6 @@ const missionFxTextures = {
   zeroGRotationStreaks: loadTexture("assets/runtime/v2/projectiles/zero_g_stabilize_field_1024.png"),
   aimAssistLine: loadTexture("assets/runtime/v2/projectiles/zero_g_stabilize_field_1024.png"),
   fireReleaseFlash: loadTexture("assets/runtime/v2/projectiles/muzzle_charge_atlas_4x1_1024.png"),
-  premiumTurboFlame: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_turbo_flame_strip.png"),
-  premiumSpeedStreaks: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_speed_streaks_strip.png"),
-  premiumImpactRing: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_impact_ring_strip.png"),
   premiumGemBurst: loadTexture("assets/runtime/gravedad-zero/vfx/vfx_gem_pickup_burst_strip.png"),
   closingTargetLockRing: loadTexture("assets/runtime/gravedad-zero/aim-fx/target_lock_ring_1024.png"),
   closingTargetLockField: loadTexture("assets/runtime/gravedad-zero/aim-fx/target_lock_field_1024.png"),
@@ -353,27 +365,52 @@ const missionFxTextures = {
   closingAstronautProjectile: loadTexture(v2AssetPath("projectile.tool")),
   closingLongTrail: loadTexture(v2AssetPath("projectile.trail.long")),
   closingShortTrail: loadTexture(v2AssetPath("projectile.trail.short")),
-  closingImpactRing: loadTexture(v2AssetPath("projectile.impact")),
   closingMuzzleCharge: loadTexture(v2AssetPath("projectile.charge")),
-  closingMissSpark: loadTexture(v2AssetPath("projectile.miss")),
-  turboWake8Dir: loadTexture("assets/runtime/gravedad-zero/turbo-8dir/speed_wake_8dir_atlas_4x2_512.png"),
-  turboCompression8Dir: loadTexture("assets/runtime/gravedad-zero/turbo-8dir/warp_compression_8dir_atlas_4x2_512.png"),
-  turboEngineGlow8Dir: loadTexture("assets/runtime/gravedad-zero/turbo-8dir/directional_engine_glow_8dir_atlas_4x2_512.png"),
 };
+
+const visualPackTextures = {
+  thrusterCore: loadTexture("assets/runtime/v3/thrusters/thruster_core_color.png"),
+  thrusterCone: loadTexture("assets/runtime/v3/thrusters/directional_cone_color.png"),
+  thrusterWake: loadTexture("assets/runtime/v3/thrusters/clean_wake_color.png"),
+  thrusterDistortion: loadVisualDataTexture("assets/runtime/v3/thrusters/distortion_noise.png"),
+  chargedCore: loadTexture("assets/runtime/v3/combat/charged_core.png"),
+  impactRing: loadTexture("assets/runtime/v3/combat/impact_ring_neutral.png"),
+  sparkAtlas: loadTexture("assets/runtime/v3/combat/spark_atlas_4x1.png"),
+  shieldRipple: loadTexture("assets/runtime/v3/shields/shield_ripple.png"),
+  cockpitReflection: loadTexture("assets/runtime/v3/shields/cockpit_reflection.png"),
+  scannerRing: loadTexture("assets/runtime/v3/discovery/scanner_ring.png"),
+  gravityField: loadTexture("assets/runtime/v3/discovery/gravity_field_ring.png"),
+  gemCore: loadTexture("assets/runtime/v3/gem/gem_internal_core.png"),
+  gemFresnel: loadVisualDataTexture("assets/runtime/v3/gem/gem_fresnel_lut.png"),
+  gemNoise: loadVisualDataTexture("assets/runtime/v3/gem/gem_crystal_noise.png"),
+};
+
+const derivedVisualTextureCache = new Map();
+
+function derivedVisualTexture(stem, kind, color = false) {
+  const path = `assets/runtime/v3-derived/${stem}/${kind}.png`;
+  const key = `${path}:${color ? "color" : "data"}`;
+  if (!derivedVisualTextureCache.has(key)) {
+    derivedVisualTextureCache.set(key, color ? loadTexture(path) : loadVisualDataTexture(path));
+  }
+  return derivedVisualTextureCache.get(key);
+}
+
+function derivedVisualMaps(stem, asset) {
+  return {
+    albedo: asset.texture,
+    normal: derivedVisualTexture(stem, "normal"),
+    roughness: derivedVisualTexture(stem, "roughness"),
+    emissive: derivedVisualTexture(stem, "emissive", true),
+    cockpit: derivedVisualTexture(stem, "cockpit_mask"),
+    depth: derivedVisualTexture(stem, "depth_mask"),
+    aspect: asset.aspect,
+  };
+}
 
 const premiumFxFrames = {
-  turboFlame: makeStripFrameAssets(missionFxTextures.premiumTurboFlame, 4),
-  speedStreaks: makeStripFrameAssets(missionFxTextures.premiumSpeedStreaks, 4),
-  impactRing: makeStripFrameAssets(missionFxTextures.premiumImpactRing, 4),
   gemBurst: makeStripFrameAssets(missionFxTextures.premiumGemBurst, 4),
-  closingImpactRing: makeStripFrameAssets(missionFxTextures.closingImpactRing, 4),
   closingMuzzleCharge: makeStripFrameAssets(missionFxTextures.closingMuzzleCharge, 4),
-};
-
-const turbo8Frames = {
-  wake: { texture: missionFxTextures.turboWake8Dir, aspect: 1 },
-  compression: { texture: missionFxTextures.turboCompression8Dir, aspect: 1 },
-  glow: { texture: missionFxTextures.turboEngineGlow8Dir, aspect: 1 },
 };
 
 const robotFxTextures = {
@@ -3594,8 +3631,13 @@ scene.add(shipGroup);
 const currentStage = () => STAGES[state.stageIndex];
 const currentAsset = () => stageAssets[currentStage()][state.direction];
 
-const shipSprite = makeSprite(currentAsset(), { renderOrder: 20 });
-shipGroup.add(shipSprite);
+const shipVisualRig = new ShipVisualRig(currentAsset().texture);
+const shipSprite = shipVisualRig.surface;
+shipVisualRig.setMaps(derivedVisualMaps(`${currentStage()}/directions/${state.direction}`, currentAsset()));
+shipGroup.add(shipVisualRig);
+const shipMotionRig = new ShipMotionRig();
+const shipShieldFx = new ShieldFx(visualPackTextures.shieldRipple);
+shipGroup.add(shipShieldFx);
 
 const auraTexture = makeAuraTexture();
 const impulseTexture = makeImpulseTexture();
@@ -3611,104 +3653,13 @@ const shipAura = new THREE.Sprite(
 shipAura.renderOrder = 18;
 shipGroup.add(shipAura);
 
-const velocityWake = makeSprite(premiumFxFrames.speedStreaks[2], {
-  opacity: 0,
-  blending: THREE.AdditiveBlending,
-  renderOrder: 17,
+const shipThrusters = new DirectionalThrusterSystem({
+  core: visualPackTextures.thrusterCore,
+  cone: visualPackTextures.thrusterCone,
+  wake: visualPackTextures.thrusterWake,
+  distortion: visualPackTextures.thrusterDistortion,
 });
-velocityWake.visible = false;
-shipGroup.add(velocityWake);
-
-const cleanTurboWake = new THREE.Sprite(
-  new THREE.SpriteMaterial({
-    map: impulseTexture,
-    transparent: true,
-    opacity: 0,
-    color: 0x7befff,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: false,
-  })
-);
-cleanTurboWake.renderOrder = 18;
-cleanTurboWake.visible = false;
-shipGroup.add(cleanTurboWake);
-
-const cleanTurboCore = new THREE.Sprite(
-  new THREE.SpriteMaterial({
-    map: impulseTexture,
-    transparent: true,
-    opacity: 0,
-    color: 0xffffff,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: false,
-  })
-);
-cleanTurboCore.renderOrder = 19;
-cleanTurboCore.visible = false;
-shipGroup.add(cleanTurboCore);
-
-const turboFlames = new THREE.Group();
-shipGroup.add(turboFlames);
-const turboFlameSprites = [-1, 1].map((side, index) => {
-  const sprite = makeSprite(premiumFxFrames.turboFlame[index], {
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    renderOrder: 18,
-    depthTest: false,
-  });
-  sprite.visible = false;
-  sprite.userData.side = side;
-  turboFlames.add(sprite);
-  return sprite;
-});
-
-const turbo8Group = new THREE.Group();
-shipGroup.add(turbo8Group);
-const turbo8FxSprites = {
-  wake: makeSprite(turbo8Frames.wake, {
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    renderOrder: 18,
-    depthTest: false,
-  }),
-  compression: makeSprite(turbo8Frames.compression, {
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    renderOrder: 19,
-    depthTest: false,
-  }),
-  glow: makeSprite(turbo8Frames.glow, {
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    renderOrder: 20,
-    depthTest: false,
-  }),
-};
-Object.values(turbo8FxSprites).forEach((sprite) => {
-  sprite.visible = false;
-  turbo8Group.add(sprite);
-});
-
-const motionParticles = new THREE.Group();
-shipGroup.add(motionParticles);
-for (let i = 0; i < 18; i += 1) {
-  const particle = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: starTexture,
-      transparent: true,
-      opacity: 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    })
-  );
-  particle.renderOrder = 19;
-  particle.userData.phase = random() * Math.PI * 2;
-  particle.userData.radius = 0.08 + random() * 0.28;
-  particle.userData.depth = 0.5 + random() * 0.5;
-  motionParticles.add(particle);
-}
+shipGroup.add(shipThrusters);
 
 const astronautGroup = new THREE.Group();
 scene.add(astronautGroup);
@@ -3729,25 +3680,20 @@ const astronautState = {
   returnPulse: 0,
 };
 
-const astronautHalo = new THREE.Sprite(
-  new THREE.SpriteMaterial({
-    map: auraTexture,
-    transparent: true,
-    opacity: 0.18,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  })
-);
-astronautHalo.renderOrder = 18;
-astronautGroup.add(astronautHalo);
-
-const astronautSprite = astronautInitialAsset
-  ? makeSprite(astronautInitialAsset, {
-      opacity: 0.94,
-      renderOrder: 22,
-    })
+const astronautVisualRig = astronautInitialAsset
+  ? new AstronautVisualRig(
+      astronautInitialAsset.texture,
+      visualPackTextures.shieldRipple,
+      visualPackTextures.scannerRing,
+      visualPackTextures.cockpitReflection,
+    )
   : null;
-if (astronautSprite) astronautGroup.add(astronautSprite);
+const astronautSprite = astronautVisualRig?.surface || null;
+if (astronautVisualRig && astronautInitialAsset) {
+  astronautVisualRig.setMaps(derivedVisualMaps("astronaut/views/front_right", astronautInitialAsset));
+  astronautGroup.add(astronautVisualRig);
+}
+const biomeVisualLighting = new BiomeVisualLighting(ambientLight, keyLight, magentaLight);
 
 const interactionFx = new THREE.Group();
 scene.add(interactionFx);
@@ -3805,6 +3751,23 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
     },
     assetCatalogEntries: ASSET_CATALOG.length,
     shield: Number(v2Runtime.shield.value.toFixed(2)),
+    visualPack: {
+      version: "3.0",
+      shipPhysicalMaterial: shipSprite.material.type,
+      astronautPhysicalMaterial: astronautSprite?.material?.type || "none",
+      thrusterVisible: shipThrusters.visible,
+      thrusterLayers: shipThrusters.visible
+        ? [shipThrusters.core, shipThrusters.cone, shipThrusters.wake, shipThrusters.distortion]
+            .filter((layer) => layer.visible && layer.material.opacity > 0.001).length
+        : 0,
+      relicGeometry: relicVisual?.outer?.geometry?.type || "none",
+      shipShieldVisible: shipShieldFx.visible,
+      astronautShieldVisible: astronautVisualRig?.shield?.visible || false,
+      scannerVisible: astronautVisualRig?.scanner?.visible || false,
+      drawCalls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      textures: renderer.info.memory.textures,
+    },
     ambientMeteors: ambientMeteorLayer.meteors.filter((meteor) => meteor.visible && meteor.material.opacity > 0.02).length,
     smallTargets: mission01.smallAsteroids.filter((target) => target.visible && target.userData.active && !target.userData.destroyed).length,
     largeTargets: mission01.largeObstacles.filter((target) => target.visible && target.userData.active && !target.userData.destroyed).length,
@@ -3952,6 +3915,7 @@ function updateAmbientMeteorLayer(delta, elapsed, travelVelocity) {
         );
         const damage = v2Runtime.damageShield(collision.damage);
         if (damage > 0) {
+          (state.controlMode === "astronaut" ? astronautVisualRig?.shield : shipShieldFx).trigger(1);
           const impulse = new THREE.Vector2(collision.impulse.x, collision.impulse.y);
           if (state.controlMode === "astronaut") astronautState.position.add(impulse);
           else state.position.add(impulse);
@@ -4052,16 +4016,12 @@ function makeMissionSprite(texture, { opacity = 1, renderOrder = 34, blending = 
   return sprite;
 }
 
-const relicGlow = makeMissionSprite(missionFxTextures.relicGlow, { opacity: 0.0, renderOrder: 33 });
-const relicRingA = makeMissionSprite(missionFxTextures.relicRingA, { opacity: 0.0, renderOrder: 34 });
-const relicRingB = makeMissionSprite(missionFxTextures.relicRingB, { opacity: 0.0, renderOrder: 35 });
-const relicCore = makeMissionSprite(missionFxTextures.relicCore, {
-  opacity: 0.0,
-  renderOrder: 36,
-  blending: THREE.NormalBlending,
+const relicVisual = new RelicGem({
+  coreTexture: visualPackTextures.gemCore,
+  noiseTexture: visualPackTextures.gemNoise,
+  fresnelTexture: visualPackTextures.gemFresnel,
 });
-const relicScanlines = makeMissionSprite(missionFxTextures.relicScanlines, { opacity: 0.0, renderOrder: 37 });
-relicGroup.add(relicGlow, relicRingA, relicRingB, relicCore, relicScanlines);
+relicGroup.add(relicVisual);
 
 const unlockFlash = makeMissionSprite(missionFxTextures.stageUnlockFlash, { opacity: 0.0, renderOrder: 42 });
 unlockFlash.visible = false;
@@ -4134,7 +4094,7 @@ const aimField = makeMissionSprite(missionFxTextures.closingStabilizeField, { op
 aimField.visible = false;
 scene.add(aimField);
 
-const aimRotationStreaks = makeMissionSprite(premiumFxFrames.speedStreaks[1].texture, { opacity: 0.0, renderOrder: 46 });
+const aimRotationStreaks = makeMissionSprite(visualPackTextures.gravityField, { opacity: 0.0, renderOrder: 46 });
 aimRotationStreaks.visible = false;
 scene.add(aimRotationStreaks);
 
@@ -5146,9 +5106,9 @@ function resizeShip() {
   const maxHeight = maxShipHeight(stage);
   const wantedWidth = stageWidth(stage, state.direction);
   const width = Math.min(wantedWidth, maxHeight * asset.aspect);
-  scaleSprite(shipSprite, width);
+  shipVisualRig.setSize(width, asset.aspect);
+  shipShieldFx.setBaseScale(width * 0.62, (width / asset.aspect) * 0.68, width * 0.50);
   shipAura.scale.set(width * 1.72, width * 1.16, 1);
-  scaleSprite(velocityWake, width * 1.34);
 }
 
 function astronautWidth() {
@@ -5156,9 +5116,8 @@ function astronautWidth() {
 }
 
 function resizeAstronaut() {
-  if (!astronautSprite) return;
-  scaleSprite(astronautSprite, astronautWidth());
-  astronautHalo.scale.set(0.23, 0.23, 1);
+  if (!astronautSprite || !astronautVisualRig) return;
+  astronautVisualRig.setSize(astronautWidth(), astronautSprite.userData.aspect);
 }
 
 function currentAstronautAnchor() {
@@ -5169,7 +5128,7 @@ function currentAstronautAnchor() {
 function setDirection(direction) {
   if (!DIRECTIONS.includes(direction) || direction === state.direction) return;
   state.direction = direction;
-  setSpriteAsset(shipSprite, currentAsset());
+  shipVisualRig.setMaps(derivedVisualMaps(`${currentStage()}/directions/${state.direction}`, currentAsset()));
   resizeShip();
 }
 
@@ -5216,31 +5175,6 @@ function directionFromAngle(angle) {
     }
   }
   return best;
-}
-
-function directionTo8WayIndex(direction) {
-  return {
-    up: 0,
-    up_right: 1,
-    right: 2,
-    down_right: 3,
-    down: 4,
-    down_left: 5,
-    left: 6,
-    up_left: 7,
-  }[direction] ?? 2;
-}
-
-function setTurbo8Frame(sprite, atlas, frameIndex) {
-  const texture = atlas.texture;
-  const safeFrame = THREE.MathUtils.clamp(frameIndex, 0, 7);
-  texture.repeat.set(1 / 4, 1 / 2);
-  texture.offset.set((safeFrame % 4) / 4, 1 - (Math.floor(safeFrame / 4) + 1) / 2);
-  if (sprite.material.map !== texture) {
-    sprite.material.map = texture;
-    sprite.userData.aspect = atlas.aspect;
-    sprite.material.needsUpdate = true;
-  }
 }
 
 function textureHasImageData(texture) {
@@ -5381,7 +5315,7 @@ function startStageTransition() {
 
 function finishStageTransition() {
   state.transition = null;
-  shipSprite.material.opacity = 1;
+  shipVisualRig.setOpacity(1);
   portalSprite.visible = false;
   ringSprite.visible = false;
   transitionStreak.visible = false;
@@ -5428,7 +5362,7 @@ function beginStageNavigation(stageIndex) {
 
 function applyStage(stageIndex) {
   state.stageIndex = stageIndex;
-  setSpriteAsset(shipSprite, currentAsset());
+  shipVisualRig.setMaps(derivedVisualMaps(`${currentStage()}/directions/${state.direction}`, currentAsset()));
   resizeShip();
 }
 
@@ -5438,7 +5372,7 @@ function updateTransition(delta, elapsed) {
     portalSprite.visible = false;
     ringSprite.visible = false;
     transitionStreak.visible = false;
-    shipSprite.material.opacity = state.controlMode === "astronaut" ? 0.56 : 1;
+    shipVisualRig.setOpacity(state.controlMode === "astronaut" ? 0.56 : 1);
     return;
   }
 
@@ -5452,19 +5386,19 @@ function updateTransition(delta, elapsed) {
   transitionStreak.visible = t > 0.70;
 
   if (t < 0.28) {
-    shipSprite.material.opacity = 1;
+    shipVisualRig.setOpacity(1);
     ringSprite.material.opacity = THREE.MathUtils.smoothstep(t, 0.02, 0.28) * 0.52;
     ringSprite.scale.setScalar(0.72 + t * 1.1);
     portalSprite.material.opacity = 0;
   } else if (t < 0.46) {
     const local = THREE.MathUtils.smoothstep(t, 0.28, 0.46);
-    shipSprite.material.opacity = 1 - local;
+    shipVisualRig.setOpacity(1 - local);
     ringSprite.material.opacity = 0.50 - local * 0.18;
     ringSprite.scale.setScalar(0.98 + local * 0.62);
     portalSprite.material.opacity = local * 0.52;
     scaleSprite(portalSprite, 0.62 + local * 0.12);
   } else if (t < 0.62) {
-    shipSprite.material.opacity = 0;
+    shipVisualRig.setOpacity(0);
     ringSprite.material.opacity = 0.22;
     portalSprite.material.opacity = 0.62;
     scaleSprite(portalSprite, 0.74 + Math.sin(elapsed * 16) * 0.025);
@@ -5475,7 +5409,7 @@ function updateTransition(delta, elapsed) {
       updateStageHud();
     }
     const local = THREE.MathUtils.smoothstep(t, 0.62, 0.92);
-    shipSprite.material.opacity = local;
+    shipVisualRig.setOpacity(local);
     portalSprite.material.opacity = Math.max(0, 0.42 * (1 - local));
     transitionStreak.material.opacity = Math.max(0, 0.28 * (1 - local));
     scaleSprite(portalSprite, 0.64 - local * 0.10);
@@ -5706,6 +5640,7 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
         if (state.controlMode === "astronaut") astronautState.position.add(impulse);
         else state.position.add(impulse);
         if (damage > 0) {
+          (state.controlMode === "astronaut" ? astronautVisualRig?.shield : shipShieldFx).trigger(1);
           spawnImpact(player, asteroid.userData.missionRole === "large");
           setCompanionAimFeedback(`REPULSIÓN · ESCUDO ${Math.round(v2Runtime.shield.value)}%`);
         }
@@ -5861,6 +5796,7 @@ function updateWorldCompositionAuthority(rawDelta) {
   worldCompositionTelemetry.biome = blend.primary;
   worldCompositionTelemetry.biomeMix = Number(blend.mix.toFixed(3));
   worldCompositionTelemetry.candidates = candidates.length;
+  biomeVisualLighting.apply(blend.primary, shipVisualRig, astronautVisualRig);
   if (mission01.started && previousBiome && previousBiome !== blend.primary) {
     playAudioEvent("sector_beacon");
     setCompanionAimFeedback(`REGIÓN DETECTADA · ${BIOME_LABELS[blend.primary]}`);
@@ -5913,9 +5849,14 @@ const DISCOVERY_OPACITY = {
 };
 
 function updateTargetDiscovery(delta) {
-  if (!mission01.started || !["small_asteroids", "large_obstacle"].includes(mission01.state)) return;
+  if (!mission01.started || !["small_asteroids", "large_obstacle"].includes(mission01.state)) {
+    astronautVisualRig?.setScan(false);
+    return;
+  }
   const targets = [...mission01.smallAsteroids, ...mission01.largeObstacles];
   const player = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  let scanActive = false;
+  let scanProgress = 0;
   for (const target of targets) {
     if (!target.userData.active || target.userData.destroyed || !target.userData.discovery) continue;
     const point = backgroundObjectScreenPoint(target, new THREE.Vector2());
@@ -5939,6 +5880,10 @@ function updateTargetDiscovery(delta) {
       },
     );
     const discovery = target.userData.discovery;
+    if (discovery.state === "scanning" || discovery.state === "partially_revealed") {
+      scanActive = true;
+      scanProgress = Math.max(scanProgress, discovery.scanProgress);
+    }
     target.userData.targetable = discovery.state === "targetable" || discovery.state === "engaged";
     setGroupOpacity(target, DISCOVERY_OPACITY[discovery.state] ?? 0.04);
     const missionHalo = target.children.find((child) => child.userData.isMissionTargetHalo);
@@ -5958,6 +5903,7 @@ function updateTargetDiscovery(delta) {
       setCompanionAimFeedback("OBJETIVO IDENTIFICADO · AUTOAIM DISPONIBLE");
     }
   }
+  astronautVisualRig?.setScan(scanActive, scanProgress);
 }
 
 function findInteractiveTarget(point) {
@@ -6022,23 +5968,6 @@ function makeProjectileSprite(texture, opacity, renderOrder) {
   return sprite;
 }
 
-function makeProjectileBeam(color, opacity, renderOrder) {
-  const beam = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    new THREE.MeshBasicMaterial({
-      map: impulseTexture,
-      color,
-      transparent: true,
-      opacity,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      depthTest: false,
-    })
-  );
-  beam.renderOrder = renderOrder;
-  return beam;
-}
-
 function currentProjectileTargetPoint(shot) {
   if (shot.userData.target && !shot.userData.miss) {
     return predictedTargetPoint(shot.userData.target, shot.userData.mode);
@@ -6050,15 +5979,17 @@ function createProjectileShot(origin, targetPoint, shooter, { target = null, mis
   const group = new THREE.Group();
   const isMajor = mode === "major";
   const coreTexture =
-    shooter === "ship" ? missionFxTextures.closingShipProjectile : missionFxTextures.closingAstronautProjectile;
+    isMajor
+      ? visualPackTextures.chargedCore
+      : shooter === "ship"
+        ? missionFxTextures.closingShipProjectile
+        : missionFxTextures.closingAstronautProjectile;
   const trailTexture =
     shooter === "ship" || isMajor ? missionFxTextures.closingLongTrail : missionFxTextures.closingShortTrail;
   const projectileTone = shooter === "astronaut" ? 0.72 : 1;
-  const trail = makeProjectileSprite(trailTexture, (isMajor ? 0.28 : 0.18) * projectileTone, 34);
-  const core = makeProjectileSprite(coreTexture, (isMajor ? 0.62 : 0.46) * projectileTone, 35);
-  const beamGlow = makeProjectileBeam(shooter === "ship" ? 0x42eaff : 0xd88cff, (isMajor ? 0.06 : 0.035) * projectileTone, 33);
-  const beamCore = makeProjectileBeam(shooter === "ship" ? 0xffffff : 0xfff2ff, (isMajor ? 0.12 : 0.060) * projectileTone, 34);
-  group.add(beamGlow, beamCore, trail, core);
+  const trail = makeProjectileSprite(trailTexture, (isMajor ? 0.20 : 0.12) * projectileTone, 34);
+  const core = makeProjectileSprite(coreTexture, (isMajor ? 0.56 : 0.42) * projectileTone, 35);
+  group.add(trail, core);
   group.position.set(origin.x, origin.y, 0.13);
   group.userData = {
     isProjectile: true,
@@ -6074,8 +6005,6 @@ function createProjectileShot(origin, targetPoint, shooter, { target = null, mis
     damageApplied: false,
     core,
     trail,
-    beamGlow,
-    beamCore,
     projectileTone,
   };
   return group;
@@ -6168,7 +6097,7 @@ function spawnImpact(point, strong = false) {
   const baseOpacity = strong ? 0.92 : 0.62;
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
-      map: premiumFxFrames.closingImpactRing[0].texture,
+      map: visualPackTextures.impactRing,
       transparent: true,
       opacity: baseOpacity,
       blending: THREE.AdditiveBlending,
@@ -6183,7 +6112,6 @@ function spawnImpact(point, strong = false) {
     time: 0,
     duration: strong ? 0.60 : 0.38,
     strong,
-    stripFrames: premiumFxFrames.closingImpactRing,
     baseScale,
     baseOpacity,
   };
@@ -6195,7 +6123,7 @@ function spawnMissSpark(point, direction = new THREE.Vector2(1, 0)) {
   const side = direction.lengthSq() > 0.0001 ? new THREE.Vector2(-direction.y, direction.x).normalize() : new THREE.Vector2(0, 1);
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
-      map: missionFxTextures.closingMissSpark,
+      map: makeStripFrameTexture(visualPackTextures.sparkAtlas, 0, 4),
       transparent: true,
       opacity: 0.72,
       blending: THREE.AdditiveBlending,
@@ -6301,11 +6229,7 @@ function revealMissionRelic(sourceTarget) {
   );
   relicGroup.scale.setScalar(0.62);
   relicGroup.visible = true;
-  relicGlow.material.opacity = 0;
-  relicRingA.material.opacity = 0;
-  relicRingB.material.opacity = 0;
-  relicCore.material.opacity = 0;
-  relicScanlines.material.opacity = 0;
+  relicVisual.setReveal(0, 1, 0);
   updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", config.subtitle);
   playAudioEvent("core_destroyed");
   syncRobotCompanion("relic");
@@ -6554,20 +6478,10 @@ function updateInteractionFx(delta) {
     shot.userData.trail.material.rotation = angle;
     const majorScale = shot.userData.mode === "major" ? 1.24 : 1.0;
     const pulse = 1 + Math.sin((shot.userData.time + t) * 18) * 0.025;
-    const beamLength = (0.10 + t * 0.12) * majorScale * projectileScale;
-    const beamFade = 1 - t * 0.26;
-    shot.userData.beamCore.position.set(-direction.x * beamLength * 0.42, -direction.y * beamLength * 0.42, -0.004);
-    shot.userData.beamGlow.position.set(-direction.x * beamLength * 0.46, -direction.y * beamLength * 0.46, -0.006);
-    shot.userData.beamCore.rotation.z = angle;
-    shot.userData.beamGlow.rotation.z = angle;
-    shot.userData.beamCore.scale.set(beamLength, 0.0055 * majorScale * projectileScale * pulse, 1);
-    shot.userData.beamGlow.scale.set(beamLength * 1.08, 0.017 * majorScale * projectileScale, 1);
-    shot.userData.beamCore.material.opacity = (shot.userData.mode === "major" ? 0.13 : 0.060) * beamFade * projectileTone;
-    shot.userData.beamGlow.material.opacity = (shot.userData.mode === "major" ? 0.070 : 0.030) * (1 - t * 0.34) * projectileTone;
-    shot.userData.core.scale.set(0.12 * majorScale * pulse * projectileScale, 0.030 * majorScale * projectileScale, 1);
-    shot.userData.trail.scale.set((0.13 + t * 0.08) * majorScale * projectileScale, 0.026 * majorScale * projectileScale, 1);
-    shot.userData.core.material.opacity = (shot.userData.mode === "major" ? 0.66 : 0.46) * (1 - t * 0.10) * projectileTone;
-    shot.userData.trail.material.opacity = (shot.userData.mode === "major" ? 0.26 : 0.16) * (1 - t * 0.22) * projectileTone;
+    shot.userData.core.scale.set(0.095 * majorScale * pulse * projectileScale, 0.024 * majorScale * projectileScale, 1);
+    shot.userData.trail.scale.set((0.105 + t * 0.055) * majorScale * projectileScale, 0.020 * majorScale * projectileScale, 1);
+    shot.userData.core.material.opacity = (shot.userData.mode === "major" ? 0.58 : 0.42) * (1 - t * 0.12) * projectileTone;
+    shot.userData.trail.material.opacity = (shot.userData.mode === "major" ? 0.20 : 0.12) * (1 - t * 0.28) * projectileTone;
     if (t >= 1) {
       if (!shot.userData.damageApplied) {
         shot.userData.damageApplied = true;
@@ -6679,26 +6593,13 @@ function updateMission01(delta, elapsed) {
   if (mission01.relicGroup?.visible) {
     mission01.revealTime += delta;
     const reveal = THREE.MathUtils.clamp(mission01.revealTime / 0.75, 0, 1);
-    const pulse = 0.5 + Math.sin(elapsed * 3.1) * 0.5;
     const destroyFade =
       mission01.relicState === "destroying"
         ? 1 - THREE.MathUtils.smoothstep(mission01.relicDestroyTime, 0.10, 0.85)
         : 1;
-    const coreScale = 0.18 + reveal * 0.10 + pulse * 0.012;
     if (mission01.relicState === "destroying") mission01.relicDestroyTime += delta;
-    relicGlow.scale.setScalar((0.64 + pulse * 0.08) * (1 + (1 - destroyFade) * 0.44));
-    relicRingA.scale.setScalar((0.36 + reveal * 0.10) * (1 + (1 - destroyFade) * 0.62));
-    relicRingB.scale.setScalar((0.44 + reveal * 0.14) * (1 + (1 - destroyFade) * 0.50));
-    relicCore.scale.setScalar(coreScale * (1 + (1 - destroyFade) * 0.35));
-    relicScanlines.scale.setScalar((0.26 + reveal * 0.08) * (1 + (1 - destroyFade) * 0.28));
-    relicRingA.material.rotation = elapsed * 0.72;
-    relicRingB.material.rotation = -elapsed * 0.48;
-    relicScanlines.material.rotation = Math.sin(elapsed * 0.7) * 0.08;
-    relicGlow.material.opacity = (0.36 + pulse * 0.12) * reveal * destroyFade;
-    relicRingA.material.opacity = 0.50 * reveal * destroyFade;
-    relicRingB.material.opacity = 0.36 * reveal * destroyFade;
-    relicCore.material.opacity = Math.min(0.96, reveal * 1.2) * destroyFade;
-    relicScanlines.material.opacity = 0.22 * reveal * destroyFade;
+    relicVisual.setReveal(reveal, destroyFade, elapsed);
+    relicVisual.update(delta, elapsed);
 
     if (mission01.relicState === "collectible" && astronautSprite) {
       const relicPoint = new THREE.Vector2(relicGroup.position.x, relicGroup.position.y);
@@ -6888,8 +6789,8 @@ function setAstronautViewFrame(viewName) {
   const asset = astronautViews[viewName] || astronautViews.front_right || astronautViews.front || astronautAsset;
   if (!asset) return;
   astronautState.viewName = viewName;
-  setSpriteAsset(astronautSprite, asset);
-  scaleSprite(astronautSprite, astronautWidth());
+  astronautVisualRig?.setMaps(derivedVisualMaps(`astronaut/views/${viewName}`, asset));
+  astronautVisualRig?.setSize(astronautWidth(), asset.aspect);
 }
 
 function setAstronautFrame() {
@@ -6902,8 +6803,8 @@ function setAstronautFrame() {
   const asset = frame[astronautState.facing] || frame.right || frame.left;
   if (!asset) return;
 
-  setSpriteAsset(astronautSprite, asset);
-  scaleSprite(astronautSprite, astronautWidth());
+  astronautVisualRig?.setMaps(derivedVisualMaps("astronaut/float", asset));
+  astronautVisualRig?.setSize(astronautWidth(), asset.aspect);
 }
 
 function updateAstronaut(delta, elapsed, controlVelocity) {
@@ -6958,16 +6859,11 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
     setAstronautFrame();
   }
 
-  const controlledPulse = isControlled ? 0.08 + Math.sin(elapsed * 4.2) * 0.025 : 0;
-  const returnPulse = astronautState.returnPulse * 0.18;
   astronautGroup.position.set(astronautState.position.x, astronautState.position.y, 0.04);
   astronautSprite.position.set(0, 0, 0.02);
-  astronautSprite.rotation.z = Math.sin(elapsed * (0.72 + speedState.turboPulse * 0.42)) * 0.035 - astronautState.velocity.x * (0.035 + speedState.turboPulse * 0.035);
-  astronautSprite.material.opacity = state.transition ? 0.24 : isControlled ? 0.98 : 0.84;
-  astronautHalo.material.opacity = state.transition
-    ? 0.05
-    : 0.10 + controlledPulse + returnPulse + speedState.turboPulse * 0.20;
-  astronautHalo.scale.setScalar(0.23 * (1 + speedState.turboPulse * 0.18));
+  astronautVisualRig.rotation.z = Math.sin(elapsed * (0.72 + speedState.turboPulse * 0.42)) * 0.025 - astronautState.velocity.x * 0.055;
+  astronautVisualRig.setOpacity(state.transition ? 0.24 : isControlled ? 0.98 : 0.84);
+  astronautVisualRig.update(delta, elapsed);
 }
 
 window.addEventListener("keydown", (event) => {
@@ -7159,134 +7055,26 @@ function updateShipFx(elapsed, shipVelocity) {
   const speed = Math.min(1, shipVelocity.length());
   const moving = speed > 0.08;
   const turbo = speedState.turboPulse;
-  const direction = moving
-    ? shipVelocity.clone().normalize()
-    : new THREE.Vector2(0, 0.82 + Math.sin(elapsed * 0.7) * 0.05).normalize();
-  const behind = direction.clone().multiplyScalar(-1);
-  const stageScale = { stage1: 0.82, stage2: 1, stage3: 1.16 }[currentStage()];
   const pulse = 0.5 + Math.sin(elapsed * 2.35) * 0.5;
 
-  shipAura.material.opacity = 0.11 + pulse * 0.024 + speed * 0.12 + turbo * 0.08 + (state.transition ? 0.12 : 0);
-  shipAura.rotation.z = elapsed * (0.14 + turbo * 0.10);
+  shipAura.material.opacity = 0.055 + pulse * 0.014 + speed * 0.045 + turbo * 0.025 + (state.transition ? 0.08 : 0);
+  shipAura.rotation.z = elapsed * (0.08 + turbo * 0.04);
   shipAura.scale.set(
-    shipSprite.scale.x * (1.50 + turbo * 0.14),
-    shipSprite.scale.y * (1.06 + turbo * 0.10),
+    shipSprite.scale.x * (1.30 + turbo * 0.05),
+    shipSprite.scale.y * (1.01 + turbo * 0.04),
     1
   );
 
-  const wakeFrame = premiumFxFrames.speedStreaks[Math.min(3, Math.floor((speed + turbo) * 2.7))] || premiumFxFrames.speedStreaks[2];
-  const wakeReady = textureHasImageData(wakeFrame.texture);
-  velocityWake.visible = moving && wakeReady && turbo < 0.08;
-  velocityWake.position.set(behind.x * (0.28 + turbo * 0.14) * stageScale, behind.y * (0.28 + turbo * 0.14) * stageScale, -0.01);
-  velocityWake.material.rotation = Math.atan2(direction.y, direction.x);
-  velocityWake.material.opacity = (0.035 + speed * 0.09) * (1 - turbo * 0.72);
-  if (wakeReady && velocityWake.material.map !== wakeFrame.texture) {
-    velocityWake.material.map = wakeFrame.texture;
-    velocityWake.material.needsUpdate = true;
-  }
-  velocityWake.scale.set(
-    shipSprite.scale.x * (1.16 + speed * 0.26 + turbo * 0.48),
-    shipSprite.scale.y * (0.30 + speed * 0.06 + turbo * 0.10),
-    1
-  );
-
-  const side = new THREE.Vector2(-direction.y, direction.x);
   const turboTier = THREE.MathUtils.clamp(mission01.gems, 0, 3);
-  turboFlameSprites.forEach((flame) => {
-    flame.visible = false;
-    flame.material.opacity = 0;
-  });
-  const directionName = moving
-    ? directionFromAngle(Math.atan2(direction.y, direction.x))
-    : state.direction !== "idle"
-      ? state.direction
-      : "up";
-  const turboFrameIndex = directionTo8WayIndex(directionName);
-  const turboAtlasesReady =
-    textureHasImageData(turbo8Frames.wake.texture) &&
-    textureHasImageData(turbo8Frames.compression.texture) &&
-    textureHasImageData(turbo8Frames.glow.texture);
-  turbo8Group.visible = moving && turbo > 0.035 && turboAtlasesReady;
-  if (turboAtlasesReady) {
-    setTurbo8Frame(turbo8FxSprites.wake, turbo8Frames.wake, turboFrameIndex);
-    setTurbo8Frame(turbo8FxSprites.compression, turbo8Frames.compression, turboFrameIndex);
-    setTurbo8Frame(turbo8FxSprites.glow, turbo8Frames.glow, turboFrameIndex);
-  }
-  turbo8FxSprites.wake.visible = turbo8Group.visible;
-  turbo8FxSprites.compression.visible = turbo8Group.visible;
-  turbo8FxSprites.glow.visible = turbo8Group.visible;
-  turbo8FxSprites.wake.position.set(behind.x * shipSprite.scale.y * (0.54 + turbo * 0.14), behind.y * shipSprite.scale.y * (0.54 + turbo * 0.14), 0.024);
-  turbo8FxSprites.compression.position.set(direction.x * 0.006, direction.y * 0.006, 0.020);
-  turbo8FxSprites.glow.position.set(behind.x * shipSprite.scale.y * 0.32, behind.y * shipSprite.scale.y * 0.32, 0.030);
-  turbo8FxSprites.wake.scale.set(
-    shipSprite.scale.x * (0.88 + turbo * 0.34 + turboTier * 0.06),
-    shipSprite.scale.y * (0.36 + turbo * 0.15 + turboTier * 0.025),
-    1
+  const directionName = moving ? directionFromAngle(Math.atan2(shipVelocity.y, shipVelocity.x)) : "idle";
+  const level = state.transition ? "warp" : turbo > 0.08 ? "turbo" : "normal";
+  shipThrusters.setState(
+    directionName,
+    moving || state.transition ? level : "idle",
+    shipSprite.scale.x,
+    shipSprite.scale.y,
+    turboTier,
   );
-  turbo8FxSprites.compression.scale.set(
-    shipSprite.scale.x * (0.72 + turbo * 0.16),
-    shipSprite.scale.x * (0.72 + turbo * 0.16),
-    1
-  );
-  turbo8FxSprites.glow.scale.set(
-    shipSprite.scale.x * (0.34 + turbo * 0.20),
-    shipSprite.scale.y * (0.26 + turbo * 0.14),
-    1
-  );
-  turbo8FxSprites.wake.material.opacity = Math.min(0.28, turbo * (0.20 + turboTier * 0.030));
-  turbo8FxSprites.compression.material.opacity = Math.min(0.14, turbo * (0.085 + turboTier * 0.020));
-  turbo8FxSprites.glow.material.opacity = Math.min(0.30, turbo * (0.22 + turboTier * 0.035));
-
-  const cleanTurboVisible = moving && turbo > 0.035;
-  const cleanTurboAngle = Math.atan2(direction.y, direction.x);
-  const cleanTurboPulse = 0.92 + pulse * 0.08;
-  cleanTurboWake.visible = cleanTurboVisible;
-  cleanTurboCore.visible = cleanTurboVisible;
-  cleanTurboWake.material.rotation = cleanTurboAngle;
-  cleanTurboCore.material.rotation = cleanTurboAngle;
-  cleanTurboWake.position.set(
-    behind.x * shipSprite.scale.y * (0.50 + turbo * 0.18) * stageScale,
-    behind.y * shipSprite.scale.y * (0.50 + turbo * 0.18) * stageScale,
-    0.018
-  );
-  cleanTurboCore.position.set(
-    behind.x * shipSprite.scale.y * (0.38 + turbo * 0.12) * stageScale,
-    behind.y * shipSprite.scale.y * (0.38 + turbo * 0.12) * stageScale,
-    0.026
-  );
-  cleanTurboWake.scale.set(
-    shipSprite.scale.x * (1.12 + turbo * 0.42 + turboTier * 0.045) * cleanTurboPulse,
-    shipSprite.scale.y * (0.24 + turbo * 0.045),
-    1
-  );
-  cleanTurboCore.scale.set(
-    shipSprite.scale.x * (0.72 + turbo * 0.30 + turboTier * 0.035),
-    shipSprite.scale.y * (0.070 + turbo * 0.018),
-    1
-  );
-  cleanTurboWake.material.opacity = Math.min(0.10, turbo * (0.055 + turboTier * 0.010));
-  cleanTurboCore.material.opacity = Math.min(0.18, turbo * (0.12 + turboTier * 0.018));
-
-  let i = 0;
-  for (const particle of motionParticles.children) {
-    const depth = particle.userData.depth;
-    const phase = particle.userData.phase + elapsed * (0.85 + speed * 2.2);
-    const trail = (0.07 + (i % 6) * 0.026) * (0.82 + speed * 0.76 + turbo * 0.18) * stageScale;
-    const spread = Math.sin(phase) * (0.012 + speed * 0.020) * depth;
-    const orbit = Math.cos(phase * 0.63) * (0.012 + depth * 0.012);
-    particle.position.set(
-      behind.x * trail + side.x * spread + direction.x * orbit,
-      behind.y * trail + side.y * spread + direction.y * orbit,
-      0.015
-    );
-    const particleSize = (0.006 + depth * 0.008 + speed * 0.004) * stageScale;
-    particle.scale.set(particleSize, particleSize, 1);
-    const spraySuppression = 1 - THREE.MathUtils.clamp(turbo * 1.80, 0, 0.98);
-    particle.material.opacity = moving
-      ? (0.014 + speed * 0.030) * depth * spraySuppression
-      : 0.008 + pulse * 0.010;
-    i += 1;
-  }
 }
 
 function animate() {
@@ -7348,7 +7136,9 @@ function animate() {
   const drift = Math.sin(elapsed * 1.04) * 0.018 + Math.sin(elapsed * 1.72 + 0.7) * 0.008;
   shipGroup.position.x = state.position.x;
   shipGroup.position.y = state.position.y + drift;
-  shipGroup.rotation.z = THREE.MathUtils.lerp(shipGroup.rotation.z, shipVelocity.x * -0.035, 0.08);
+  if (!aimAssist.active) shipGroup.rotation.z = THREE.MathUtils.lerp(shipGroup.rotation.z, 0, 0.08);
+  shipMotionRig.update(shipVisualRig, shipVelocity, delta, aimAssist.recoil, aimAssist.hitStop);
+  shipShieldFx.update(rawDelta);
 
   backgroundUniforms.uTime.value = elapsed;
   backgroundUniforms.uThrust.value =

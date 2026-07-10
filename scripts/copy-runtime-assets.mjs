@@ -42,4 +42,12 @@ for (const relativePath of paths) {
   await cp(source, destination, { force: true });
 }
 
-console.log(`Copied ${paths.size} allowlisted runtime assets`);
+const runtimeDirectories = ["assets/runtime/v3", "assets/runtime/v3-derived"];
+for (const relativePath of runtimeDirectories) {
+  await cp(path.join(root, relativePath), path.join(destinationRoot, relativePath), {
+    recursive: true,
+    force: true,
+  });
+}
+
+console.log(`Copied ${paths.size} allowlisted runtime assets and ${runtimeDirectories.length} visual-pack directories`);
