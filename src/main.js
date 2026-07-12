@@ -1,4 +1,5 @@
 import * as THREE from "../vendor/three.module.js";
+import { FinalShowableRuntime } from "./final-showable/FinalShowableRuntime.js";
 import { V2Runtime } from "./app/V2Runtime.ts";
 import { ASSET_CATALOG, assetPath as v2AssetPath } from "./assets/AssetCatalog.ts";
 import { updateAimRotation } from "./combat/AimCombat.ts";
@@ -6334,11 +6335,8 @@ function touchMissionRelic() {
 
   window.setTimeout(() => {
     playAudioEvent("stage_route_unlocked");
-    if (isFinalStageGem) {
-      beginStageNavigation(3);
-      return;
-    }
-    beginStageNavigation(mission01.currentStageIndex + 1);
+    const nextStage = isFinalStageGem ? 3 : mission01.currentStageIndex + 1;
+    finalShowable.requestStageAdvance(nextStage, () => beginStageNavigation(nextStage));
   }, 760);
 }
 
@@ -7077,6 +7075,23 @@ function updateShipFx(elapsed, shipVelocity) {
   );
 }
 
+
+const finalShowable = new FinalShowableRuntime({
+  THREE,
+  scene,
+  backgroundScene,
+  camera,
+  state,
+  mission01,
+  input,
+  shipGroup,
+  astronautState,
+  setDirection,
+  beginStageNavigation,
+  syncRobotCompanion,
+  updateStageHud,
+});
+
 function animate() {
   const rawDelta = Math.min(clock.getDelta(), 0.033);
   const elapsed = clock.elapsedTime;
@@ -7093,6 +7108,12 @@ function animate() {
 
   input.smoothPointer.set(0, 0);
   input.velocity.lerp(targetVelocity, 1 - Math.pow(0.004, delta * speedState.currentTuning.acceleration));
+  finalShowable.prePhysics({
+    rawDelta,
+    elapsed,
+    inputVelocity: input.velocity,
+    controlMode: state.controlMode,
+  });
 
   const shipVelocity = state.controlMode === "ship" ? input.velocity : new THREE.Vector2();
   const travelVelocity = shipVelocity.clone().multiplyScalar(speedState.visualMultiplier);
@@ -7164,6 +7185,13 @@ function animate() {
   updateFinalSequence(rawDelta, elapsed);
   updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
+  finalShowable.update({
+    rawDelta,
+    delta,
+    elapsed,
+    travelVelocity,
+    shipVelocity,
+  });
 
   renderer.clear();
   renderer.render(backgroundScene, backgroundCamera);
