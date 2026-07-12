@@ -1632,8 +1632,8 @@ function createIntegratedAsteroid({
 const missionStageConfigs = [
   {
     mission: "SECTOR 01",
-    name: "CAMPO INESTABLE",
-    subtitle: "RUMBO NORTE / CAMPO INESTABLE",
+    name: "BALIZA FRACTURADA",
+    subtitle: "OCEANIC FRONTIER / BALIZA FRACTURADA",
     zoneName: "STAGE 1 ZONE",
     gemName: "GEMA 1",
     routeHint: "RUMBO NORTE",
@@ -1700,6 +1700,9 @@ function largeObjectiveNoun(count) {
 }
 
 function missionObjectiveCopy(config) {
+  if (config === missionStageConfigs[0]) {
+    return `ESCANEÁ LA BALIZA / RECUPERÁ ${config.smallRequired} FRAGMENTOS / ${largeObjectiveLabel(config.largeRequired)}`;
+  }
   return `RECUPERÁ ${config.smallRequired} FRAGMENTOS DE SEÑAL / ${largeObjectiveLabel(config.largeRequired)}`;
 }
 
@@ -2843,11 +2846,11 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index, profileOverride
     }
   } else if (kind === "fractured_beacon") {
     const mastMaterial = new THREE.MeshStandardMaterial({
-      color: 0xc7d6df,
+      color: 0x526775,
       emissive: tint,
-      emissiveIntensity: 0.16,
-      roughness: 0.42,
-      metalness: 0.72,
+      emissiveIntensity: 0.08,
+      roughness: 0.58,
+      metalness: 0.64,
     });
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.12, radius * 0.2, radius * 1.8, 8), mastMaterial);
     mast.rotation.z = -0.12;
@@ -2859,7 +2862,7 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index, profileOverride
     for (let i = 0; i < 2; i += 1) {
       const signal = new THREE.Mesh(
         new THREE.TorusGeometry(radius * (0.72 + i * 0.32), radius * 0.025, 8, 72),
-        new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.38 - i * 0.1, blending: THREE.AdditiveBlending, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.22 - i * 0.05, blending: THREE.AdditiveBlending, depthWrite: false }),
       );
       signal.rotation.x = Math.PI * 0.5;
       signal.position.y = radius * 0.62;
@@ -3012,6 +3015,7 @@ function createAuthoredOceanicLandmark(kind, worldX, worldY, seedOffset) {
   body.userData.textureId = `oceanic:${kind}`;
   body.userData.authoredLandmark = true;
   body.userData.radius = kind === "fractured_beacon" ? 0.46 : 0.72;
+  body.userData.visualScale = kind === "fractured_beacon" ? 0.48 : 0.62;
   proceduralWorld.objects.push(body);
   return body;
 }
@@ -3040,6 +3044,8 @@ const scenarioDiscoveryTargets = new Map(
 
 let lastScenarioDiscoveryMessage = "";
 const scenarioScannerState = { active: false, progress: 0 };
+let scenarioScanTargetId = null;
+let scenarioScanWasHeld = false;
 
 function directionVector(direction) {
   const vectors = {
@@ -3050,14 +3056,6 @@ function directionVector(direction) {
   return vectors[direction] || vectors.idle;
 }
 
-function scenarioScannerWorldPosition() {
-  if (state.controlMode !== "astronaut") return { x: state.worldOffset.x, y: state.worldOffset.y };
-  return {
-    x: state.worldOffset.x + astronautState.position.x / proceduralWorld.displayScale,
-    y: state.worldOffset.y + astronautState.position.y / proceduralWorld.displayScale,
-  };
-}
-
 function updateScenarioDiscovery(rawDelta) {
   const activeStage = currentWorldProfileIndex();
   const scanHeld = activeStage === 0 && (input.keys.has("e") || input.keys.has("E"));
@@ -3066,18 +3064,40 @@ function updateScenarioDiscovery(rawDelta) {
   let activeTarget = null;
 
   if (activeStage === 0) {
-    const player = scenarioScannerWorldPosition();
+    const player = state.controlMode === "astronaut" ? astronautState.position : state.position;
     const facing = directionVector(state.direction);
-    for (const [id, entry] of scenarioDiscoveryTargets) {
+    const candidates = [...scenarioDiscoveryTargets].map(([id, entry]) => {
+      const visualPosition = entry.object
+        ? backgroundObjectScreenPoint(entry.object, new THREE.Vector2())
+        : new THREE.Vector2(entry.position.x, entry.position.y);
+      return { id, entry, visualPosition, distance: visualPosition.distanceTo(player) };
+    });
+    if (scanHeld && !scenarioScanWasHeld) {
+      const available = candidates.filter(({ entry }) => entry.state !== "targetable");
+      scenarioScanTargetId = [...(available.length ? available : candidates)]
+        .sort((a, b) => {
+          const missionPriority = Number(b.id === "fractured_beacon") - Number(a.id === "fractured_beacon");
+          return missionPriority || a.distance - b.distance;
+        })[0]?.id || null;
+    } else if (!scanHeld) {
+      scenarioScanTargetId = null;
+    }
+    const selected = candidates.find(({ id }) => id === scenarioScanTargetId) || null;
+
+    for (const { id, entry, visualPosition } of candidates) {
       const previousState = entry.state;
-      const dx = entry.position.x - player.x;
-      const dy = entry.position.y - player.y;
+      const dx = visualPosition.x - player.x;
+      const dy = visualPosition.y - player.y;
       const distance = Math.max(0.001, Math.hypot(dx, dy));
-      const scannerFacing = scanHeld ? { x: dx / distance, y: dy / distance } : facing;
-      const next = v2Runtime.discovery.update(entry, { player, facing: scannerFacing, scanHeld, delta: rawDelta });
+      const scansThisTarget = scanHeld && selected?.id === id;
+      const scannerFacing = scansThisTarget ? { x: dx / distance, y: dy / distance } : facing;
+      const next = v2Runtime.discovery.update(
+        { ...entry, position: { x: visualPosition.x, y: visualPosition.y } },
+        { player, facing: scannerFacing, scanHeld: scansThisTarget, delta: rawDelta },
+      );
       Object.assign(entry, next);
-      strongestProgress = Math.max(strongestProgress, entry.scanProgress);
-      if (entry.signalStrength > strongestSignal) {
+      if (selected?.id === id) {
+        strongestProgress = entry.scanProgress;
         strongestSignal = entry.signalStrength;
         activeTarget = entry;
       }
@@ -3106,9 +3126,12 @@ function updateScenarioDiscovery(rawDelta) {
 
   scenarioScannerState.active = scanHeld;
   scenarioScannerState.progress = strongestProgress;
+  scenarioScanWasHeld = scanHeld;
   if (scanHeld && activeTarget && strongestSignal > 0.12) {
-    robotCompanion.focus = "mission";
+    robotCompanion.focus = "discovery";
     robotCompanion.focusTimer = Math.max(robotCompanion.focusTimer, 0.25);
+    robotCompanion.message = `${activeTarget.landmark.name} · ESCANEO ${Math.round(strongestProgress * 100)}%`;
+    qaTelemetry.lastCompanionMessage = robotCompanion.message;
   }
 }
 
@@ -3262,7 +3285,7 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
       1 - Math.pow(0.0008, delta)
     );
     const reveal = THREE.MathUtils.smoothstep(object.userData.reveal, 0, 1);
-    object.scale.setScalar(0.92 + reveal * 0.08);
+    object.scale.setScalar((0.92 + reveal * 0.08) * (object.userData.visualScale || 1));
     object.rotation.x += delta * object.userData.spin * 0.65;
     object.rotation.y += delta * object.userData.spin;
     object.rotation.z += delta * object.userData.spin * 0.42;
@@ -4567,6 +4590,15 @@ function robotTutorialContent(missionState = mission01.state) {
       goal: `${turbo.label} · Gemas ${mission01.gems}/3.`,
       action: "Mantené F para acelerar.",
       tip: "Cada gema mejora el impulso sin perder control de rumbo.",
+    };
+  }
+
+  if (robotCompanion.focus === "discovery" && robotCompanion.focusTimer > 0) {
+    return {
+      label: "COMPANION / ESCÁNER",
+      goal: robotCompanion.message,
+      action: "Mantené E para completar la lectura de la Baliza Fracturada.",
+      tip: "El escáner bloquea una única señal por activación.",
     };
   }
 
@@ -6000,6 +6032,10 @@ const DISCOVERY_OPACITY = {
 };
 
 function updateTargetDiscovery(delta) {
+  if (scenarioScannerState.active) {
+    astronautVisualRig?.setScan(true, scenarioScannerState.progress);
+    return;
+  }
   if (!mission01.started || !["small_asteroids", "large_obstacle"].includes(mission01.state)) {
     astronautVisualRig?.setScan(scenarioScannerState.active, scenarioScannerState.progress);
     return;
@@ -6991,6 +7027,18 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
       .copy(astronautState.position)
       .sub(previous)
       .multiplyScalar(Math.min(60, 1 / Math.max(delta, 0.001)));
+  }
+
+  if (isControlled) {
+    const tetherAnchor = currentAstronautAnchor();
+    const tetherOffset = astronautState.position.clone().sub(tetherAnchor);
+    const maxTetherDistance = 0.78;
+    if (tetherOffset.length() > maxTetherDistance) {
+      tetherOffset.setLength(maxTetherDistance);
+      astronautState.position.copy(tetherAnchor).add(tetherOffset);
+      astronautState.velocity.multiplyScalar(0.22);
+      astronautState.returnPulse = Math.max(astronautState.returnPulse, 0.35);
+    }
   }
 
   if (astronautState.velocity.x > 0.035) astronautState.facing = "right";
