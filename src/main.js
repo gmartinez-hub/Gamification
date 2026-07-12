@@ -4,6 +4,7 @@ import { ASSET_CATALOG, assetPath as v2AssetPath } from "./assets/AssetCatalog.t
 import { updateAimRotation } from "./combat/AimCombat.ts";
 import { resolveMeteorCollision } from "./meteors/MeteorCollision.ts";
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
+import { BIOME_LABELS, WORLD_PROFILES } from "./world/ScenarioDefinitions.ts";
 import {
   AstronautVisualRig,
   BiomeVisualLighting,
@@ -2459,44 +2460,7 @@ const ORGANIC_SPAWN_BANDS = {
   offscreenFar: { min: 1.78, max: 2.72 },
 };
 
-const STAGE_WORLD_PROFILES = [
-  {
-    name: "STAGE_1_CLEAN_OCEAN",
-    accent: "#62edff",
-    density: 0.82,
-    planetFamilies: ["planet_ocean_large", "moon", "planet_gas_far"],
-    syntheticFamilies: ["gravity_node"],
-    vividFamilies: ["planet_ocean_large"],
-    debris: 0.55,
-  },
-  {
-    name: "STAGE_2_NETWORK_MECHANICAL",
-    accent: "#a36dff",
-    density: 1.04,
-    planetFamilies: ["planet_network", "mechanical_moon", "planet_gas_far"],
-    syntheticFamilies: ["broken_gate", "orbital_station_body", "gravity_node"],
-    vividFamilies: ["planet_network", "mechanical_moon"],
-    debris: 0.70,
-  },
-  {
-    name: "STAGE_3_DARK_SYNTHETIC",
-    accent: "#ff5de1",
-    density: 1.22,
-    planetFamilies: ["planet_crater_magenta", "planet_dark_giant", "mechanical_moon"],
-    syntheticFamilies: ["synthetic_core", "relic_fragment_cluster", "gravity_node"],
-    vividFamilies: ["planet_crater_magenta", "synthetic_core"],
-    debris: 0.82,
-  },
-  {
-    name: "FINAL_RELIC_ALIGNMENT",
-    accent: "#ffffff",
-    density: 1.12,
-    planetFamilies: ["planet_ocean_large", "planet_dark_giant", "mechanical_moon"],
-    syntheticFamilies: ["relic_fragment_cluster", "orbital_station_body", "gravity_node"],
-    vividFamilies: ["relic_fragment_cluster", "orbital_station_body"],
-    debris: 0.46,
-  },
-];
+const STAGE_WORLD_PROFILES = WORLD_PROFILES;
 
 const proceduralBodyTextures = {
   natural: [
@@ -2874,6 +2838,49 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index, profileOverride
       ring.rotation.y = rand() * Math.PI;
       group.add(ring);
     }
+  } else if (kind === "fractured_beacon") {
+    const mastMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc7d6df,
+      emissive: tint,
+      emissiveIntensity: 0.16,
+      roughness: 0.42,
+      metalness: 0.72,
+    });
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.12, radius * 0.2, radius * 1.8, 8), mastMaterial);
+    mast.rotation.z = -0.12;
+    group.add(mast);
+    const brokenArm = new THREE.Mesh(new THREE.BoxGeometry(radius * 1.05, radius * 0.11, radius * 0.12), mastMaterial);
+    brokenArm.position.set(radius * 0.22, radius * 0.42, 0);
+    brokenArm.rotation.z = 0.36;
+    group.add(brokenArm);
+    for (let i = 0; i < 2; i += 1) {
+      const signal = new THREE.Mesh(
+        new THREE.TorusGeometry(radius * (0.72 + i * 0.32), radius * 0.025, 8, 72),
+        new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.38 - i * 0.1, blending: THREE.AdditiveBlending, depthWrite: false }),
+      );
+      signal.rotation.x = Math.PI * 0.5;
+      signal.position.y = radius * 0.62;
+      group.add(signal);
+    }
+    createOrbitingShards(group, rand, radius * 0.72, 3, tint);
+  } else if (kind === "orbital_ruins") {
+    const ruinMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8497a8,
+      emissive: tint,
+      emissiveIntensity: 0.12,
+      roughness: 0.56,
+      metalness: 0.62,
+    });
+    for (let i = 0; i < 5; i += 1) {
+      const arc = new THREE.Mesh(
+        new THREE.TorusGeometry(radius * (0.82 + i * 0.055), radius * 0.055, 6, 20, Math.PI * (0.58 + rand() * 0.34)),
+        ruinMaterial,
+      );
+      arc.rotation.set(rand() * 0.42, rand() * Math.PI, rand() * Math.PI * 2);
+      arc.position.set((rand() - 0.5) * radius * 0.7, (rand() - 0.5) * radius * 0.55, (rand() - 0.5) * radius * 0.35);
+      group.add(arc);
+    }
+    createOrbitingShards(group, rand, radius, 5, tint);
   } else if (kind === "synthetic_core" || kind === "signal_body" || kind === "tech_moon" || kind === "mechanical_moon" || kind === "orbital_station_body") {
     const core = new THREE.Mesh(
       kind === "tech_moon" || kind === "mechanical_moon"
@@ -2985,6 +2992,30 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index, profileOverride
   return group;
 }
 
+function createAuthoredOceanicLandmark(kind, worldX, worldY, seedOffset) {
+  let seed = 0x9e3779b9 ^ seedOffset;
+  const rand = () => {
+    seed = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    seed ^= seed + Math.imul(seed ^ (seed >>> 7), 61 | seed);
+    return ((seed ^ (seed >>> 14)) >>> 0) / 4294967296;
+  };
+  const body = createProceduralBody(kind, 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[0], REGION_CONFIGS.north);
+  body.userData.base.set(worldX, worldY, 0.8 - seedOffset * 0.25);
+  body.userData.profileStage = 0;
+  body.userData.spawnStage = 0;
+  body.userData.stageAffinity = 0;
+  body.userData.worldCategory = "landmark";
+  body.userData.worldSource = "authored-scenario";
+  body.userData.textureId = `oceanic:${kind}`;
+  body.userData.authoredLandmark = true;
+  body.userData.radius = kind === "fractured_beacon" ? 0.46 : 0.72;
+  proceduralWorld.objects.push(body);
+  return body;
+}
+
+createAuthoredOceanicLandmark("fractured_beacon", 15, -1, 1);
+createAuthoredOceanicLandmark("orbital_ruins", -14, 6, 2);
+
 function spawnChunkObjects(chunkX, chunkY) {
   const key = getChunkKey(chunkX, chunkY);
   if (proceduralWorld.chunks.has(key)) return proceduralWorld.chunks.get(key);
@@ -3001,8 +3032,8 @@ function spawnChunkObjects(chunkX, chunkY) {
   const profile = STAGE_WORLD_PROFILES[identity.profileIndex] || currentWorldProfile();
   const chunk = { key, x: chunkX, y: chunkY, region: region.name, profile: profile.name, group: new THREE.Group(), objects: [] };
   const density = region.density * profile.density * speedState.currentTuning.spawnDensity;
-  const planetPool = [...profile.planetFamilies, ...region.planetFamilies];
-  const syntheticPool = [...profile.syntheticFamilies, ...region.syntheticFamilies];
+  const planetPool = [...profile.planetFamilies];
+  const syntheticPool = [...profile.syntheticFamilies];
   const vividCount = profile.vividFamilies.length && rand() > 0.34 / density ? 1 : 0;
   const planetCount = 1 + (rand() > 0.58 / density ? 1 : 0) + (density > 1.18 && rand() > 0.72 ? 1 : 0);
   const syntheticCount = 1 + (rand() > 0.48 / density ? 1 : 0) + (density > 1.16 && rand() > 0.78 ? 1 : 0);
@@ -3078,6 +3109,8 @@ function depthKindCategory(kind) {
   if (kind?.startsWith("planet_")) return "hero";
   if (
     kind === "synthetic_core" ||
+    kind === "fractured_beacon" ||
+    kind === "orbital_ruins" ||
     kind === "gravity_node" ||
     kind === "broken_gate" ||
     kind === "relic_fragment_cluster" ||
@@ -3749,6 +3782,23 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
       rejected: { ...worldCompositionTelemetry.rejected },
       violations: [...worldCompositionTelemetry.violations],
     },
+    authoredLandmarks: proceduralWorld.objects
+      .filter((object) => object.userData.authoredLandmark)
+      .map((object) => {
+        const bounds = projectedBoundsForWorldObject(object);
+        return {
+          kind: object.userData.kind,
+          visible: object.visible,
+          discovered: !!object.userData.discovered,
+          reveal: Number((object.userData.reveal || 0).toFixed(3)),
+          position: {
+            x: Number(object.position.x.toFixed(3)),
+            y: Number(object.position.y.toFixed(3)),
+            z: Number(object.position.z.toFixed(3)),
+          },
+          bounds: Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, Number(value.toFixed(3))])),
+        };
+      }),
     assetCatalogEntries: ASSET_CATALOG.length,
     shield: Number(v2Runtime.shield.value.toFixed(2)),
     visualPack: {
@@ -5675,13 +5725,6 @@ const compositionEdgeX = new THREE.Vector3();
 const compositionEdgeY = new THREE.Vector3();
 const compositionShip = new THREE.Vector3();
 const compositionAstronaut = new THREE.Vector3();
-const BIOME_LABELS = {
-  oceanic: "OCEANIC FRONTIER",
-  mechanical: "MECHANICAL NETWORK",
-  synthetic: "SYNTHETIC DARK ZONE",
-  relic: "RELIC ANOMALY",
-};
-
 function projectedBoundsForWorldObject(object) {
   object.getWorldPosition(compositionCenter);
   const radius = Math.max(0.04, (object.userData.radius || 0.22) * object.scale.x);
