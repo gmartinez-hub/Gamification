@@ -25,6 +25,7 @@ export interface ScenarioDefinition {
     debris: number;
   };
   landmarks: readonly ScenarioLandmark[];
+  gravityFields: readonly import("./GravityFieldSystem").GravityFieldDefinition[];
 }
 
 export const SCENARIOS: readonly ScenarioDefinition[] = [
@@ -48,6 +49,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       { id: "fractured_beacon", name: "BALIZA FRACTURADA", role: "primary", worldKind: "fractured_beacon" },
       { id: "orbital_ruins", name: "RUINAS ORBITALES", role: "secondary", worldKind: "orbital_ruins" },
     ],
+    gravityFields: [
+      { id: "ocean_attractor", type: "attract", x: 22, y: -2, radius: 28, strength: 0.18 },
+      { id: "ocean_current", type: "current", x: 4, y: 12, radius: 22, strength: 0.075, direction: { x: 0.34, y: 0.94 } },
+    ],
   },
   {
     id: "mechanical",
@@ -68,6 +73,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     landmarks: [
       { id: "broken_ring", name: "ANILLO ORBITAL ROTO", role: "primary", worldKind: "broken_gate" },
       { id: "scanner_array", name: "SCANNER ARRAY", role: "secondary", worldKind: "orbital_station_body" },
+    ],
+    gravityFields: [
+      { id: "mechanical_ring", type: "tangential", x: 81, y: 69, radius: 34, strength: 0.26 },
+      { id: "mechanical_well", type: "attract", x: 112, y: 65, radius: 27, strength: 0.17 },
     ],
   },
   {
@@ -90,6 +99,11 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       { id: "synthetic_rift", name: "SYNTHETIC RIFT", role: "primary", worldKind: "synthetic_core" },
       { id: "gravity_tower", name: "GRAVITY TOWER", role: "secondary", worldKind: "gravity_node" },
     ],
+    gravityFields: [
+      { id: "synthetic_rift", type: "pulse", x: -84, y: 140, radius: 32, strength: 0.31, period: 5.2 },
+      { id: "synthetic_shift", type: "unstable", x: -116, y: 132, radius: 30, strength: 0.22, period: 7.4 },
+      { id: "crater_repel", type: "repel", x: -104, y: 116, radius: 20, strength: 0.18 },
+    ],
   },
   {
     id: "relic_core",
@@ -110,6 +124,11 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     landmarks: [
       { id: "relic_portal", name: "RELIC PORTAL", role: "primary", worldKind: "relic_fragment_cluster" },
       { id: "gravity_nodes", name: "GRAVITY NODES", role: "secondary", worldKind: "gravity_node" },
+    ],
+    gravityFields: [
+      { id: "relic_node_a", type: "attract", x: 7, y: 191, radius: 19, strength: 0.22 },
+      { id: "relic_node_b", type: "repel", x: 29, y: 191, radius: 19, strength: 0.22 },
+      { id: "relic_node_c", type: "pulse", x: 18, y: 207, radius: 21, strength: 0.27, period: 4.6 },
     ],
   },
 ] as const;

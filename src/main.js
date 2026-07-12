@@ -4,7 +4,8 @@ import { ASSET_CATALOG, assetPath as v2AssetPath } from "./assets/AssetCatalog.t
 import { updateAimRotation } from "./combat/AimCombat.ts";
 import { resolveMeteorCollision } from "./meteors/MeteorCollision.ts";
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
-import { BIOME_LABELS, WORLD_PROFILES } from "./world/ScenarioDefinitions.ts";
+import { BIOME_LABELS, SCENARIOS, WORLD_PROFILES, scenarioForStage } from "./world/ScenarioDefinitions.ts";
+import { GravityFieldSystem } from "./world/GravityFieldSystem.ts";
 import {
   AstronautVisualRig,
   BiomeVisualLighting,
@@ -64,6 +65,8 @@ const clock = new THREE.Clock();
 const viewport = { width: 1, height: 1, aspect: 1 };
 const params = new URLSearchParams(window.location.search);
 const v2Runtime = new V2Runtime();
+const scenarioGravity = new GravityFieldSystem(SCENARIOS);
+let scenarioGravitySample = { x: 0, y: 0, magnitude: 0, fieldId: null, fieldType: null };
 const debugHudEnabled = params.get("debugHud") === "1";
 document.body.classList.toggle("debug-hud", debugHudEnabled);
 
@@ -3013,8 +3016,101 @@ function createAuthoredOceanicLandmark(kind, worldX, worldY, seedOffset) {
   return body;
 }
 
-createAuthoredOceanicLandmark("fractured_beacon", 15, -1, 1);
-createAuthoredOceanicLandmark("orbital_ruins", -14, 6, 2);
+const authoredOceanicLandmarks = [
+  createAuthoredOceanicLandmark("fractured_beacon", 15, -1, 1),
+  createAuthoredOceanicLandmark("orbital_ruins", -14, 6, 2),
+];
+
+const scenarioDiscoveryTargets = new Map(
+  scenarioForStage(0).landmarks.map((landmark) => {
+    const object = authoredOceanicLandmarks.find((candidate) => candidate.userData.kind === landmark.worldKind);
+    const savedState = localStorage.getItem(`gz-discovery-${landmark.id}`);
+    const restoredState = ["identified", "targetable"].includes(savedState) ? savedState : "unknown";
+    return [landmark.id, {
+      id: landmark.id,
+      position: { x: object?.userData.base.x || 0, y: object?.userData.base.y || 0 },
+      state: restoredState,
+      signalStrength: 0,
+      scanProgress: restoredState === "targetable" ? 1 : restoredState === "identified" ? 0.75 : 0,
+      landmark,
+      object,
+    }];
+  }),
+);
+
+let lastScenarioDiscoveryMessage = "";
+const scenarioScannerState = { active: false, progress: 0 };
+
+function directionVector(direction) {
+  const vectors = {
+    up: { x: 0, y: 1 }, down: { x: 0, y: -1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
+    up_left: { x: -0.707, y: 0.707 }, up_right: { x: 0.707, y: 0.707 },
+    down_left: { x: -0.707, y: -0.707 }, down_right: { x: 0.707, y: -0.707 }, idle: { x: 1, y: 0 },
+  };
+  return vectors[direction] || vectors.idle;
+}
+
+function scenarioScannerWorldPosition() {
+  if (state.controlMode !== "astronaut") return { x: state.worldOffset.x, y: state.worldOffset.y };
+  return {
+    x: state.worldOffset.x + astronautState.position.x / proceduralWorld.displayScale,
+    y: state.worldOffset.y + astronautState.position.y / proceduralWorld.displayScale,
+  };
+}
+
+function updateScenarioDiscovery(rawDelta) {
+  const activeStage = currentWorldProfileIndex();
+  const scanHeld = activeStage === 0 && (input.keys.has("e") || input.keys.has("E"));
+  let strongestProgress = 0;
+  let strongestSignal = 0;
+  let activeTarget = null;
+
+  if (activeStage === 0) {
+    const player = scenarioScannerWorldPosition();
+    const facing = directionVector(state.direction);
+    for (const [id, entry] of scenarioDiscoveryTargets) {
+      const previousState = entry.state;
+      const dx = entry.position.x - player.x;
+      const dy = entry.position.y - player.y;
+      const distance = Math.max(0.001, Math.hypot(dx, dy));
+      const scannerFacing = scanHeld ? { x: dx / distance, y: dy / distance } : facing;
+      const next = v2Runtime.discovery.update(entry, { player, facing: scannerFacing, scanHeld, delta: rawDelta });
+      Object.assign(entry, next);
+      strongestProgress = Math.max(strongestProgress, entry.scanProgress);
+      if (entry.signalStrength > strongestSignal) {
+        strongestSignal = entry.signalStrength;
+        activeTarget = entry;
+      }
+      const object = entry.object;
+      if (object) {
+        object.userData.discoveryState = entry.state;
+        object.userData.scanProgress = entry.scanProgress;
+        object.traverse((child) => {
+          if (!child.material?.emissive) return;
+          child.material.emissiveIntensity = 0.12 + entry.scanProgress * 0.42;
+        });
+      }
+      const messageKey = `${id}:${entry.state}`;
+      if (
+        previousState !== entry.state &&
+        (entry.state === "identified" || entry.state === "targetable") &&
+        lastScenarioDiscoveryMessage !== messageKey
+      ) {
+        lastScenarioDiscoveryMessage = messageKey;
+        localStorage.setItem(`gz-discovery-${id}`, entry.state);
+        setCompanionAimFeedback(`${entry.landmark.name} · ${entry.state === "targetable" ? "IDENTIFICADA" : "SEÑAL PARCIAL"}`, true);
+        playAudioEvent("route_detected_ping");
+      }
+    }
+  }
+
+  scenarioScannerState.active = scanHeld;
+  scenarioScannerState.progress = strongestProgress;
+  if (scanHeld && activeTarget && strongestSignal > 0.12) {
+    robotCompanion.focus = "mission";
+    robotCompanion.focusTimer = Math.max(robotCompanion.focusTimer, 0.25);
+  }
+}
 
 function spawnChunkObjects(chunkX, chunkY) {
   const key = getChunkKey(chunkX, chunkY);
@@ -3799,6 +3895,18 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
           bounds: Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, Number(value.toFixed(3))])),
         };
       }),
+    scenarioGameplay: {
+      gravity: {
+        ...scenarioGravitySample,
+        stabilizer: scenarioGravity.status,
+      },
+      discovery: [...scenarioDiscoveryTargets.values()].map((target) => ({
+        id: target.id,
+        state: target.state,
+        signalStrength: Number(target.signalStrength.toFixed(3)),
+        scanProgress: Number(target.scanProgress.toFixed(3)),
+      })),
+    },
     assetCatalogEntries: ASSET_CATALOG.length,
     shield: Number(v2Runtime.shield.value.toFixed(2)),
     visualPack: {
@@ -5893,7 +6001,7 @@ const DISCOVERY_OPACITY = {
 
 function updateTargetDiscovery(delta) {
   if (!mission01.started || !["small_asteroids", "large_obstacle"].includes(mission01.state)) {
-    astronautVisualRig?.setScan(false);
+    astronautVisualRig?.setScan(scenarioScannerState.active, scenarioScannerState.progress);
     return;
   }
   const targets = [...mission01.smallAsteroids, ...mission01.largeObstacles];
@@ -5946,7 +6054,10 @@ function updateTargetDiscovery(delta) {
       setCompanionAimFeedback("OBJETIVO IDENTIFICADO · AUTOAIM DISPONIBLE");
     }
   }
-  astronautVisualRig?.setScan(scanActive, scanProgress);
+  astronautVisualRig?.setScan(
+    scanActive || scenarioScannerState.active,
+    Math.max(scanProgress, scenarioScannerState.progress),
+  );
 }
 
 function findInteractiveTarget(point) {
@@ -6933,6 +7044,17 @@ window.addEventListener("keydown", (event) => {
       startMission01();
       return;
     }
+    if (event.key === " ") {
+      if (scenarioGravity.activateStabilizer()) {
+        if (state.controlMode === "astronaut") astronautVisualRig?.shield.trigger(1);
+        else shipShieldFx.trigger(1);
+        setCompanionAimFeedback("ESTABILIZADOR ACTIVO · GRAVEDAD REDUCIDA", true);
+        playAudioEvent("aim_stabilize");
+      } else {
+        setCompanionAimFeedback(`ESTABILIZADOR · RECARGA ${Math.ceil(scenarioGravity.status.cooldown)}s`, true);
+      }
+      return;
+    }
     if (state.controlMode === "astronaut") triggerAstronautAction();
     else setCompanionAimFeedback("SECTOR BLOQUEADO · RECUPERÁ LA GEMA", true);
   }
@@ -7136,6 +7258,17 @@ function animate() {
 
   input.smoothPointer.set(0, 0);
   input.velocity.lerp(targetVelocity, 1 - Math.pow(0.004, delta * speedState.currentTuning.acceleration));
+  const activeScenarioStage = currentWorldProfileIndex();
+  scenarioGravitySample = scenarioGravity.apply(
+    activeScenarioStage,
+    state.worldOffset,
+    input.velocity,
+    elapsed,
+    rawDelta,
+    state.controlMode === "astronaut" ? 1.35 : 1,
+  );
+  if (input.velocity.length() > 1.15) input.velocity.setLength(1.15);
+  updateScenarioDiscovery(rawDelta);
 
   const shipVelocity = state.controlMode === "ship" ? input.velocity : new THREE.Vector2();
   const travelVelocity = shipVelocity.clone().multiplyScalar(speedState.visualMultiplier);
