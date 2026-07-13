@@ -6,6 +6,24 @@ export interface ScenarioLandmark {
   name: string;
   role: "primary" | "secondary";
   worldKind: string;
+  x: number;
+  y: number;
+  texture: string;
+  scale: number;
+}
+
+export interface ScenarioBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+export interface ScenarioGate {
+  x: number;
+  y: number;
+  to: number;
+  name: string;
 }
 
 export interface ScenarioDefinition {
@@ -16,6 +34,10 @@ export interface ScenarioDefinition {
   accent: string;
   direction: string;
   prohibitedMotifs: readonly string[];
+  center: { x: number; y: number };
+  bounds: ScenarioBounds;
+  gate?: ScenarioGate;
+  backGate?: ScenarioGate;
   worldProfile: {
     name: string;
     density: number;
@@ -37,6 +59,9 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     accent: "#62edff",
     direction: "Open orbital frontier around natural ocean worlds, terrestrial cloud systems and sparse human infrastructure.",
     prohibitedMotifs: ["aquatic fauna", "whales", "fish", "jellyfish", "coral", "underwater scenery"],
+    center: { x: 0, y: -8 },
+    bounds: { minX: -34, maxX: 34, minY: -40, maxY: 26 },
+    gate: { x: 0, y: 23, to: 1, name: "CORREDOR ORBITAL" },
     worldProfile: {
       name: "STAGE_1_CLEAN_OCEAN",
       density: 0.82,
@@ -46,8 +71,8 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       debris: 0.55,
     },
     landmarks: [
-      { id: "fractured_beacon", name: "BALIZA FRACTURADA", role: "primary", worldKind: "fractured_beacon" },
-      { id: "orbital_ruins", name: "RUINAS ORBITALES", role: "secondary", worldKind: "orbital_ruins" },
+      { id: "fractured_beacon", name: "BALIZA FRACTURADA", role: "primary", worldKind: "fractured_beacon", x: -17, y: 1, texture: "assets/runtime/final-showable/textures/beacon.png", scale: 3.2 },
+      { id: "orbital_ruins", name: "RUINAS ORBITALES", role: "secondary", worldKind: "orbital_ruins", x: 5, y: 15, texture: "assets/runtime/final-showable/textures/orbital_ruins.png", scale: 2.7 },
     ],
     gravityFields: [
       { id: "ocean_attractor", type: "attract", x: 22, y: -2, radius: 28, strength: 0.18 },
@@ -62,6 +87,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     accent: "#a36dff",
     direction: "Dense orbital infrastructure, mechanical bodies and technological debris.",
     prohibitedMotifs: [],
+    center: { x: 92, y: 60 },
+    bounds: { minX: 55, maxX: 130, minY: 27, maxY: 96 },
+    gate: { x: 92, y: 94, to: 2, name: "FRONTERA FRACTURADA" },
+    backGate: { x: 92, y: 29, to: 0, name: "RETORNO OCEANIC" },
     worldProfile: {
       name: "STAGE_2_NETWORK_MECHANICAL",
       density: 1.04,
@@ -71,8 +100,8 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       debris: 0.7,
     },
     landmarks: [
-      { id: "broken_ring", name: "ANILLO ORBITAL ROTO", role: "primary", worldKind: "broken_gate" },
-      { id: "scanner_array", name: "SCANNER ARRAY", role: "secondary", worldKind: "orbital_station_body" },
+      { id: "broken_ring", name: "ANILLO ORBITAL ROTO", role: "primary", worldKind: "broken_gate", x: 81, y: 69, texture: "assets/runtime/final-showable/textures/broken_ring.png", scale: 3.8 },
+      { id: "scanner_array", name: "SCANNER ARRAY", role: "secondary", worldKind: "orbital_station_body", x: 105, y: 43, texture: "assets/runtime/final-showable/textures/scanner_array.png", scale: 2.8 },
     ],
     gravityFields: [
       { id: "mechanical_ring", type: "tangential", x: 81, y: 69, radius: 34, strength: 0.26 },
@@ -87,6 +116,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     accent: "#ff5de1",
     direction: "Hostile crater world with synthetic fractures, magenta-cyan hazards and unstable gravity.",
     prohibitedMotifs: [],
+    center: { x: -96, y: 128 },
+    bounds: { minX: -134, maxX: -58, minY: 94, maxY: 162 },
+    gate: { x: -96, y: 160, to: 3, name: "RIFT ESTABILIZADO" },
+    backGate: { x: -96, y: 96, to: 1, name: "RETORNO MECHANICAL" },
     worldProfile: {
       name: "STAGE_3_DARK_SYNTHETIC",
       density: 1.22,
@@ -96,8 +129,8 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       debris: 0.82,
     },
     landmarks: [
-      { id: "synthetic_rift", name: "SYNTHETIC RIFT", role: "primary", worldKind: "synthetic_core" },
-      { id: "gravity_tower", name: "GRAVITY TOWER", role: "secondary", worldKind: "gravity_node" },
+      { id: "synthetic_rift", name: "SYNTHETIC RIFT", role: "primary", worldKind: "synthetic_core", x: -84, y: 140, texture: "assets/runtime/final-showable/textures/synthetic_rift.png", scale: 4.0 },
+      { id: "gravity_tower", name: "GRAVITY TOWER", role: "secondary", worldKind: "gravity_node", x: -108, y: 108, texture: "assets/runtime/final-showable/textures/gravity_tower.png", scale: 3.0 },
     ],
     gravityFields: [
       { id: "synthetic_rift", type: "pulse", x: -84, y: 140, radius: 32, strength: 0.31, period: 5.2 },
@@ -113,6 +146,9 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     accent: "#ffffff",
     direction: "Clean ceremonial resolution space focused on the portal and three gravity nodes.",
     prohibitedMotifs: [],
+    center: { x: 18, y: 196 },
+    bounds: { minX: -18, maxX: 54, minY: 168, maxY: 226 },
+    backGate: { x: 18, y: 170, to: 2, name: "RETORNO DARK CRATER" },
     worldProfile: {
       name: "FINAL_RELIC_ALIGNMENT",
       density: 1.12,
@@ -122,8 +158,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       debris: 0.46,
     },
     landmarks: [
-      { id: "relic_portal", name: "RELIC PORTAL", role: "primary", worldKind: "relic_fragment_cluster" },
-      { id: "gravity_nodes", name: "GRAVITY NODES", role: "secondary", worldKind: "gravity_node" },
+      { id: "relic_portal", name: "PORTAL DE RELIQUIA", role: "primary", worldKind: "relic_fragment_cluster", x: 18, y: 196, texture: "assets/runtime/final-showable/textures/relic_portal.png", scale: 4.4 },
+      { id: "gravity_node_a", name: "NODO ATTRACT", role: "secondary", worldKind: "gravity_node", x: 7, y: 191, texture: "assets/runtime/final-showable/textures/gravity_node.png", scale: 2.0 },
+      { id: "gravity_node_b", name: "NODO REPEL", role: "secondary", worldKind: "gravity_node", x: 29, y: 191, texture: "assets/runtime/final-showable/textures/gravity_node.png", scale: 2.0 },
+      { id: "gravity_node_c", name: "NODO PULSE", role: "secondary", worldKind: "gravity_node", x: 18, y: 207, texture: "assets/runtime/final-showable/textures/gravity_node.png", scale: 2.0 },
     ],
     gravityFields: [
       { id: "relic_node_a", type: "attract", x: 7, y: 191, radius: 19, strength: 0.22 },

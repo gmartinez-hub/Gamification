@@ -38,10 +38,12 @@ for (const integration of [
   "new GravityFieldSystem(SCENARIOS)",
   "scenarioGravity.apply(",
   "authoredOceanicLandmarks",
-  'createAuthoredOceanicLandmark("fractured_beacon"',
-  'createAuthoredOceanicLandmark("orbital_ruins"',
+  "scenarioForStage(0).landmarks.map(",
   "scenarioScanTargetId",
   "COMPANION / ESCÁNER",
+  "new HolographicMap(",
+  'loadTexture("assets/runtime/final-showable/textures/beacon.png")',
+  'loadTexture("assets/runtime/final-showable/textures/orbital_ruins.png")',
 ]) {
   assert(main.includes(integration), `Missing recovered integration anchor: ${integration}`);
 }
@@ -62,6 +64,9 @@ for (const file of [
   "src/world/GravityFieldSystem.ts",
   "tests/ScenarioDefinitions.test.ts",
   "tests/GravityFieldSystem.test.ts",
+  "src/ui/HolographicMap.js",
+  "assets/runtime/final-showable/textures/beacon.png",
+  "assets/runtime/final-showable/textures/orbital_ruins.png",
   manifest.astronaut?.float?.path,
 ]) {
   assert(file && fs.existsSync(path.join(root, file)), `Missing required recovery file: ${file || "undefined"}`);
@@ -78,3 +83,4 @@ console.log("- one authoritative runtime and animation loop");
 console.log("- one main camera plus one render-only background camera");
 console.log("- original ship, astronaut and companion asset anchors preserved");
 console.log("- four authored scenarios, Oceanic discovery and gravity integrated");
+console.log("- full-screen holographic map and authored landmark textures integrated");

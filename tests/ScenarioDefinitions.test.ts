@@ -20,6 +20,23 @@ describe("authored scenario definitions", () => {
     expect(oceanic.landmarks.map((landmark) => landmark.id)).toEqual(["fractured_beacon", "orbital_ruins"]);
   });
 
+  it("keeps the authored map scale and final-showable landmark textures", () => {
+    const oceanic = scenarioForStage(0);
+    expect(oceanic.bounds).toEqual({ minX: -34, maxX: 34, minY: -40, maxY: 26 });
+    expect(oceanic.landmarks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "fractured_beacon",
+        texture: "assets/runtime/final-showable/textures/beacon.png",
+        scale: 3.2,
+      }),
+      expect.objectContaining({
+        id: "orbital_ruins",
+        texture: "assets/runtime/final-showable/textures/orbital_ruins.png",
+        scale: 2.7,
+      }),
+    ]));
+  });
+
   it("drives runtime profiles and UI labels from the same source", () => {
     const oceanic = SCENARIOS[0]!;
     const relic = SCENARIOS[3]!;

@@ -6,6 +6,7 @@ import { resolveMeteorCollision } from "./meteors/MeteorCollision.ts";
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
 import { BIOME_LABELS, SCENARIOS, WORLD_PROFILES, scenarioForStage } from "./world/ScenarioDefinitions.ts";
 import { GravityFieldSystem } from "./world/GravityFieldSystem.ts";
+import { HolographicMap } from "./ui/HolographicMap.js";
 import {
   AstronautVisualRig,
   BiomeVisualLighting,
@@ -2496,6 +2497,11 @@ const proceduralBodyTextures = {
   ],
 };
 
+const authoredLandmarkTextures = {
+  fractured_beacon: loadTexture("assets/runtime/final-showable/textures/beacon.png"),
+  orbital_ruins: loadTexture("assets/runtime/final-showable/textures/orbital_ruins.png"),
+};
+
 const proceduralPremiumTexturePools = {
   STAGE_1_CLEAN_OCEAN: {
     planet_ocean_large: [worldTextures.oceanPrime],
@@ -3006,23 +3012,42 @@ function createAuthoredOceanicLandmark(kind, worldX, worldY, seedOffset) {
     return ((seed ^ (seed >>> 14)) >>> 0) / 4294967296;
   };
   const body = createProceduralBody(kind, 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[0], REGION_CONFIGS.north);
+  const landmark = scenarioForStage(0).landmarks.find((candidate) => candidate.worldKind === kind);
+  const texture = authoredLandmarkTextures[kind];
+  if (landmark && texture) {
+    for (const child of body.children) child.visible = false;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.96,
+      depthWrite: false,
+      alphaTest: 0.015,
+    }));
+    sprite.scale.setScalar(landmark.scale);
+    sprite.userData.baseOpacity = 0.96;
+    sprite.userData.authoredTexture = landmark.texture;
+    body.add(sprite);
+    body.userData.textureId = landmark.texture;
+    body.userData.spin = 0;
+    body.userData.drift.set(0, 0);
+  }
   body.userData.base.set(worldX, worldY, 0.8 - seedOffset * 0.25);
   body.userData.profileStage = 0;
   body.userData.spawnStage = 0;
   body.userData.stageAffinity = 0;
   body.userData.worldCategory = "landmark";
   body.userData.worldSource = "authored-scenario";
-  body.userData.textureId = `oceanic:${kind}`;
   body.userData.authoredLandmark = true;
-  body.userData.radius = kind === "fractured_beacon" ? 0.46 : 0.72;
-  body.userData.visualScale = kind === "fractured_beacon" ? 0.48 : 0.62;
+  body.userData.radius = (landmark?.scale || 1) * 0.5;
+  body.userData.visualScale = 1;
   proceduralWorld.objects.push(body);
   return body;
 }
 
 const authoredOceanicLandmarks = [
-  createAuthoredOceanicLandmark("fractured_beacon", 15, -1, 1),
-  createAuthoredOceanicLandmark("orbital_ruins", -14, 6, 2),
+  ...scenarioForStage(0).landmarks.map((landmark, index) =>
+    createAuthoredOceanicLandmark(landmark.worldKind, landmark.x, landmark.y, index + 1)
+  ),
 ];
 
 const scenarioDiscoveryTargets = new Map(
@@ -3046,6 +3071,22 @@ let lastScenarioDiscoveryMessage = "";
 const scenarioScannerState = { active: false, progress: 0 };
 let scenarioScanTargetId = null;
 let scenarioScanWasHeld = false;
+
+const holographicMap = new HolographicMap({
+  scenarios: SCENARIOS,
+  getState: () => ({
+    worldStageIndex: currentWorldProfileIndex(),
+    highestUnlockedStage: Math.max(state.stageIndex, mission01.gems),
+    worldX: state.worldOffset.x,
+    worldY: state.worldOffset.y,
+    gems: mission01.gems,
+    shipStage: state.stageIndex,
+    discoveredLandmarkIds: [...scenarioDiscoveryTargets.values()]
+      .filter((target) => target.state === "identified" || target.state === "targetable")
+      .map((target) => target.id),
+  }),
+  onAudio: () => playAudioEvent("route_detected_ping"),
+});
 
 function directionVector(direction) {
   const vectors = {
@@ -5924,6 +5965,7 @@ function worldCompositionCandidate(object, index) {
   if (!boundsTouchViewport(bounds)) return null;
   return {
     object,
+    protectedFromSafeZone: object.userData.authoredLandmark === true,
     record: {
       id: object.uuid,
       biome: biomeForStage(stageAffinity),
@@ -7070,6 +7112,25 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
 
 window.addEventListener("keydown", (event) => {
   ensureMissionAudio();
+  if (event.key === "m" || event.key === "M") {
+    event.preventDefault();
+    holographicMap.toggle();
+    return;
+  }
+  if (event.key === "Tab" && holographicMap.open) {
+    event.preventDefault();
+    holographicMap.toggleMode();
+    return;
+  }
+  if (event.key === "Escape" && holographicMap.open) {
+    event.preventDefault();
+    holographicMap.toggle(false);
+    return;
+  }
+  if (holographicMap.open) {
+    event.preventDefault();
+    return;
+  }
   input.keys.add(event.key);
   if (event.key === "v" || event.key === "V") {
     event.preventDefault();
@@ -7122,6 +7183,7 @@ window.addEventListener("pointerleave", () => {
 });
 
 window.addEventListener("pointerdown", (event) => {
+  if (holographicMap.open) return;
   if (event.target?.closest?.("button, .game-menu")) return;
   ensureMissionAudio();
   const point = worldPointerFromEvent(event);
@@ -7299,8 +7361,8 @@ function animate() {
   const delta = rawDelta * (hitStopped ? 0.04 : aimAssist.active ? 0.40 : finalSlow ? 0.48 : 1);
   updateSpeedState(rawDelta);
 
-  const keyX = keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
-  const keyY = keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
+  const keyX = holographicMap.open ? 0 : keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
+  const keyY = holographicMap.open ? 0 : keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
   const targetVelocity = new THREE.Vector2(keyX, keyY);
   if (targetVelocity.length() > 1) targetVelocity.normalize();
 
@@ -7388,6 +7450,7 @@ function animate() {
   updateFinalSequence(rawDelta, elapsed);
   updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
+  holographicMap.draw();
 
   renderer.clear();
   renderer.render(backgroundScene, backgroundCamera);
@@ -7404,6 +7467,7 @@ if (params.get("robotPanel") === "1") {
   robotCompanion.panelOpen = true;
   updateRobotPanel();
 }
+if (params.get("qa") === "map") window.setTimeout(() => holographicMap.toggle(true), 500);
 window.addEventListener("resize", resize);
 resize();
 showMenu("title_menu");

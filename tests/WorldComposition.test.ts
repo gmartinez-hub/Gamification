@@ -57,4 +57,30 @@ describe("WorldComposition", () => {
     expect(result.rejected.some((item) => item.reason === "duplicate-hero-texture")).toBe(true);
     expect(result.rejected.some((item) => item.reason === "hero-overlap")).toBe(true);
   });
+
+  it("keeps an authored landmark visible when its large texture grazes the safe zone", () => {
+    const system = new WorldComposition();
+    const result = system.compose([
+      {
+        record: {
+          id: "fractured_beacon",
+          biome: "oceanic",
+          stageAffinity: 0,
+          kind: "landmark",
+          textureId: "assets/runtime/final-showable/textures/beacon.png",
+          coordinate: { x: -17, y: 1 },
+          radius: 1.6,
+          axialSpeed: 0,
+          translationPhase: 0,
+          materialLocked: true,
+          discovered: true,
+        },
+        bounds: { x: -0.58, y: -0.24, width: 0.57, height: 0.92 },
+        depth: 1,
+        protectedFromSafeZone: true,
+      },
+    ], { x: -0.2, y: -0.2, width: 0.4, height: 0.4 });
+
+    expect(result.accepted.map((candidate) => candidate.record.id)).toEqual(["fractured_beacon"]);
+  });
 });

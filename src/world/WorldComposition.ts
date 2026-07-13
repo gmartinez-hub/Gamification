@@ -6,6 +6,7 @@ export interface CompositionCandidate {
   bounds: ProjectedBounds;
   depth: number;
   priority?: number;
+  protectedFromSafeZone?: boolean;
 }
 
 export interface CompositionResult {
@@ -50,7 +51,7 @@ export class WorldComposition {
     )) {
       const { record, bounds } = candidate;
 
-      if (overlapRatio(bounds, safeZone) > 0) {
+      if (!candidate.protectedFromSafeZone && overlapRatio(bounds, safeZone) > 0) {
         rejected.push({ candidate, reason: "gameplay-safe-zone" });
         continue;
       }
