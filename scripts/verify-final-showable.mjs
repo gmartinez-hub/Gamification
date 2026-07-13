@@ -37,13 +37,16 @@ assert(count(main, /renderer\.render\(/g) === 2, "Expected one background render
 for (const integration of [
   "new GravityFieldSystem(SCENARIOS)",
   "scenarioGravity.apply(",
-  "authoredOceanicLandmarks",
-  "scenarioForStage(0).landmarks.map(",
+  "authoredScenarioLandmarks",
+  "SCENARIOS.flatMap(",
   "scenarioScanTargetId",
   "COMPANION / ESCÁNER",
   "new HolographicMap(",
+  "requestWorldTravel(stageIndex)",
+  "gravedad-zero-full-progress-v1",
   'loadTexture("assets/runtime/final-showable/textures/beacon.png")',
   'loadTexture("assets/runtime/final-showable/textures/orbital_ruins.png")',
+  'loadTexture("assets/runtime/final-showable/textures/gate.png")',
 ]) {
   assert(main.includes(integration), `Missing recovered integration anchor: ${integration}`);
 }
@@ -67,6 +70,13 @@ for (const file of [
   "src/ui/HolographicMap.js",
   "assets/runtime/final-showable/textures/beacon.png",
   "assets/runtime/final-showable/textures/orbital_ruins.png",
+  "assets/runtime/final-showable/textures/broken_ring.png",
+  "assets/runtime/final-showable/textures/scanner_array.png",
+  "assets/runtime/final-showable/textures/synthetic_rift.png",
+  "assets/runtime/final-showable/textures/gravity_tower.png",
+  "assets/runtime/final-showable/textures/relic_portal.png",
+  "assets/runtime/final-showable/textures/gravity_node.png",
+  "assets/runtime/final-showable/textures/gate.png",
   manifest.astronaut?.float?.path,
 ]) {
   assert(file && fs.existsSync(path.join(root, file)), `Missing required recovery file: ${file || "undefined"}`);
@@ -82,5 +92,5 @@ console.log("FINAL SHOWABLE RECOVERY VERIFY PASS");
 console.log("- one authoritative runtime and animation loop");
 console.log("- one main camera plus one render-only background camera");
 console.log("- original ship, astronaut and companion asset anchors preserved");
-console.log("- four authored scenarios, Oceanic discovery and gravity integrated");
-console.log("- full-screen holographic map and authored landmark textures integrated");
+console.log("- four authored scenarios, discovery and gravity integrated");
+console.log("- full-screen travel map, persistence, authored gates and landmark textures integrated");

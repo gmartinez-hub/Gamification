@@ -65,6 +65,7 @@ const loader = new THREE.TextureLoader();
 const clock = new THREE.Clock();
 const viewport = { width: 1, height: 1, aspect: 1 };
 const params = new URLSearchParams(window.location.search);
+const PROGRESS_KEY = "gravedad-zero-full-progress-v1";
 const v2Runtime = new V2Runtime();
 const scenarioGravity = new GravityFieldSystem(SCENARIOS);
 let scenarioGravitySample = { x: 0, y: 0, magnitude: 0, fieldId: null, fieldType: null };
@@ -921,8 +922,11 @@ function renderMenu(screenName) {
       return row;
     })
   );
+  const actions = screenName === "title_menu" && readProgressSnapshot()
+    ? [["CONTINUAR PARTIDA", "continue"], ...screen.actions]
+    : screen.actions;
   menuActions.replaceChildren(
-    ...screen.actions.map(([label, action, className]) => {
+    ...actions.map(([label, action, className]) => {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = label;
@@ -945,8 +949,14 @@ function hideMenu() {
 function handleMenuAction(action) {
   ensureMissionAudio();
   if (action === "start") {
+    try { localStorage.removeItem(PROGRESS_KEY); } catch { /* Storage is optional. */ }
     hideMenu();
     startMission01();
+    return;
+  }
+  if (action === "continue") {
+    hideMenu();
+    restoreProgress();
     return;
   }
   if (action === "controls") {
@@ -1912,16 +1922,16 @@ const menuScreens = {
   },
   mission_briefing: {
     eyebrow: "SECTOR 01",
-    title: "CAMPO INESTABLE",
-    subtitle: "RUMBO NORTE",
-    body: ["RECUPERÁ 3 FRAGMENTOS DE SEÑAL", "ROMPÉ 1 NÚCLEO INESTABLE", "ACTIVÁ LA RELIQUIA"],
+    title: "OCEANIC FRONTIER",
+    subtitle: "LOCALIZÁ LA BALIZA FRACTURADA",
+    body: ["ESCANEÁ SEÑALES CON E", "RECUPERÁ 3 FRAGMENTOS", "ROMPÉ EL NÚCLEO Y ACTIVÁ LA RELIQUIA"],
     actions: [["INICIAR MISIÓN", "start"]],
   },
   controls: {
     eyebrow: "GRAVEDAD ZERO",
     title: "CONTROLES",
     subtitle: "AUTOAIM + TURBO",
-    body: ["WASD / FLECHAS", "CLICK / AUTOAIM", "F / TURBO", "ESC / PAUSA"],
+    body: ["WASD / FLECHAS · MOVER", "CLICK / AUTOAIM · E / ESCÁNER", "F / TURBO · ESPACIO / ESTABILIZADOR", "M / MAPA · TAB / RUTA GLOBAL · ESC / PAUSA"],
     actions: [
       ["VOLVER", "title", "secondary"],
       ["INICIAR MISIÓN", "start"],
@@ -2498,9 +2508,16 @@ const proceduralBodyTextures = {
 };
 
 const authoredLandmarkTextures = {
-  fractured_beacon: loadTexture("assets/runtime/final-showable/textures/beacon.png"),
-  orbital_ruins: loadTexture("assets/runtime/final-showable/textures/orbital_ruins.png"),
+  "assets/runtime/final-showable/textures/beacon.png": loadTexture("assets/runtime/final-showable/textures/beacon.png"),
+  "assets/runtime/final-showable/textures/orbital_ruins.png": loadTexture("assets/runtime/final-showable/textures/orbital_ruins.png"),
+  "assets/runtime/final-showable/textures/broken_ring.png": loadTexture("assets/runtime/final-showable/textures/broken_ring.png"),
+  "assets/runtime/final-showable/textures/scanner_array.png": loadTexture("assets/runtime/final-showable/textures/scanner_array.png"),
+  "assets/runtime/final-showable/textures/synthetic_rift.png": loadTexture("assets/runtime/final-showable/textures/synthetic_rift.png"),
+  "assets/runtime/final-showable/textures/gravity_tower.png": loadTexture("assets/runtime/final-showable/textures/gravity_tower.png"),
+  "assets/runtime/final-showable/textures/relic_portal.png": loadTexture("assets/runtime/final-showable/textures/relic_portal.png"),
+  "assets/runtime/final-showable/textures/gravity_node.png": loadTexture("assets/runtime/final-showable/textures/gravity_node.png"),
 };
+const authoredGateTexture = loadTexture("assets/runtime/final-showable/textures/gate.png");
 
 const proceduralPremiumTexturePools = {
   STAGE_1_CLEAN_OCEAN: {
@@ -3004,17 +3021,26 @@ function createProceduralBody(kind, chunkX, chunkY, rand, index, profileOverride
   return group;
 }
 
-function createAuthoredOceanicLandmark(kind, worldX, worldY, seedOffset) {
+function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
   let seed = 0x9e3779b9 ^ seedOffset;
   const rand = () => {
     seed = Math.imul(seed ^ (seed >>> 15), 1 | seed);
     seed ^= seed + Math.imul(seed ^ (seed >>> 7), 61 | seed);
     return ((seed ^ (seed >>> 14)) >>> 0) / 4294967296;
   };
-  const body = createProceduralBody(kind, 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[0], REGION_CONFIGS.north);
-  const landmark = scenarioForStage(0).landmarks.find((candidate) => candidate.worldKind === kind);
-  const texture = authoredLandmarkTextures[kind];
-  if (landmark && texture) {
+  const stageIndex = scenario.stageIndex;
+  const region = [REGION_CONFIGS.north, REGION_CONFIGS.east, REGION_CONFIGS.west, REGION_CONFIGS.final][stageIndex];
+  const body = createProceduralBody(
+    landmark.worldKind,
+    0,
+    0,
+    rand,
+    seedOffset,
+    STAGE_WORLD_PROFILES[stageIndex],
+    region,
+  );
+  const texture = authoredLandmarkTextures[landmark.texture];
+  if (texture) {
     for (const child of body.children) child.visible = false;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: texture,
@@ -3031,32 +3057,37 @@ function createAuthoredOceanicLandmark(kind, worldX, worldY, seedOffset) {
     body.userData.spin = 0;
     body.userData.drift.set(0, 0);
   }
-  body.userData.base.set(worldX, worldY, 0.8 - seedOffset * 0.25);
-  body.userData.profileStage = 0;
-  body.userData.spawnStage = 0;
-  body.userData.stageAffinity = 0;
+  body.userData.base.set(landmark.x, landmark.y, 0.8 - (seedOffset % 4) * 0.18);
+  body.userData.profileStage = stageIndex;
+  body.userData.spawnStage = stageIndex;
+  body.userData.stageAffinity = stageIndex;
   body.userData.worldCategory = "landmark";
   body.userData.worldSource = "authored-scenario";
   body.userData.authoredLandmark = true;
-  body.userData.radius = (landmark?.scale || 1) * 0.5;
+  body.userData.scenarioId = scenario.id;
+  body.userData.landmarkId = landmark.id;
+  body.userData.reveal = 1;
+  body.userData.discovered = true;
+  body.userData.radius = landmark.scale * 0.5;
   body.userData.visualScale = 1;
   proceduralWorld.objects.push(body);
   return body;
 }
 
-const authoredOceanicLandmarks = [
-  ...scenarioForStage(0).landmarks.map((landmark, index) =>
-    createAuthoredOceanicLandmark(landmark.worldKind, landmark.x, landmark.y, index + 1)
-  ),
-];
+const authoredScenarioLandmarks = SCENARIOS.flatMap((scenario) =>
+  scenario.landmarks.map((landmark, index) =>
+    createAuthoredScenarioLandmark(scenario, landmark, scenario.stageIndex * 11 + index + 1)
+  )
+);
 
 const scenarioDiscoveryTargets = new Map(
-  scenarioForStage(0).landmarks.map((landmark) => {
-    const object = authoredOceanicLandmarks.find((candidate) => candidate.userData.kind === landmark.worldKind);
+  SCENARIOS.flatMap((scenario) => scenario.landmarks.map((landmark) => {
+    const object = authoredScenarioLandmarks.find((candidate) => candidate.userData.landmarkId === landmark.id);
     const savedState = localStorage.getItem(`gz-discovery-${landmark.id}`);
     const restoredState = ["identified", "targetable"].includes(savedState) ? savedState : "unknown";
     return [landmark.id, {
       id: landmark.id,
+      stageIndex: scenario.stageIndex,
       position: { x: object?.userData.base.x || 0, y: object?.userData.base.y || 0 },
       state: restoredState,
       signalStrength: 0,
@@ -3064,7 +3095,7 @@ const scenarioDiscoveryTargets = new Map(
       landmark,
       object,
     }];
-  }),
+  })),
 );
 
 let lastScenarioDiscoveryMessage = "";
@@ -3086,6 +3117,7 @@ const holographicMap = new HolographicMap({
       .map((target) => target.id),
   }),
   onAudio: () => playAudioEvent("route_detected_ping"),
+  onTravel: (stageIndex) => requestWorldTravel(stageIndex),
 });
 
 function directionVector(direction) {
@@ -3099,25 +3131,27 @@ function directionVector(direction) {
 
 function updateScenarioDiscovery(rawDelta) {
   const activeStage = currentWorldProfileIndex();
-  const scanHeld = activeStage === 0 && (input.keys.has("e") || input.keys.has("E"));
+  const scanHeld = (input.keys.has("e") || input.keys.has("E"));
   let strongestProgress = 0;
   let strongestSignal = 0;
   let activeTarget = null;
 
-  if (activeStage === 0) {
+  {
     const player = state.controlMode === "astronaut" ? astronautState.position : state.position;
     const facing = directionVector(state.direction);
-    const candidates = [...scenarioDiscoveryTargets].map(([id, entry]) => {
+    const candidates = [...scenarioDiscoveryTargets]
+      .filter(([, entry]) => entry.stageIndex === activeStage)
+      .map(([id, entry]) => {
       const visualPosition = entry.object
         ? backgroundObjectScreenPoint(entry.object, new THREE.Vector2())
         : new THREE.Vector2(entry.position.x, entry.position.y);
-      return { id, entry, visualPosition, distance: visualPosition.distanceTo(player) };
-    });
+        return { id, entry, visualPosition, distance: visualPosition.distanceTo(player) };
+      });
     if (scanHeld && !scenarioScanWasHeld) {
       const available = candidates.filter(({ entry }) => entry.state !== "targetable");
       scenarioScanTargetId = [...(available.length ? available : candidates)]
         .sort((a, b) => {
-          const missionPriority = Number(b.id === "fractured_beacon") - Number(a.id === "fractured_beacon");
+          const missionPriority = Number(b.entry.landmark.role === "primary") - Number(a.entry.landmark.role === "primary");
           return missionPriority || a.distance - b.distance;
         })[0]?.id || null;
     } else if (!scanHeld) {
@@ -3165,7 +3199,7 @@ function updateScenarioDiscovery(rawDelta) {
     }
   }
 
-  scenarioScannerState.active = scanHeld;
+  scenarioScannerState.active = scanHeld && activeTarget !== null;
   scenarioScannerState.progress = strongestProgress;
   scenarioScanWasHeld = scanHeld;
   if (scanHeld && activeTarget && strongestSignal > 0.12) {
@@ -3423,6 +3457,20 @@ function createMissionZone(index, spec) {
   gate.rotation.x = Math.PI * 0.48;
   gate.userData.baseOpacity = 0.36;
   group.add(gate);
+
+  const authoredGate = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: authoredGateTexture,
+    color,
+    transparent: true,
+    opacity: 0.88,
+    alphaTest: 0.015,
+    depthWrite: false,
+  }));
+  authoredGate.scale.set(1.72, 1.72, 1);
+  authoredGate.position.z = 0.08;
+  authoredGate.userData.baseOpacity = 0.88;
+  authoredGate.userData.authoredGate = true;
+  group.add(authoredGate);
 
   const cage = createLineCage(() => 0.42, 0.82, color);
   cage.userData.baseOpacity = 0.30;
@@ -4638,7 +4686,7 @@ function robotTutorialContent(missionState = mission01.state) {
     return {
       label: "COMPANION / ESCÁNER",
       goal: robotCompanion.message,
-      action: "Mantené E para completar la lectura de la Baliza Fracturada.",
+      action: "Mantené E para completar la lectura de la señal seleccionada.",
       tip: "El escáner bloquea una única señal por activación.",
     };
   }
@@ -5531,7 +5579,7 @@ function updateStageHud() {
 function startStageTransition() {
   if (state.transition || mission01.finalStarted || mission01.finalComplete) return;
   const from = state.stageIndex;
-  const to = Math.min(from + 1, STAGES.length - 1);
+  const to = Math.min(from + 1, mission01.gems, STAGES.length - 1);
   if (to === from) return;
   state.transition = {
     from,
@@ -5589,6 +5637,107 @@ function beginStageNavigation(stageIndex) {
   updateStageHud();
   syncRobotCompanion("navigation");
   playAudioEvent("route_detected_ping");
+  saveProgress();
+}
+
+function readProgressSnapshot() {
+  try {
+    const snapshot = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null");
+    if (!snapshot || snapshot.version !== 1) return null;
+    return snapshot;
+  } catch {
+    return null;
+  }
+}
+
+function saveProgress() {
+  if (!mission01.started && !mission01.finalComplete) return;
+  const worldStage = currentWorldProfileIndex();
+  const snapshot = {
+    version: 1,
+    gems: THREE.MathUtils.clamp(mission01.gems, 0, 3),
+    shipStage: THREE.MathUtils.clamp(state.stageIndex, 0, STAGES.length - 1),
+    worldStage,
+    resumeStage: mission01.state === "completed_region" ? worldStage : THREE.MathUtils.clamp(mission01.gems, 0, 3),
+    finalComplete: mission01.finalComplete,
+    savedAt: Date.now(),
+  };
+  try {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(snapshot));
+  } catch {
+    // The game remains fully playable when storage is unavailable.
+  }
+}
+
+function requestWorldTravel(stageIndex) {
+  if (mission01.finalStarted && !mission01.finalComplete) return;
+  const targetStage = THREE.MathUtils.clamp(Math.trunc(stageIndex || 0), 0, SCENARIOS.length - 1);
+  const unlockedStage = mission01.finalComplete ? 3 : THREE.MathUtils.clamp(mission01.gems, 0, 3);
+  if (targetStage > unlockedStage) return;
+  if (
+    targetStage === currentWorldProfileIndex() &&
+    !["navigation", "completed_region", "boot"].includes(mission01.state)
+  ) {
+    holographicMap.toggle(false);
+    return;
+  }
+
+  holographicMap.toggle(false);
+  const scenario = scenarioForStage(targetStage);
+  state.worldOffset.set(scenario.center.x, scenario.center.y);
+  state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+  state.position.set(0, -0.03);
+  missionZones.lastEntered = null;
+  clearPreviousStageTargets();
+  enterShipMode();
+
+  if (!mission01.finalComplete && targetStage === mission01.gems) {
+    beginStageNavigation(targetStage);
+    return;
+  }
+
+  mission01.started = true;
+  mission01.state = "completed_region";
+  mission01.zoneIndex = targetStage;
+  mission01.currentStageIndex = THREE.MathUtils.clamp(targetStage, 0, missionStageConfigs.length - 1);
+  mission01.smallAsteroids = [];
+  mission01.largeObstacles = [];
+  mission01.relicState = "hidden";
+  if (mission01.relicGroup) mission01.relicGroup.visible = false;
+  updateMissionHud(scenario.name, "REGIÓN ESTABILIZADA", "M · MAPA / TAB · RUTA GLOBAL");
+  syncRobotCompanion("navigation");
+  updateGemHud();
+  updateStageHud();
+  playAudioEvent("navigation_whoosh");
+  saveProgress();
+}
+
+function restoreProgress() {
+  const snapshot = readProgressSnapshot();
+  if (!snapshot) {
+    startMission01();
+    return;
+  }
+  mission01.started = true;
+  mission01.gems = THREE.MathUtils.clamp(Math.trunc(snapshot.gems || 0), 0, 3);
+  const evolvedStage = Math.max(snapshot.shipStage || 0, Math.min(mission01.gems, STAGES.length - 1));
+  applyStage(THREE.MathUtils.clamp(Math.trunc(evolvedStage), 0, STAGES.length - 1));
+  if (snapshot.finalComplete) {
+    mission01.finalComplete = true;
+    mission01.finalSignalAcquired = true;
+    mission01.state = "complete";
+    const finalScenario = scenarioForStage(3);
+    state.worldOffset.set(finalScenario.center.x, finalScenario.center.y);
+    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
+    updateGemHud();
+    updateStageHud();
+    syncRobotCompanion("final");
+    enterShipMode();
+    return;
+  }
+  const resumeStage = THREE.MathUtils.clamp(Math.trunc(snapshot.resumeStage ?? mission01.gems), 0, mission01.gems);
+  requestWorldTravel(resumeStage);
 }
 
 function applyStage(stageIndex) {
@@ -6491,6 +6640,7 @@ function acquireStageGem() {
     spawnGemPickupBurst(burstPoint);
   }
   updateGemHud();
+  saveProgress();
 }
 
 function startFinalSequence(anchorPoint = null) {
@@ -6570,7 +6720,7 @@ function touchMissionRelic() {
       beginStageNavigation(3);
       return;
     }
-    beginStageNavigation(mission01.currentStageIndex + 1);
+    startStageTransition();
   }, 760);
 }
 
@@ -6963,6 +7113,7 @@ function updateFinalSequence(delta, elapsed) {
     updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
     syncRobotCompanion("final");
     updateStageHud();
+    saveProgress();
   }
 
   if (mission01.finalComplete && resolve >= 0.98) {
@@ -7240,7 +7391,16 @@ stageButton.addEventListener("click", () => {
     updateRobotPanel();
     playAudioEvent("route_detected_ping");
   }
-  else startStageTransition();
+  else {
+    const config = currentMissionConfig();
+    updateMissionHud(config.mission, missionObjectiveCopy(config), "COMPLETÁ LOS OBJETIVOS PARA ABRIR EL CORREDOR");
+    robotCompanion.panelOpen = true;
+    robotCompanion.focus = "mission";
+    robotCompanion.focusTimer = 4;
+    robotCompanion.message = "EL CORREDOR SE ACTIVA AL RECUPERAR LA GEMA";
+    updateRobotPanel();
+    playAudioEvent("invalid_target_blip");
+  }
 });
 
 speedButton?.addEventListener("click", () => {
@@ -7467,12 +7627,38 @@ if (params.get("robotPanel") === "1") {
   robotCompanion.panelOpen = true;
   updateRobotPanel();
 }
-if (params.get("qa") === "map") window.setTimeout(() => holographicMap.toggle(true), 500);
 window.addEventListener("resize", resize);
 resize();
 showMenu("title_menu");
+const qaWorldStages = { stage1: 0, stage2: 1, stage3: 2, final: 3 };
+const qaRoute = params.get("qa");
+if (qaRoute in qaWorldStages) {
+  window.setTimeout(() => {
+    const worldStage = qaWorldStages[qaRoute];
+    mission01.gems = worldStage;
+    mission01.started = true;
+    applyStage(Math.min(worldStage, STAGES.length - 1));
+    const scenario = scenarioForStage(worldStage);
+    state.worldOffset.set(scenario.center.x, scenario.center.y);
+    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    beginStageNavigation(worldStage);
+    hideMenu();
+  }, 350);
+}
+if (qaRoute === "map") {
+  window.setTimeout(() => {
+    mission01.started = true;
+    mission01.gems = 3;
+    updateGemHud();
+    holographicMap.toggle(true);
+    if (params.get("mapMode") === "route") holographicMap.toggleMode();
+  }, 500);
+}
 if (params.get("autoStage") === "1") {
-  window.setTimeout(startStageTransition, 450);
+  window.setTimeout(() => {
+    mission01.gems = Math.min(state.stageIndex + 1, 3);
+    startStageTransition();
+  }, 450);
 }
 if (params.get("autoMission") === "1") {
   hideMenu();

@@ -1,10 +1,12 @@
 export class HolographicMap {
-  constructor({ scenarios, getState, onAudio }) {
+  constructor({ scenarios, getState, onAudio, onTravel }) {
     this.scenarios = scenarios;
     this.getState = getState;
     this.onAudio = onAudio;
+    this.onTravel = onTravel;
     this.open = false;
     this.mode = "BIOME";
+    this.routeNodes = [];
 
     this.root = document.createElement("div");
     this.root.id = "gzFinalMap";
@@ -23,6 +25,7 @@ export class HolographicMap {
     this.ctx = this.canvas.getContext("2d");
     this.title = this.root.querySelector("#gzMapTitle");
     this.footer = this.root.querySelector("#gzMapFooter");
+    this.canvas.addEventListener("click", (event) => this.handleCanvasClick(event));
 
     this.trigger = document.createElement("button");
     this.trigger.type = "button";
@@ -65,6 +68,15 @@ export class HolographicMap {
     if (!this.open) return;
     this.mode = this.mode === "BIOME" ? "ROUTE" : "BIOME";
     this.draw();
+  }
+
+  handleCanvasClick(event) {
+    if (!this.open || this.mode !== "ROUTE" || !this.onTravel) return;
+    const bounds = this.canvas.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) * (this.canvas.width / Math.max(1, bounds.width));
+    const y = (event.clientY - bounds.top) * (this.canvas.height / Math.max(1, bounds.height));
+    const node = this.routeNodes.find((candidate) => candidate.unlocked && Math.hypot(x - candidate.x, y - candidate.y) <= 58);
+    if (node) this.onTravel(node.index);
   }
 
   draw() {
@@ -137,18 +149,25 @@ export class HolographicMap {
     const start = 170;
     const end = w - 170;
     const step = (end - start) / (this.scenarios.length - 1);
+    this.routeNodes = [];
     ctx.lineWidth = 8; ctx.strokeStyle = "rgba(95,213,255,.25)";
     ctx.beginPath(); ctx.moveTo(start, y); ctx.lineTo(end, y); ctx.stroke();
     this.scenarios.forEach((scenario, index) => {
       const x = start + index * step;
       const unlocked = index <= state.highestUnlockedStage;
+      this.routeNodes.push({ index, x, y, unlocked });
       ctx.beginPath(); ctx.arc(x, y, unlocked ? 34 : 24, 0, Math.PI * 2);
       ctx.fillStyle = unlocked ? (index === state.worldStageIndex ? "#ffffff" : "#7feaff") : "rgba(255,255,255,.16)";
       ctx.fill();
       ctx.fillStyle = unlocked ? "#eef7ff" : "rgba(238,247,255,.35)";
       ctx.textAlign = "center"; ctx.font = "600 18px system-ui"; ctx.fillText(scenario.name, x, y + 70);
+      if (unlocked) {
+        ctx.fillStyle = "rgba(127,234,255,.72)";
+        ctx.font = "600 13px system-ui";
+        ctx.fillText(index === state.worldStageIndex ? "UBICACIÓN ACTUAL" : "CLICK PARA VIAJAR", x, y + 100);
+      }
     });
     ctx.textAlign = "left";
-    this.footer.textContent = "LOS GATES CONECTAN BIOMAS DESBLOQUEADOS · LA EVOLUCIÓN DE LA NAVE PERSISTE";
+    this.footer.textContent = "SELECCIONÁ UN BIOMA DESBLOQUEADO · LA EVOLUCIÓN DE LA NAVE PERSISTE";
   }
 }
