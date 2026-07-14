@@ -23,7 +23,6 @@ import {
   AstronautVisualRig,
   BiomeVisualLighting,
   DirectionalThrusterSystem,
-  RelicGem,
   ShieldFx,
   ShipMotionRig,
   ShipVisualRig,
@@ -111,6 +110,7 @@ const params = new URLSearchParams(window.location.search);
 const PROGRESS_KEY = "gravedad-zero-full-progress-v1";
 const qaRoute = params.get("qa");
 const qaPersistenceEnabled = params.get("qaPersist") === "1";
+const FIXED_AUTHORED_WORLD = true;
 if (qaRoute === "reset") {
   try {
     localStorage.removeItem(PROGRESS_KEY);
@@ -238,11 +238,13 @@ const TURBO_UNLOCKS = [
   { label: "WARP PULSE", multiplier: 2.34, audio: 1.42, requiredGems: 3 },
 ];
 
+const initialScenario = scenarioForStage(initialStageIndex);
 const state = {
   stageIndex: initialStageIndex,
+  worldStageIndex: initialStageIndex,
   direction: initialDirection,
   position: new THREE.Vector2(0, -0.03),
-  worldOffset: new THREE.Vector2(0, WORLD_MIN_Y + THREE.MathUtils.clamp(Number(params.get("progress") || 0.08), 0, 1) * WORLD_WRAP_Y),
+  worldOffset: new THREE.Vector2(initialScenario.center.x, initialScenario.center.y),
   routeProgress: THREE.MathUtils.clamp(Number(params.get("progress") || 0.08), 0, 1),
   routeVelocity: 0,
   transition: null,
@@ -260,9 +262,14 @@ function setWorldOffset(x, y) {
 }
 
 function moveWorldOffset(x, y) {
-  state.worldOffset.x += x;
-  state.worldOffset.y += y;
+  const bounds = scenarioForStage(state.worldStageIndex).bounds;
+  state.worldOffset.x = THREE.MathUtils.clamp(state.worldOffset.x + x, bounds.minX, bounds.maxX);
+  state.worldOffset.y = THREE.MathUtils.clamp(state.worldOffset.y + y, bounds.minY, bounds.maxY);
   syncWorldProgress();
+}
+
+function setWorldStage(stageIndex) {
+  state.worldStageIndex = THREE.MathUtils.clamp(Math.trunc(stageIndex || 0), 0, SCENARIOS.length - 1);
 }
 
 const manifest = await fetch("/assets/runtime/manifest.json").then((response) => {
@@ -541,7 +548,10 @@ const missionAudioItems = {
   relic_idle: { file: "relic_idle_clean_loop_10.wav", volume: 0.07, loop: true },
   relic_touch: { file: "astronaut_touch_relic_11.wav", volume: 0.24 },
   energy_transfer: { file: "energy_transfer_to_ship_12.wav", volume: 0.30 },
-  stage_unlocked: { file: "stage_unlocked_arcade_13.wav", volume: 0.34 },
+  stage_unlocked: {
+    path: "assets/runtime/final-showable/audio/ship_evolution.wav",
+    volume: 0.34,
+  },
   aim_click_ping: {
     path: "assets/runtime/v2/audio/aim_click_ping_01.wav",
     volume: 0.25,
@@ -612,7 +622,7 @@ const missionAudioItems = {
     volume: 0.22,
   },
   gem_acquired: {
-    path: "assets/runtime/v2/audio/reward_unlock_sparkle_refined_13.wav",
+    path: "assets/runtime/final-showable/audio/gem_materialize.wav",
     volume: 0.32,
   },
   gem_counter_update: {
@@ -620,11 +630,11 @@ const missionAudioItems = {
     volume: 0.22,
   },
   stage_route_unlocked: {
-    path: "assets/runtime/v2/audio/reward_unlock_sparkle_refined_13.wav",
+    path: "assets/runtime/final-showable/audio/gate_open.wav",
     volume: 0.26,
   },
   navigation_whoosh: {
-    path: "assets/runtime/v2/audio/motion_speed_whoosh_refined_09.wav",
+    path: "assets/runtime/final-showable/audio/interstage_exit.wav",
     volume: 0.15,
   },
   aim_stabilize: {
@@ -830,12 +840,6 @@ function currentAudioIntensity() {
 function updateShipEngineAudio(shipVelocity, transition, delta) {
   const intensity = currentAudioIntensity();
   shipEngineAudio.update(shipVelocity, transition, delta, intensity);
-  if (missionAudio.ready) {
-    playMissionAudio("long_travel_low_rumble");
-    const speedAmount = THREE.MathUtils.clamp(shipVelocity.length() * speedState.currentMultiplier, 0, 1);
-    const rumbleTarget = missionAudioItems.long_travel_low_rumble.volume * (0.42 + speedAmount * 0.58) * Math.min(1.55, intensity);
-    fadeMissionLoop("long_travel_low_rumble", rumbleTarget, delta);
-  }
 }
 
 function playMissionAudio(id) {
@@ -1297,13 +1301,20 @@ const backgroundMesh = new THREE.Mesh(
             uPointer.x * 0.025 + uTime * 0.012,
             uTime * -0.018 - route * 1.72
           );
-          vec2 mapDrift = vec2(uWorldOffset.x * 0.0028 + uTime * 0.002, -uWorldOffset.y * 0.0065);
+          vec2 mapDrift = vec2(uWorldOffset.x * 0.0008 + uTime * 0.0006, -uWorldOffset.y * 0.0012);
 
           float nebulaA = fbm(vec2(p.x * 0.42, p.y * 0.78) + drift);
           float nebulaB = fbm(vec2(p.x * 1.15 - p.y * 0.12, p.y * 0.36) - drift * 0.8);
-          vec3 wideTex = texture2D(uNebulaWide, fract(vUv + mapDrift * vec2(0.7, 1.0))).rgb;
-          vec3 flowTex = texture2D(uNebulaFlow, fract(vUv * 1.08 + mapDrift * vec2(-0.5, 0.74))).rgb;
-          vec3 magentaTex = texture2D(uNebulaMagenta, fract(vUv * 0.96 + mapDrift * vec2(0.36, 0.58))).rgb;
+          vec2 backgroundUv = vUv;
+          const float imageAspect = 2.0;
+          if (uAspect > imageAspect) {
+            backgroundUv.y = (backgroundUv.y - 0.5) * imageAspect / uAspect + 0.5;
+          } else {
+            backgroundUv.x = (backgroundUv.x - 0.5) * uAspect / imageAspect + 0.5;
+          }
+          vec3 wideTex = texture2D(uNebulaWide, clamp(backgroundUv + mapDrift, 0.001, 0.999)).rgb;
+          vec3 flowTex = texture2D(uNebulaFlow, clamp(backgroundUv + mapDrift * vec2(-0.35, 0.42), 0.001, 0.999)).rgb;
+          vec3 magentaTex = texture2D(uNebulaMagenta, clamp(backgroundUv + mapDrift * vec2(0.24, 0.30), 0.001, 0.999)).rgb;
           float wideLum = dot(wideTex, vec3(0.2126, 0.7152, 0.0722));
           float flowLum = dot(flowTex, vec3(0.2126, 0.7152, 0.0722));
           float magentaLum = dot(magentaTex, vec3(0.2126, 0.7152, 0.0722));
@@ -1317,20 +1328,15 @@ const backgroundMesh = new THREE.Mesh(
           vec3 magenta = vec3(0.570, 0.050, 0.360);
           vec3 cyan = vec3(0.020, 0.460, 0.600);
 
-          vec3 color = mix(deep, blue, depth);
-          color += violet * smoothstep(0.44, 0.92, nebulaA) * (0.30 + upperRoute * 0.12);
-          color += magenta * smoothstep(0.62, 0.96, nebulaB) * (0.14 + objectiveRoute * 0.18);
-          color += cyan * smoothstep(0.66, 0.98, nebulaA + nebulaB * 0.24) * (0.10 + upperRoute * 0.16);
-          color += wideTex * smoothstep(0.045, 0.34, wideLum) * (0.065 + route * 0.035);
-          color += flowTex * smoothstep(0.030, 0.28, flowLum) * (0.045 + uThrust * 0.025);
-          color += magentaTex * smoothstep(0.035, 0.30, magentaLum) * (0.052 + upperRoute * 0.035);
-
-          float corridor = smoothstep(0.70, 0.04, abs(p.x * 0.24 + p.y * 0.90 + 0.10));
-          color += vec3(0.08, 0.24, 0.36) * corridor * (0.12 + uThrust * 0.12 + route * 0.08);
-          color += vec3(0.32, 0.04, 0.30) * objectiveRoute * smoothstep(0.72, 0.05, abs(p.x - 0.18)) * 0.12;
+          vec3 color = mix(deep, blue * 0.58, depth);
+          color += wideTex * (0.17 + wideLum * 0.08);
+          color += flowTex * smoothstep(0.08, 0.34, flowLum) * 0.025;
+          color += magentaTex * smoothstep(0.12, 0.40, magentaLum) * 0.018;
+          color += violet * smoothstep(0.62, 0.96, nebulaA) * 0.055;
+          color += cyan * smoothstep(0.76, 1.0, nebulaB) * 0.025;
 
           float vignette = smoothstep(1.75, 0.34, length(p / vec2(max(uAspect, 1.0), 1.0)));
-          color *= 0.44 + vignette * 0.86;
+          color *= 0.40 + vignette * 0.72;
           gl_FragColor = vec4(color, 1.0);
         }
       `,
@@ -1980,7 +1986,11 @@ const menuScreens = {
     eyebrow: "SECTOR INICIAL",
     title: "GRAVEDAD ZERO",
     subtitle: "RECUPERÁ LAS GEMAS DE RUTA",
-    body: [],
+    body: [
+      "OCEANIC FRONTIER · PRIMERA SEÑAL",
+      "EXPLORÁ, ESCANEÁ Y RECUPERÁ LA GEMA",
+      "TRES REGIONES Y UN NÚCLEO FINAL",
+    ],
     actions: [
       ["INICIAR MISIÓN", "start"],
       ["CONTROLES", "controls", "secondary"],
@@ -2276,7 +2286,6 @@ function startMissionForStage(stageIndex) {
   activateStageTargets(safeStageIndex);
   updateMissionHud(config.mission, missionObjectiveCopy(config), config.subtitle);
   playMissionAudio("mission_start");
-  playAudioEvent("long_travel_low_rumble");
   playAudioEvent("route_detected_ping");
   syncRobotCompanion("small_asteroids");
   enterAstronautMode();
@@ -2577,6 +2586,7 @@ const authoredLandmarkTextures = {
   "assets/runtime/final-showable/textures/gravity_node.png": loadTexture("assets/runtime/final-showable/textures/gravity_node.png"),
 };
 const authoredGateTexture = loadTexture("assets/runtime/final-showable/textures/gate.png");
+const authoredGemTexture = loadTexture("assets/runtime/final-showable/textures/gem.png");
 const authoredHeroTextures = {
   "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png": worldTextures.oceanPrime,
   "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png": worldTextures.mechanicalMoonPremium,
@@ -2659,8 +2669,7 @@ function regionForChunk(chunkX, chunkY) {
 }
 
 function currentWorldProfileIndex() {
-  const blend = v2Runtime.updateBiome(state.worldOffset, mission01.gems);
-  return THREE.MathUtils.clamp(v2Runtime.stageForBiome(blend.primary), 0, STAGE_WORLD_PROFILES.length - 1);
+  return THREE.MathUtils.clamp(state.worldStageIndex, 0, STAGE_WORLD_PROFILES.length - 1);
 }
 
 function currentWorldProfile() {
@@ -3242,6 +3251,18 @@ const authoredScenarioGates = SCENARIOS.flatMap((scenario, index) =>
     .filter(Boolean)
     .map((gate, gateIndex) => createAuthoredScenarioGate(scenario, gate, 121 + index * 3 + gateIndex))
 );
+const authoredStageGroup = new THREE.Group();
+authoredStageGroup.name = "AUTHORED_FIXED_STAGE";
+backgroundScene.add(authoredStageGroup);
+const authoredStageObjects = [
+  ...authoredScenarioHeroes,
+  ...authoredScenarioLandmarks,
+  ...authoredScenarioGates,
+];
+for (const object of authoredStageObjects) {
+  proceduralWorld.group.remove(object);
+  authoredStageGroup.add(object);
+}
 
 const scenarioDiscoveryTargets = new Map(
   SCENARIOS.flatMap((scenario) => scenario.landmarks.map((landmark) => {
@@ -3495,10 +3516,14 @@ function visibleDepthComposition() {
 }
 
 function updateChunkObjects(delta, elapsed, travelVelocity) {
-  ensureChunksAroundPlayer();
+  if (!FIXED_AUTHORED_WORLD) ensureChunksAroundPlayer();
   proceduralWorld.audioCooldown = Math.max(0, proceduralWorld.audioCooldown - delta);
   let nearestSynthetic = Infinity;
   for (const object of proceduralWorld.objects) {
+    if (FIXED_AUTHORED_WORLD && !object.userData.authoredWorldObject) {
+      object.visible = false;
+      continue;
+    }
     const authoredPositionScale = object.userData.authoredHero
       ? 0.18
       : object.userData.authoredLandmark
@@ -3645,6 +3670,10 @@ function createMissionZone(index, spec) {
 missionZoneSpecs.forEach((spec, index) => createMissionZone(index, spec));
 
 function updateMissionZones(delta, elapsed) {
+  if (FIXED_AUTHORED_WORLD) {
+    missionZones.group.visible = false;
+    return;
+  }
   const activeIndex = mission01.gems >= 3 ? 3 : mission01.gems;
   for (const zone of missionZones.zones) {
     const index = zone.userData.index;
@@ -3710,6 +3739,10 @@ function setOrbitalOpacity(object, opacity) {
 }
 
 function updateOrbitalObjects(delta, elapsed, travelVelocity) {
+  if (FIXED_AUTHORED_WORLD) {
+    orbitalWorld.group.visible = false;
+    return;
+  }
   const cameraWorld = state.worldOffset;
   const speed = travelVelocity.length();
   for (const object of orbitalWorld.objects) {
@@ -3774,7 +3807,7 @@ createDebrisField();
 createCrystalCluster();
 spawnStageTargets(initialStageIndex);
 
-for (let i = 0; i < 420; i += 1) {
+for (let i = 0; i < 140; i += 1) {
   const star = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: starTexture,
@@ -3817,7 +3850,7 @@ for (let i = 0; i < 10; i += 1) {
   integratedBackground.streaks.add(line);
 }
 
-for (let i = 0; i < 140; i += 1) {
+for (let i = 0; i < 28; i += 1) {
   const star = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: starTexture,
@@ -4337,6 +4370,10 @@ function spawnAmbientMeteor(meteor, elapsed = 0) {
 }
 
 function updateAmbientMeteorLayer(delta, elapsed, travelVelocity) {
+  if (FIXED_AUTHORED_WORLD) {
+    ambientMeteorLayer.group.visible = false;
+    return;
+  }
   const profile = ambientMeteorProfiles[ambientMeteorStageIndex()];
   const targetCount = profile.count;
   for (let i = 0; i < ambientMeteorLayer.meteors.length; i += 1) {
@@ -4511,15 +4548,39 @@ function makeMissionSprite(texture, { opacity = 1, renderOrder = 34, blending = 
   return sprite;
 }
 
-const relicVisual = new RelicGem({
-  coreTexture: visualPackTextures.gemCore,
-  noiseTexture: visualPackTextures.gemNoise,
-  fresnelTexture: visualPackTextures.gemFresnel,
-});
-relicVisual.outer.material.color.set(0x9ecbff);
-relicVisual.outer.material.emissive.set(0x7a4dff);
-relicVisual.outer.material.emissiveIntensity = 1.15;
-relicVisual.outer.material.transmission = 0.08;
+class AuthoredGemVisual extends THREE.Group {
+  constructor(texture, coreTexture) {
+    super();
+    this.outer = makeMissionSprite(texture, {
+      opacity: 0,
+      renderOrder: 37,
+      blending: THREE.NormalBlending,
+    });
+    this.outer.scale.set(0.38, 0.38, 1);
+    this.core = makeMissionSprite(coreTexture, {
+      opacity: 0,
+      renderOrder: 38,
+      blending: THREE.AdditiveBlending,
+    });
+    this.core.scale.set(0.17, 0.17, 1);
+    this.add(this.outer, this.core);
+  }
+
+  setReveal(reveal, destroyFade, elapsed) {
+    const visible = THREE.MathUtils.smoothstep(reveal, 0, 1) * destroyFade;
+    this.outer.material.opacity = visible;
+    this.core.material.opacity = visible * (0.42 + Math.sin(elapsed * 4.2) * 0.08);
+    const pulse = 0.96 + Math.sin(elapsed * 2.6) * 0.035;
+    this.outer.scale.set(0.38 * pulse, 0.38 * pulse, 1);
+  }
+
+  update(delta) {
+    this.outer.material.rotation += delta * 0.10;
+    this.core.material.rotation -= delta * 0.28;
+  }
+}
+
+const relicVisual = new AuthoredGemVisual(authoredGemTexture, visualPackTextures.gemCore);
 relicGroup.add(relicVisual);
 
 const unlockFlash = makeMissionSprite(missionFxTextures.stageUnlockFlash, { opacity: 0.0, renderOrder: 42 });
@@ -5841,6 +5902,7 @@ function finishStageTransition() {
   stageButton.disabled = false;
   const targetWorldStage = THREE.MathUtils.clamp(completed?.targetWorldStage ?? state.stageIndex, 0, SCENARIOS.length - 1);
   const scenario = scenarioForStage(targetWorldStage);
+  setWorldStage(targetWorldStage);
   setWorldOffset(scenario.center.x, scenario.center.y);
   updateStageHud();
   if (completed?.gateTravel) requestWorldTravel(targetWorldStage);
@@ -5909,6 +5971,11 @@ function beginStageNavigation(stageIndex) {
   syncRobotCompanion("navigation");
   playAudioEvent("route_detected_ping");
   saveProgress();
+  if (safeZoneIndex === finalZoneIndex) {
+    startFinalSequence(new THREE.Vector2(0, 0.12));
+    return;
+  }
+  if (FIXED_AUTHORED_WORLD) startMissionForStage(missionStageIndex);
 }
 
 function readProgressSnapshot() {
@@ -5993,6 +6060,7 @@ function requestWorldTravel(stageIndex) {
 
   holographicMap.toggle(false);
   const scenario = scenarioForStage(targetStage);
+  setWorldStage(targetStage);
   setWorldOffset(scenario.center.x, scenario.center.y);
   state.position.set(0, -0.03);
   missionZones.lastEntered = null;
@@ -6044,6 +6112,7 @@ function restoreProgress() {
     mission01.finalSignalAcquired = true;
     mission01.state = "complete";
     const finalScenario = scenarioForStage(3);
+    setWorldStage(3);
     setWorldOffset(finalScenario.center.x, finalScenario.center.y);
     updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
     updateGemHud();
@@ -6186,6 +6255,10 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
   backgroundCamera.lookAt(travelVelocity.x * 0.045, travelVelocity.y * 0.05 + ascentEnergy * 0.14, -5);
 
   for (const planet of integratedBackground.planets) {
+    if (FIXED_AUTHORED_WORLD) {
+      planet.visible = false;
+      continue;
+    }
     const profilePresence = planet.userData.profileStage === currentWorldProfileIndex() ? 1 : 0;
     planet.visible = true;
     const base = planet.userData.base;
@@ -6226,6 +6299,10 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
   }
 
   for (const asteroid of integratedBackground.asteroids) {
+    if (FIXED_AUTHORED_WORLD && !asteroid.userData.interactive) {
+      asteroid.visible = false;
+      continue;
+    }
     if (asteroid.userData.active === false && !asteroid.userData.destroyed) {
       asteroid.visible = false;
       continue;
@@ -6432,9 +6509,13 @@ function worldCompositionCandidate(object, index) {
         : object.userData.landmarkRole === "primary"
           ? -1
           : undefined,
-    // Gate art is a hollow ring: its projected rectangle can surround the ship
-    // without covering the playable silhouette.
-    protectedFromSafeZone: object.userData.authoredGate === true,
+    // Gates are hollow and hero planets render behind gameplay. Keeping both
+    // outside the safe-zone rejection prevents the authored stage identity
+    // from disappearing when the astronaut crosses their projected bounds.
+    protectedFromSafeZone:
+      object.userData.authoredGate === true ||
+      object.userData.authoredHero === true ||
+      object.userData.authoredLandmark === true,
     record: {
       id: object.uuid,
       biome: biomeForStage(stageAffinity),
@@ -6454,17 +6535,21 @@ function worldCompositionCandidate(object, index) {
 }
 
 function updateWorldCompositionAuthority(rawDelta) {
-  const blend = v2Runtime.updateBiome(state.worldOffset, mission01.gems);
-  const primaryStage = v2Runtime.stageForBiome(blend.primary);
+  const primaryStage = currentWorldProfileIndex();
+  const blend = FIXED_AUTHORED_WORLD
+    ? { primary: biomeForStage(primaryStage), secondary: null, mix: 0 }
+    : v2Runtime.updateBiome(state.worldOffset, mission01.gems);
   const secondaryStage = blend.secondary ? v2Runtime.stageForBiome(blend.secondary) : null;
   const allowedStages = new Set([primaryStage]);
   if (secondaryStage !== null && blend.mix > 0.10) allowedStages.add(secondaryStage);
 
-  const worldObjects = [
-    ...integratedBackground.planets,
-    ...orbitalWorld.objects.filter((object) => object.userData.worldCategory),
-    ...proceduralWorld.objects,
-  ];
+  const worldObjects = FIXED_AUTHORED_WORLD
+    ? proceduralWorld.objects.filter((object) => object.userData.authoredWorldObject)
+    : [
+        ...integratedBackground.planets,
+        ...orbitalWorld.objects.filter((object) => object.userData.worldCategory),
+        ...proceduralWorld.objects,
+      ];
   const candidates = [];
   worldObjects.forEach((object, index) => {
     const stageAffinity = object.userData.profileStage ?? object.userData.spawnStage ?? 0;
@@ -6931,7 +7016,7 @@ function revealMissionRelic(sourceTarget) {
     THREE.MathUtils.clamp(point.y, -0.70, 0.72),
     0.12
   );
-  relicGroup.scale.setScalar(0.42);
+  relicGroup.scale.setScalar(0.34);
   relicGroup.visible = true;
   relicVisual.setReveal(0, 1, 0);
   updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", config.subtitle);
@@ -7044,10 +7129,12 @@ function touchMissionRelic() {
     }
     mission01.state = "completed_region";
     enterShipMode();
+    const completedScenario = scenarioForStage(mission01.currentStageIndex);
+    const nextScenario = scenarioForStage(Math.min(mission01.currentStageIndex + 1, SCENARIOS.length - 1));
     updateMissionHud(
-      "OCEANIC ESTABILIZADO",
-      "ALCANZÁ EL GATE NORTE Y PRESIONÁ E",
-      "NAVE STAGE 2 · CORREDOR A MECHANICAL",
+      `${completedScenario.name} ESTABILIZADO`,
+      "ALCANZÁ EL GATE Y PRESIONÁ E",
+      `NAVE STAGE ${state.stageIndex + 1} · CORREDOR A ${nextScenario.name}`,
     );
     syncRobotCompanion("navigation");
     updateStageHud();
@@ -7452,8 +7539,10 @@ function updateFinalSequence(delta, elapsed) {
 function enterAstronautMode() {
   if (!astronautSprite || state.transition) return;
   state.controlMode = "astronaut";
+  astronautState.velocity.set(0, 0);
   astronautState.actionTime = 0;
   astronautState.returnPulse = 0;
+  setAstronautViewFrame("front");
   updateStageHud();
 }
 
@@ -7562,8 +7651,9 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
     }
   }
 
-  if (astronautState.velocity.x > 0.035) astronautState.facing = "right";
-  if (astronautState.velocity.x < -0.035) astronautState.facing = "left";
+  const visualVelocity = isControlled ? astronautState.velocity : controlVelocity;
+  if (visualVelocity.x > 0.035) astronautState.facing = "right";
+  if (visualVelocity.x < -0.035) astronautState.facing = "left";
 
   if (astronautState.actionTime > 0) {
     astronautState.actionTime = Math.max(0, astronautState.actionTime - delta);
@@ -7576,15 +7666,17 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
 
   astronautState.animationTime += delta;
   astronautState.returnPulse = Math.max(0, astronautState.returnPulse - delta);
-  if (isControlled && astronautState.actionTime <= 0 && astronautState.velocity.length() > 0.14) {
-    setAstronautViewFrame(resolveAstronautView(astronautState.velocity));
-  } else {
+  if (astronautState.actionTime > 0) {
     setAstronautFrame();
+  } else if (visualVelocity.length() > 0.08) {
+    setAstronautViewFrame(resolveAstronautView(visualVelocity));
+  } else {
+    setAstronautViewFrame("front");
   }
 
   astronautGroup.position.set(astronautState.position.x, astronautState.position.y, 0.04);
   astronautSprite.position.set(0, 0, 0.02);
-  astronautVisualRig.rotation.z = Math.sin(elapsed * (0.72 + speedState.turboPulse * 0.42)) * 0.025 - astronautState.velocity.x * 0.055;
+  astronautVisualRig.rotation.z = Math.sin(elapsed * (0.72 + speedState.turboPulse * 0.42)) * 0.012;
   astronautVisualRig.setOpacity(state.transition ? 0.24 : isControlled ? 0.98 : 0.84);
   astronautVisualRig.update(delta, elapsed);
 }
@@ -7975,6 +8067,7 @@ if (qaRoute in qaWorldStages) {
     mission01.gems = worldStage;
     mission01.started = true;
     applyStage(Math.min(worldStage, STAGES.length - 1));
+    setWorldStage(worldStage);
     const scenario = scenarioForStage(worldStage);
     setWorldOffset(scenario.center.x, scenario.center.y);
     beginStageNavigation(worldStage);
@@ -8009,6 +8102,7 @@ if (qaRoute === "gateBack") {
     mission01.currentStageIndex = 1;
     mission01.zoneIndex = 1;
     applyStage(1);
+    setWorldStage(1);
     const gate = scenarioForStage(1).backGate;
     setWorldOffset(gate.x, gate.y);
     updateGemHud();
@@ -8130,7 +8224,9 @@ if (params.get("autoFinal") === "1") {
     mission01.gems = 3;
     mission01.currentStageIndex = missionStageConfigs.length - 1;
     state.stageIndex = missionStageConfigs.length - 1;
-    setWorldOffset(missionZoneSpecs[3].x, missionZoneSpecs[3].y);
+    setWorldStage(3);
+    const finalScenario = scenarioForStage(3);
+    setWorldOffset(finalScenario.center.x, finalScenario.center.y);
     updateGemHud();
     updateStageHud();
     enterShipMode();
@@ -8176,7 +8272,19 @@ if (params.get("autoAim")) {
     const qaTargetIndex = Number(params.get("qaTargetIndex"));
     const fireWhenReady = (selectTarget, attempts = 24) => {
       const target = selectTarget();
-      if (target && target.visible && target.userData.active !== false && !target.userData.destroyed) {
+      const viableTarget =
+        target &&
+        target.visible &&
+        target.userData.active !== false &&
+        !target.userData.destroyed;
+      if (viableTarget && params.get("qaApproachTarget") === "1") {
+        target.userData.targetable = true;
+        if (target.userData.discovery) {
+          target.userData.discovery.state = "targetable";
+          target.userData.discovery.scanProgress = 1;
+        }
+      }
+      if (viableTarget && validTargetForMissionPhase(target)) {
         if (params.get("qaApproachTarget") === "1") {
           centerQaViewOnTarget(target);
           window.setTimeout(() => {

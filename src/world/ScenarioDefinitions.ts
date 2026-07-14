@@ -79,7 +79,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
       debris: 0.55,
     },
     landmarks: [
-      { id: "fractured_beacon", name: "BALIZA FRACTURADA", role: "primary", worldKind: "fractured_beacon", x: -17, y: 1, texture: "assets/runtime/final-showable/textures/beacon.png", scale: 3.2 },
+      { id: "fractured_beacon", name: "BALIZA FRACTURADA", role: "primary", worldKind: "fractured_beacon", x: -21, y: 1, texture: "assets/runtime/final-showable/textures/beacon.png", scale: 3.2 },
       { id: "orbital_ruins", name: "RUINAS ORBITALES", role: "secondary", worldKind: "orbital_ruins", x: 5, y: 15, texture: "assets/runtime/final-showable/textures/orbital_ruins.png", scale: 2.7 },
     ],
     gravityFields: [

@@ -294,6 +294,12 @@ const qa = {
 
 const testCases = [
   {
+    name: "00-boot-menu",
+    query: "?qa=reset",
+    delayMs: 1200,
+    shots: [{ suffix: "full" }],
+  },
+  {
     name: "00-oceanic-layout",
     query: "?autoMission=1",
     delayMs: 2600,
@@ -336,6 +342,16 @@ const testCases = [
     waitTimeoutMs: 8000,
     shots: [{ suffix: "full" }],
   },
+  ...[
+    ["mechanical", "stage2"],
+    ["dark-crater", "stage3"],
+    ["relic-core", "final"],
+  ].map(([label, route]) => ({
+    name: `00-fixed-${label}`,
+    query: `?qa=${route}`,
+    delayMs: 1800,
+    shots: [{ suffix: "full" }],
+  })),
   {
     name: "01-companion-panel",
     query: "?autoMission=1&robotPanel=1",
