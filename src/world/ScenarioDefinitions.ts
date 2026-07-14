@@ -26,6 +26,14 @@ export interface ScenarioGate {
   name: string;
 }
 
+export interface ScenarioSecondaryBody {
+  id: string;
+  texture: string;
+  x: number;
+  y: number;
+  radius: number;
+}
+
 export interface ScenarioDefinition {
   id: ScenarioId;
   biome: RuntimeBiome;
@@ -43,6 +51,7 @@ export interface ScenarioDefinition {
     y: number;
     scale: number;
   };
+  secondaryBodies?: readonly ScenarioSecondaryBody[];
   gate?: ScenarioGate;
   backGate?: ScenarioGate;
   worldProfile: {
@@ -69,6 +78,9 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     center: { x: 0, y: -8 },
     bounds: { minX: -34, maxX: 34, minY: -40, maxY: 26 },
     hero: { texture: "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png", worldKind: "planet_ocean_large", x: 22, y: -2, scale: 8.8 },
+    secondaryBodies: [
+      { id: "oceanic_moon", texture: "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png", x: -24, y: -5, radius: 0.64 },
+    ],
     gate: { x: 0, y: 23, to: 1, name: "CORREDOR ORBITAL" },
     worldProfile: {
       name: "STAGE_1_CLEAN_OCEAN",
@@ -80,7 +92,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     },
     landmarks: [
       { id: "fractured_beacon", name: "BALIZA FRACTURADA", role: "primary", worldKind: "fractured_beacon", x: -21, y: 1, texture: "assets/runtime/final-showable/textures/beacon.png", scale: 3.2 },
-      { id: "orbital_ruins", name: "RUINAS ORBITALES", role: "secondary", worldKind: "orbital_ruins", x: 5, y: 15, texture: "assets/runtime/final-showable/textures/orbital_ruins.png", scale: 2.7 },
+      { id: "orbital_ruins", name: "RUINAS ORBITALES", role: "secondary", worldKind: "orbital_ruins", x: -10, y: 15, texture: "assets/runtime/final-showable/textures/orbital_ruins.png", scale: 2.7 },
     ],
     gravityFields: [
       { id: "ocean_attractor", type: "attract", x: 22, y: -2, radius: 28, strength: 0.18 },
@@ -187,6 +199,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
 export const AUTHORED_WORLD_SCALE = 0.072;
 export const AUTHORED_SPRITE_SCALE = 0.24;
 export const AUTHORED_GATE_SCALE = 2.7;
+export const AUTHORED_HERO_POSITION_SCALE = 0.42;
+export const AUTHORED_LANDMARK_POSITION_SCALE = 0.11;
+export const AUTHORED_GATE_POSITION_SCALE = 0.072;
+export const AUTHORED_TARGET_POSITION_SCALE = 0.22;
 
 export function scenarioForStage(stageIndex: number): ScenarioDefinition {
   const safeIndex = Math.max(0, Math.min(SCENARIOS.length - 1, Math.trunc(stageIndex || 0)));

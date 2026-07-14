@@ -7,6 +7,7 @@ export interface CompositionCandidate {
   depth: number;
   priority?: number;
   protectedFromSafeZone?: boolean;
+  maxScreenDiameter?: number;
 }
 
 export interface CompositionResult {
@@ -50,6 +51,12 @@ export class WorldComposition {
         a.depth - b.depth,
     )) {
       const { record, bounds } = candidate;
+
+      const screenDiameter = Math.max(bounds.width, bounds.height) * 0.5;
+      if (candidate.maxScreenDiameter && screenDiameter > candidate.maxScreenDiameter + 0.005) {
+        rejected.push({ candidate, reason: "screen-size-cap" });
+        continue;
+      }
 
       const safeZones = Array.isArray(safeZone) ? safeZone : [safeZone];
       if (!candidate.protectedFromSafeZone && safeZones.some((zone) => overlapRatio(bounds, zone) > 0)) {

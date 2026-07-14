@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { WorldComposition } from "../src/world/WorldComposition";
+import { WORLD_TUNING } from "../src/config/WorldTuning";
 
 describe("WorldComposition", () => {
   it("limits hero planets and protects gameplay safe zone", () => {
@@ -81,5 +82,40 @@ describe("WorldComposition", () => {
     ], { x: -0.2, y: -0.2, width: 0.4, height: 0.4 });
 
     expect(result.accepted.map((candidate) => candidate.record.id)).toEqual(["fractured_beacon"]);
+  });
+
+  it("locks the approved screen hierarchy ranges", () => {
+    expect(WORLD_TUNING.screenHierarchy.shipHeight).toBeCloseTo(0.165);
+    expect(WORLD_TUNING.screenHierarchy.astronautHeight).toBeCloseTo(0.04);
+    expect(WORLD_TUNING.screenHierarchy.heroDiameter).toEqual([0.28, 0.42]);
+    expect(WORLD_TUNING.screenHierarchy.landmarkDiameter).toEqual([0.04, 0.07]);
+    expect(WORLD_TUNING.screenHierarchy.gateDiameter).toEqual([0.05, 0.08]);
+    expect(WORLD_TUNING.screenHierarchy.missionTargetDiameter).toEqual([0.03, 0.06]);
+  });
+
+  it("rejects authored objects that exceed their screen-size cap", () => {
+    const system = new WorldComposition();
+    const result = system.compose([
+      {
+        record: {
+          id: "oversized-landmark",
+          biome: "oceanic",
+          stageAffinity: 0,
+          kind: "landmark",
+          textureId: "beacon",
+          coordinate: { x: 0, y: 0 },
+          radius: 1,
+          axialSpeed: 0,
+          translationPhase: 0,
+          materialLocked: true,
+          discovered: true,
+        },
+        bounds: { x: -0.2, y: -0.2, width: 0.4, height: 0.4 },
+        depth: 1,
+        maxScreenDiameter: 0.07,
+      },
+    ], { x: 0.6, y: 0.6, width: 0.2, height: 0.2 });
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected[0]?.reason).toBe("screen-size-cap");
   });
 });

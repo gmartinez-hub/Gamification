@@ -44,10 +44,15 @@
       <div id="robotTip" class="robot-tip">Clickeá objetivos marcados para activar autoaim.</div>
       <div id="robotMessage" class="robot-message">RUMBO EN ESPERA</div>
       <div class="robot-counters" aria-label="Objetivos pendientes">
-        <div><span>FRAGMENTOS</span><strong id="robotSmallCounter">0/3</strong></div>
-        <div><span>NÚCLEOS</span><strong id="robotLargeCounter">0/1</strong></div>
-        <div><span>RELIQUIA</span><strong id="robotRelicCounter">0/1</strong></div>
+        <div><span id="robotSmallLabel">FRAGMENTOS</span><strong id="robotSmallCounter">0/3</strong></div>
+        <div><span id="robotLargeLabel">NÚCLEOS</span><strong id="robotLargeCounter">0/1</strong></div>
+        <div><span id="robotRelicLabel">RELIQUIA</span><strong id="robotRelicCounter">0/1</strong></div>
       </div>
+    </div>
+    <div id="companionDirective" class="companion-directive" aria-live="polite" hidden>
+      <span id="companionDirectiveKicker">COMPANION</span>
+      <strong id="companionDirectiveTitle">SEÑAL EN ESPERA</strong>
+      <small id="companionDirectiveAction"></small>
     </div>
     <div id="gameMenu" class="game-menu" aria-label="Menú Gravedad Zero">
       <div class="game-menu-inner">

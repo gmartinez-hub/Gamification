@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   AUTHORED_GATE_SCALE,
+  AUTHORED_GATE_POSITION_SCALE,
+  AUTHORED_HERO_POSITION_SCALE,
+  AUTHORED_LANDMARK_POSITION_SCALE,
   AUTHORED_SPRITE_SCALE,
+  AUTHORED_TARGET_POSITION_SCALE,
   AUTHORED_WORLD_SCALE,
   BIOME_LABELS,
   SCENARIOS,
@@ -49,10 +53,24 @@ describe("authored scenario definitions", () => {
     expect(AUTHORED_WORLD_SCALE).toBe(0.072);
     expect(AUTHORED_SPRITE_SCALE).toBe(0.24);
     expect(AUTHORED_GATE_SCALE).toBe(2.7);
+    expect(AUTHORED_HERO_POSITION_SCALE).toBe(0.42);
+    expect(AUTHORED_LANDMARK_POSITION_SCALE).toBe(0.11);
+    expect(AUTHORED_GATE_POSITION_SCALE).toBe(0.072);
+    expect(AUTHORED_TARGET_POSITION_SCALE).toBe(0.22);
     expect(scenarioForStage(1).hero).toEqual(expect.objectContaining({
       texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png",
       scale: 8.4,
     }));
+  });
+
+  it("keeps the Oceanic secondary moon opposite the hero planet", () => {
+    const oceanic = scenarioForStage(0);
+    expect(oceanic.secondaryBodies).toEqual([
+      expect.objectContaining({ id: "oceanic_moon", x: -24, radius: 0.64 }),
+    ]);
+    expect(Math.sign(oceanic.secondaryBodies![0]!.x - oceanic.center.x)).not.toBe(
+      Math.sign(oceanic.hero.x - oceanic.center.x),
+    );
   });
 
   it("drives runtime profiles and UI labels from the same source", () => {

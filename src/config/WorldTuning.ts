@@ -19,4 +19,13 @@ export const WORLD_TUNING = {
     { x: -96, y: 128 },
     { x: 18, y: 196 },
   ],
+  screenHierarchy: {
+    shipHeight: 0.165,
+    astronautHeight: 0.04,
+    heroDiameter: [0.28, 0.42],
+    landmarkDiameter: [0.04, 0.07],
+    gateDiameter: [0.05, 0.08],
+    missionTargetDiameter: [0.03, 0.06],
+    finalPortalDiameter: [0.10, 0.16],
+  },
 } as const;

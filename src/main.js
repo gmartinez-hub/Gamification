@@ -10,7 +10,11 @@ import {
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
 import {
   AUTHORED_GATE_SCALE,
+  AUTHORED_GATE_POSITION_SCALE,
+  AUTHORED_HERO_POSITION_SCALE,
+  AUTHORED_LANDMARK_POSITION_SCALE,
   AUTHORED_SPRITE_SCALE,
+  AUTHORED_TARGET_POSITION_SCALE,
   AUTHORED_WORLD_SCALE,
   BIOME_LABELS,
   SCENARIOS,
@@ -53,6 +57,13 @@ const robotMessage = document.querySelector("#robotMessage");
 const robotSmallCounter = document.querySelector("#robotSmallCounter");
 const robotLargeCounter = document.querySelector("#robotLargeCounter");
 const robotRelicCounter = document.querySelector("#robotRelicCounter");
+const robotSmallLabel = document.querySelector("#robotSmallLabel");
+const robotLargeLabel = document.querySelector("#robotLargeLabel");
+const robotRelicLabel = document.querySelector("#robotRelicLabel");
+const companionDirective = document.querySelector("#companionDirective");
+const companionDirectiveKicker = document.querySelector("#companionDirectiveKicker");
+const companionDirectiveTitle = document.querySelector("#companionDirectiveTitle");
+const companionDirectiveAction = document.querySelector("#companionDirectiveAction");
 const gameMenu = document.querySelector("#gameMenu");
 const menuEyebrow = document.querySelector("#menuEyebrow");
 const menuTitle = document.querySelector("#menuTitle");
@@ -1893,6 +1904,9 @@ const mission01 = {
   finalOrientation: 0,
   finalAngularVelocity: 0,
   finalFired: false,
+  finalNodesActivated: 0,
+  finalSyncTime: 0,
+  finalPortalReady: false,
   zoneIndex: initialStageIndex,
 };
 
@@ -2097,6 +2111,19 @@ function missionTargetParallax(z) {
 function missionTargetAnchor(stageIndex, spec, role, index) {
   const zone = missionZoneSpecForStage(stageIndex);
   const layout = missionZoneLayoutForStage(stageIndex);
+  if (FIXED_AUTHORED_WORLD) {
+    const scenario = scenarioForStage(stageIndex);
+    const angle = -2.35 + index * 2.12 + stageIndex * 0.38 + (role === "large" ? 0.72 : 0);
+    const worldRadius = (role === "large" ? 10.5 : 8.4) + stageIndex * 0.75 + index * 0.42;
+    return {
+      x: scenario.center.x + Math.cos(angle) * worldRadius,
+      y: scenario.center.y + Math.sin(angle) * worldRadius * 0.72,
+      zone,
+      layout,
+      parallax: 0,
+      authored: true,
+    };
+  }
   const parallax = missionTargetParallax(spec.z);
   const trackingX = layout.center.x * (0.78 + parallax * 0.28);
   const trackingY = layout.center.y * (0.88 + parallax * 0.16);
@@ -2135,6 +2162,7 @@ function placeMissionTarget(target, spec) {
   target.userData.targetOrbitRing = anchor.layout.targetRingRadius;
   target.userData.targetSpawnMinDistance = anchor.layout.minDistanceFromPlayer;
   target.userData.parallax = anchor.parallax;
+  target.userData.authoredMissionTarget = !!anchor.authored;
   target.userData.worldWrapX = MISSION_ZONE_WRAP_SPAN;
   target.userData.worldWrapY = MISSION_ZONE_WRAP_SPAN;
   target.position.copy(target.userData.base);
@@ -3123,29 +3151,99 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
     region,
   );
   const texture = authoredLandmarkTextures[landmark.texture];
-  if (texture) {
-    for (const child of body.children) {
-      child.position.multiplyScalar(0.48);
-      child.scale.multiplyScalar(0.48);
-    }
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      opacity: 0.22,
-      depthWrite: false,
-      alphaTest: 0.015,
-      blending: THREE.AdditiveBlending,
-    }));
-    sprite.position.z = 0.18;
-    sprite.scale.setScalar(landmark.scale * AUTHORED_SPRITE_SCALE * 0.52);
-    sprite.userData.baseOpacity = 0.22;
-    sprite.userData.authoredTexture = landmark.texture;
-    sprite.userData.authoredIndicator = true;
-    body.add(sprite);
-    body.userData.textureId = landmark.texture;
-    body.userData.spin = 0;
-    body.userData.drift.set(0, 0);
+  for (const child of body.children) child.visible = false;
+  const accent = new THREE.Color(scenario.accent);
+  const radius = landmark.id === "relic_portal" ? 0.62 : landmark.role === "primary" ? 0.32 : 0.27;
+  const visual = new THREE.Group();
+  visual.name = `AUTHORED_LANDMARK_${landmark.id}`;
+  const structural = () => new THREE.MeshStandardMaterial({
+    color: 0xd8e8f2,
+    emissive: accent,
+    emissiveIntensity: 0.18,
+    metalness: 0.64,
+    roughness: 0.34,
+    transparent: true,
+    opacity: 0.30,
+  });
+  const energy = (opacity = 0.82) => new THREE.MeshBasicMaterial({
+    color: accent,
+    transparent: true,
+    opacity: opacity * 0.38,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const addMesh = (geometry, material, position = [0, 0, 0], scale = [1, 1, 1], rotation = [0, 0, 0]) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(...position);
+    mesh.scale.set(...scale);
+    mesh.rotation.set(...rotation);
+    mesh.userData.baseOpacity = material.opacity ?? 1;
+    visual.add(mesh);
+    return mesh;
+  };
+
+  if (landmark.id === "fractured_beacon") {
+    addMesh(new THREE.CylinderGeometry(0.055, 0.082, 0.40, 8), structural());
+    addMesh(new THREE.BoxGeometry(0.09, 0.16, 0.08), energy(0.88), [0, 0.03, 0.055]);
+    addMesh(new THREE.ConeGeometry(0.075, 0.14, 8), structural(), [0, 0.27, 0]);
+    addMesh(new THREE.TorusGeometry(0.18, 0.016, 8, 40), energy(0.58), [0, -0.19, 0]);
+    addMesh(new THREE.TorusGeometry(0.25, 0.008, 6, 40), energy(0.30), [0, -0.19, -0.01], [1, 0.42, 1]);
+  } else if (landmark.id === "orbital_ruins" || landmark.id === "broken_ring") {
+    const ringRadius = landmark.id === "broken_ring" ? 0.25 : 0.22;
+    [0.12, 2.28, 4.45].forEach((start, index) => {
+      addMesh(
+        new THREE.TorusGeometry(ringRadius, 0.026, 8, 32, index === 1 ? 1.15 : 1.32),
+        index === 1 ? energy(0.74) : structural(),
+        [0, 0, index * 0.012],
+        [1, 1, 1],
+        [0, 0, start],
+      );
+    });
+    [-0.20, 0.20].forEach((x) => addMesh(new THREE.BoxGeometry(0.075, 0.11, 0.08), structural(), [x, x * 0.22, 0.02]));
+    addMesh(new THREE.TorusGeometry(ringRadius * 0.50, 0.009, 6, 32), energy(0.34));
+  } else if (landmark.id === "scanner_array") {
+    addMesh(new THREE.CylinderGeometry(0.045, 0.075, 0.40, 8), structural());
+    [-0.13, 0, 0.13].forEach((y, index) => {
+      addMesh(new THREE.TorusGeometry(0.19 - index * 0.018, 0.012, 6, 32), energy(0.42 + index * 0.12), [0, y, 0], [1, 0.38, 1]);
+    });
+    addMesh(new THREE.SphereGeometry(0.055, 16, 12), energy(0.88), [0, 0.19, 0.04]);
+  } else if (landmark.id === "synthetic_rift") {
+    addMesh(new THREE.TorusGeometry(0.24, 0.024, 8, 48), energy(0.62), [0, 0, 0.01], [1, 0.62, 1], [0, 0, 0.34]);
+    addMesh(new THREE.TorusGeometry(0.17, 0.014, 6, 40), structural(), [0, 0, 0.03], [1, 0.74, 1], [0, 0, -0.48]);
+    addMesh(new THREE.OctahedronGeometry(0.09, 1), energy(0.90), [0, 0, 0.07]);
+  } else if (landmark.id === "gravity_tower") {
+    addMesh(new THREE.CylinderGeometry(0.045, 0.09, 0.42, 8), structural());
+    addMesh(new THREE.OctahedronGeometry(0.075, 1), energy(0.88), [0, 0.18, 0.04]);
+    [-0.15, 0.05].forEach((y, index) => addMesh(new THREE.TorusGeometry(0.16 - index * 0.025, 0.012, 6, 32), energy(0.46), [0, y, 0], [1, 0.44, 1]));
+  } else if (landmark.id === "relic_portal") {
+    addMesh(new THREE.TorusGeometry(0.47, 0.038, 10, 72), structural());
+    addMesh(new THREE.TorusGeometry(0.36, 0.018, 8, 64), energy(0.66));
+    addMesh(new THREE.CircleGeometry(0.31, 48), energy(0.16), [0, 0, -0.015]);
+  } else {
+    addMesh(new THREE.SphereGeometry(0.105, 24, 18), structural());
+    addMesh(new THREE.TorusGeometry(0.18, 0.012, 6, 40), energy(0.56), [0, 0, 0.01], [1, 0.52, 1]);
+    addMesh(new THREE.TorusGeometry(0.15, 0.008, 6, 36), energy(0.34), [0, 0, 0.02], [0.58, 1, 1], [0, 0, 0.56]);
   }
+
+  if (texture) {
+    const indicator = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture,
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+      alphaTest: 0.012,
+    }));
+    indicator.position.z = 0.10;
+    indicator.scale.setScalar(radius * 1.92);
+    indicator.userData.baseOpacity = 0.82;
+    indicator.userData.authoredTexture = landmark.texture;
+    visual.add(indicator);
+  }
+  body.add(visual);
+  body.userData.textureId = landmark.texture;
+  body.userData.spin = 0;
+  body.userData.drift.set(0, 0);
   body.userData.base.set(landmark.x, landmark.y, -2.5);
   body.userData.profileStage = stageIndex;
   body.userData.spawnStage = stageIndex;
@@ -3154,12 +3252,15 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
   body.userData.worldSource = "authored-scenario";
   body.userData.authoredLandmark = true;
   body.userData.authoredWorldObject = true;
-    body.userData.scenarioId = scenario.id;
-    body.userData.landmarkId = landmark.id;
-    body.userData.landmarkRole = landmark.role;
+  body.userData.scenarioId = scenario.id;
+  body.userData.landmarkId = landmark.id;
+  body.userData.landmarkRole = landmark.role;
+  body.userData.finalNode = landmark.id.startsWith("gravity_node_");
+  body.userData.finalNodeActive = false;
+  body.userData.finalPortal = landmark.id === "relic_portal";
   body.userData.reveal = 1;
   body.userData.discovered = true;
-  body.userData.radius = landmark.scale * AUTHORED_SPRITE_SCALE * 0.5;
+  body.userData.radius = radius;
   body.userData.visualScale = 1;
   proceduralWorld.objects.push(body);
   return body;
@@ -3168,6 +3269,54 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
 const authoredScenarioLandmarks = SCENARIOS.flatMap((scenario) =>
   scenario.landmarks.map((landmark, index) =>
     createAuthoredScenarioLandmark(scenario, landmark, scenario.stageIndex * 11 + index + 1)
+  )
+);
+
+function createAuthoredScenarioSecondaryBody(scenario, secondary, seedOffset) {
+  let seed = 0x4d23a117 ^ seedOffset;
+  const rand = () => {
+    seed = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    seed ^= seed + Math.imul(seed ^ (seed >>> 7), 61 | seed);
+    return ((seed ^ (seed >>> 14)) >>> 0) / 4294967296;
+  };
+  const region = [REGION_CONFIGS.north, REGION_CONFIGS.east, REGION_CONFIGS.west, REGION_CONFIGS.final][scenario.stageIndex];
+  const body = createProceduralBody("moon", 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[scenario.stageIndex], region);
+  for (const child of body.children) child.visible = false;
+  const material = new THREE.MeshStandardMaterial({
+    map: authoredHeroTextures[secondary.texture],
+    color: 0x9fc5d8,
+    roughness: 0.82,
+    metalness: 0.01,
+    transparent: true,
+    opacity: 0.72,
+  });
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(secondary.radius, 48, 32), material);
+  sphere.userData.baseOpacity = 0.72;
+  body.add(sphere);
+  body.userData.base.set(secondary.x, secondary.y, -6.2);
+  body.userData.profileStage = scenario.stageIndex;
+  body.userData.spawnStage = scenario.stageIndex;
+  body.userData.stageAffinity = scenario.stageIndex;
+  body.userData.worldCategory = "medium";
+  body.userData.worldSource = "authored-scenario";
+  body.userData.textureId = secondary.texture;
+  body.userData.authoredSecondary = true;
+  body.userData.authoredWorldObject = true;
+  body.userData.scenarioId = scenario.id;
+  body.userData.secondaryId = secondary.id;
+  body.userData.reveal = 1;
+  body.userData.discovered = true;
+  body.userData.radius = secondary.radius;
+  body.userData.visualScale = 1;
+  body.userData.spin = 0;
+  body.userData.drift.set(0, 0);
+  proceduralWorld.objects.push(body);
+  return body;
+}
+
+const authoredScenarioSecondaries = SCENARIOS.flatMap((scenario, scenarioIndex) =>
+  (scenario.secondaryBodies || []).map((secondary, index) =>
+    createAuthoredScenarioSecondaryBody(scenario, secondary, 181 + scenarioIndex * 7 + index)
   )
 );
 
@@ -3195,7 +3344,7 @@ function createAuthoredScenarioHero(scenario, seedOffset) {
         emissiveIntensity: 0.18,
       });
   const sprite = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), heroMaterial);
-  sprite.scale.setScalar(scenario.hero.scale * AUTHORED_SPRITE_SCALE * 0.72);
+  sprite.scale.setScalar(scenario.hero.scale * AUTHORED_SPRITE_SCALE * 0.84);
   sprite.userData.baseOpacity = 0.96;
   body.add(sprite);
   body.userData.base.set(scenario.hero.x, scenario.hero.y, -4.2);
@@ -3210,7 +3359,7 @@ function createAuthoredScenarioHero(scenario, seedOffset) {
   body.userData.scenarioId = scenario.id;
   body.userData.reveal = 1;
   body.userData.discovered = true;
-  body.userData.radius = scenario.hero.scale * AUTHORED_SPRITE_SCALE * 0.72;
+  body.userData.radius = scenario.hero.scale * AUTHORED_SPRITE_SCALE * 0.84;
   body.userData.visualScale = 1;
   body.userData.spin = 0;
   body.userData.drift.set(0, 0);
@@ -3230,43 +3379,43 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   for (const child of body.children) child.visible = false;
   const gateColor = new THREE.Color(scenario.accent);
   const frame = new THREE.Mesh(
-    new THREE.TorusGeometry(0.42, 0.035, 10, 96),
+    new THREE.TorusGeometry(0.31, 0.032, 10, 96),
     new THREE.MeshBasicMaterial({
       color: gateColor,
+      transparent: true,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  frame.userData.baseOpacity = 0.92;
+  frame.userData.defaultBaseOpacity = 0.92;
+  body.add(frame);
+  const innerFrame = new THREE.Mesh(
+    new THREE.TorusGeometry(0.235, 0.010, 8, 72),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
       transparent: true,
       opacity: 0.68,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     }),
   );
-  frame.userData.baseOpacity = 0.68;
-  frame.userData.defaultBaseOpacity = 0.68;
-  body.add(frame);
-  const innerFrame = new THREE.Mesh(
-    new THREE.TorusGeometry(0.32, 0.012, 8, 72),
-    new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.42,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  innerFrame.userData.baseOpacity = 0.42;
-  innerFrame.userData.defaultBaseOpacity = 0.42;
+  innerFrame.userData.baseOpacity = 0.68;
+  innerFrame.userData.defaultBaseOpacity = 0.68;
   body.add(innerFrame);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: authoredGateTexture,
     transparent: true,
-    opacity: 0.18,
+    opacity: 0.68,
     depthWrite: false,
     alphaTest: 0.015,
     blending: THREE.AdditiveBlending,
   }));
   sprite.position.z = 0.08;
-  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 0.92);
-  sprite.userData.baseOpacity = 0.18;
-  sprite.userData.defaultBaseOpacity = 0.18;
+  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 0.70);
+  sprite.userData.baseOpacity = 0.68;
+  sprite.userData.defaultBaseOpacity = 0.68;
   body.add(sprite);
   body.userData.base.set(gate.x, gate.y, -2.2);
   body.userData.profileStage = scenario.stageIndex;
@@ -3281,7 +3430,7 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   body.userData.gate = gate;
   body.userData.reveal = 1;
   body.userData.discovered = true;
-  body.userData.radius = 0.48;
+  body.userData.radius = 0.34;
   body.userData.visualScale = 1;
   body.userData.spin = 0;
   body.userData.drift.set(0, 0);
@@ -3300,6 +3449,7 @@ authoredStageGroup.name = "AUTHORED_FIXED_STAGE";
 backgroundScene.add(authoredStageGroup);
 const authoredStageObjects = [
   ...authoredScenarioHeroes,
+  ...authoredScenarioSecondaries,
   ...authoredScenarioLandmarks,
   ...authoredScenarioGates,
 ];
@@ -3569,10 +3719,16 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
       continue;
     }
     const authoredPositionScale = object.userData.authoredHero
-      ? 0.18
-      : object.userData.authoredLandmark
-        ? 0.11
-        : AUTHORED_WORLD_SCALE;
+      ? AUTHORED_HERO_POSITION_SCALE
+      : object.userData.authoredSecondary
+        ? 0.32
+        : object.userData.finalNode
+          ? 0.25
+        : object.userData.authoredLandmark
+          ? AUTHORED_LANDMARK_POSITION_SCALE
+          : object.userData.authoredGate
+            ? AUTHORED_GATE_POSITION_SCALE
+            : AUTHORED_WORLD_SCALE;
     const wrapped = object.userData.authoredWorldObject
       ? {
           x: (object.userData.base.x - state.worldOffset.x) * authoredPositionScale,
@@ -3601,6 +3757,9 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
     );
     const reveal = THREE.MathUtils.smoothstep(object.userData.reveal, 0, 1);
     object.scale.setScalar((0.92 + reveal * 0.08) * (object.userData.visualScale || 1));
+    if (object.userData.finalNode && object.userData.finalNodeActive) {
+      object.scale.multiplyScalar(1.04 + Math.sin(elapsed * 3.8) * 0.025);
+    }
     object.rotation.x += delta * object.userData.spin * 0.65;
     object.rotation.y += delta * object.userData.spin;
     object.rotation.z += delta * object.userData.spin * 0.42;
@@ -3616,6 +3775,11 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
       object.userData.kind === "debris_cluster" || object.userData.kind === "foreground_shards" ? 0.58 : 1;
     const pulse = 0.88 + Math.sin(elapsed * (object.userData.kind === "gravity_node" ? 2.6 : 1.2) + object.userData.phase) * 0.12;
     const clearanceFade = centralBodyClearanceFade(object.position, visualRadius);
+    const finalObjectiveOpacity = object.userData.finalPortal
+      ? (mission01.finalPortalReady || mission01.finalStarted || mission01.finalComplete ? 1 : 0.06)
+      : object.userData.finalNode
+        ? (object.userData.finalNodeActive ? 1 : 0.82)
+        : 1;
     object.traverse((child) => {
       if (!child.material || child.userData.baseOpacity === undefined) return;
       if (object.userData.authoredGate) {
@@ -3625,10 +3789,13 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
         child.userData.baseOpacity = unlocked ? defaultOpacity : Math.min(defaultOpacity, 0.08);
       }
       child.material.opacity = THREE.MathUtils.clamp(
-        (child.userData.baseOpacity * stageBlend * pulse * decorativeFade * clearanceFade + finalBoost) * reveal,
+        (child.userData.baseOpacity * stageBlend * pulse * decorativeFade * clearanceFade * finalObjectiveOpacity + finalBoost) * reveal,
         0,
         0.92
       );
+      if (object.userData.finalNode && child.material.emissive) {
+        child.material.emissiveIntensity = object.userData.finalNodeActive ? 0.88 : 0.18;
+      }
     });
 
     const isSynthetic =
@@ -4180,6 +4347,26 @@ const interactionFx = new THREE.Group();
 scene.add(interactionFx);
 const activeShots = [];
 
+const NAVIGATION_PATH_POINT_COUNT = 20;
+const navigationPathPositions = new Float32Array(NAVIGATION_PATH_POINT_COUNT * 3);
+const navigationPathGeometry = new THREE.BufferGeometry();
+navigationPathGeometry.setAttribute("position", new THREE.BufferAttribute(navigationPathPositions, 3));
+const navigationPathMaterial = new THREE.PointsMaterial({
+  color: 0x72eaff,
+  size: 4.2,
+  sizeAttenuation: false,
+  transparent: true,
+  opacity: 0.64,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  depthTest: false,
+});
+const navigationPath = new THREE.Points(navigationPathGeometry, navigationPathMaterial);
+navigationPath.renderOrder = 29;
+navigationPath.visible = false;
+scene.add(navigationPath);
+const navigationPathState = { targetKind: "none", targetId: null, distance: 0 };
+
 function debugMissionTargetSummary() {
   const origin = state.controlMode === "ship" ? state.position : astronautState.position;
   return [...mission01.smallAsteroids, ...mission01.largeObstacles]
@@ -4232,6 +4419,8 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
     gems: mission01.gems,
     finalStarted: mission01.finalStarted,
     finalComplete: mission01.finalComplete,
+    finalNodesActivated: mission01.finalNodesActivated,
+    finalPortalReady: mission01.finalPortalReady,
     cameraCue: cameraRig.cue,
     transition: state.transition
       ? {
@@ -4247,6 +4436,10 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
       visible: !!gateGuide && !gateGuide.hidden,
       label: gateGuideLabel?.textContent || "",
       distance: gateGuideDistance?.textContent || "",
+    },
+    navigationPath: {
+      visible: navigationPath.visible,
+      ...navigationPathState,
     },
     worldOffset: { x: Number(state.worldOffset.x.toFixed(2)), y: Number(state.worldOffset.y.toFixed(2)) },
     visibleDepth: visibleDepthComposition(),
@@ -4264,6 +4457,7 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
           kind: object.userData.kind,
           scenarioId: object.userData.scenarioId || null,
           landmarkId: object.userData.landmarkId || null,
+          secondaryId: object.userData.secondaryId || null,
           authoredHero: !!object.userData.authoredHero,
           authoredGate: !!object.userData.authoredGate,
           visible: object.visible,
@@ -4275,6 +4469,10 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
             z: Number(object.position.z.toFixed(3)),
           },
           bounds: Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, Number(value.toFixed(3))])),
+          screenPercent: {
+            width: Number((bounds.width * 50).toFixed(2)),
+            height: Number((bounds.height * 50).toFixed(2)),
+          },
         };
       }),
     scenarioGameplay: {
@@ -5071,6 +5269,24 @@ function robotTutorialContent(missionState = mission01.state) {
     };
   }
 
+  if (missionState === "final_nodes") {
+    return {
+      label: "COMPANION / RELIC CORE",
+      goal: `Nodos ${mission01.finalNodesActivated || 0}/3 sincronizados.`,
+      action: "Seguí la ruta cyan y entrá en cada nodo gravitacional.",
+      tip: "También podés presionar E al acercarte al nodo.",
+    };
+  }
+
+  if (missionState === "final_sync" || missionState === "final_portal") {
+    return {
+      label: "COMPANION / PORTAL",
+      goal: missionState === "final_sync" ? "Sincronizando las tres gemas." : "Portal de reliquia estabilizado.",
+      action: missionState === "final_sync" ? "Mantené posición." : "Seguí la ruta magenta y entrá al portal.",
+      tip: "La secuencia final comienza dentro del portal.",
+    };
+  }
+
   if (mission01.gems >= 3 || mission01.finalStarted) {
     return {
       label: "COMPANION / FINAL",
@@ -5139,6 +5355,71 @@ function robotTutorialContent(missionState = mission01.state) {
   };
 }
 
+function updateCompanionDirective() {
+  if (!companionDirective || !companionDirectiveKicker || !companionDirectiveTitle || !companionDirectiveAction) return;
+  if (!mission01.started || (gameMenu && !gameMenu.hidden)) {
+    companionDirective.hidden = true;
+    return;
+  }
+  companionDirective.hidden = false;
+  companionDirectiveKicker.textContent = BIOME_LABELS[biomeForStage(currentWorldProfileIndex())] || "COMPANION";
+  if (state.transition) {
+    const destination = scenarioForStage(state.transition.targetWorldStage);
+    companionDirectiveTitle.textContent = `CORREDOR → ${destination.name}`;
+    companionDirectiveAction.textContent = "Mantené el rumbo · la nueva misión inicia al arribar";
+    return;
+  }
+  if (mission01.state === "small_asteroids") {
+    companionDirectiveTitle.textContent = `FRAGMENTOS ${mission01.smallDestroyed}/${mission01.smallRequired}`;
+    companionDirectiveAction.textContent = "Seguí la ruta cyan · E escanea · clic dispara";
+    return;
+  }
+  if (mission01.state === "large_obstacle") {
+    companionDirectiveTitle.textContent = `NÚCLEOS ${mission01.largeDestroyed}/${mission01.largeRequired}`;
+    companionDirectiveAction.textContent = "Volvé a la nave · acercate y usá disparo pesado";
+    return;
+  }
+  if (mission01.state === "relic") {
+    companionDirectiveTitle.textContent = "RELIQUIA LIBERADA";
+    companionDirectiveAction.textContent = "Seguí la ruta y tocá la señal con el astronauta";
+    return;
+  }
+  if (mission01.state === "final_nodes") {
+    companionDirectiveTitle.textContent = `NODOS ${mission01.finalNodesActivated || 0}/3`;
+    companionDirectiveAction.textContent = "Entrá en cada nodo o presioná E para sincronizar";
+    return;
+  }
+  if (mission01.state === "final_sync") {
+    companionDirectiveTitle.textContent = "SINCRONIZANDO 3 GEMAS";
+    companionDirectiveAction.textContent = "Portal de reliquia en formación";
+    return;
+  }
+  if (mission01.state === "final_portal") {
+    companionDirectiveTitle.textContent = "PORTAL DE RELIQUIA";
+    companionDirectiveAction.textContent = "Entrá al portal para iniciar la secuencia final";
+    return;
+  }
+  if (mission01.finalStarted && !mission01.finalComplete) {
+    companionDirectiveTitle.textContent = "SECUENCIA FINAL";
+    companionDirectiveAction.textContent = "Estabilización y disparo final en curso";
+    return;
+  }
+  if (mission01.finalComplete) {
+    companionDirectiveTitle.textContent = "MISSION COMPLETE";
+    companionDirectiveAction.textContent = "Ruta estabilizada · bonus asegurado";
+    return;
+  }
+  if (["completed_region", "unlocked"].includes(mission01.state)) {
+    const scenario = scenarioForStage(currentWorldProfileIndex());
+    const destination = scenarioForStage(scenario.gate?.to ?? currentWorldProfileIndex());
+    companionDirectiveTitle.textContent = `GATE → ${destination.name}`;
+    companionDirectiveAction.textContent = "Seguí la ruta magenta y entrá al anillo";
+    return;
+  }
+  companionDirectiveTitle.textContent = `GEMAS ${mission01.gems}/3`;
+  companionDirectiveAction.textContent = "Seguí la ruta de navegación";
+}
+
 function updateRobotPanel() {
   if (
     !robotPanel ||
@@ -5149,7 +5430,10 @@ function updateRobotPanel() {
     !robotMessage ||
     !robotSmallCounter ||
     !robotLargeCounter ||
-    !robotRelicCounter
+    !robotRelicCounter ||
+    !robotSmallLabel ||
+    !robotLargeLabel ||
+    !robotRelicLabel
   ) {
     return;
   }
@@ -5160,9 +5444,22 @@ function updateRobotPanel() {
   robotAction.textContent = tutorial.action;
   robotTip.textContent = tutorial.tip;
   robotMessage.textContent = robotCompanion.message;
-  robotSmallCounter.textContent = `${robotCompanion.smallCurrent}/${mission01.smallRequired}`;
-  robotLargeCounter.textContent = `${robotCompanion.largeCurrent}/${mission01.largeRequired}`;
-  robotRelicCounter.textContent = `${robotCompanion.relicCurrent}/1`;
+  const finalObjectives = currentWorldProfileIndex() === 3 || ["final_nodes", "final_sync", "final_portal", "final", "complete"].includes(mission01.state);
+  if (finalObjectives) {
+    robotSmallLabel.textContent = "NODOS";
+    robotLargeLabel.textContent = "PORTAL";
+    robotRelicLabel.textContent = "SEÑAL FINAL";
+    robotSmallCounter.textContent = `${mission01.finalNodesActivated}/3`;
+    robotLargeCounter.textContent = `${mission01.finalPortalReady ? 1 : 0}/1`;
+    robotRelicCounter.textContent = `${mission01.finalSignalAcquired || mission01.finalComplete ? 1 : 0}/1`;
+  } else {
+    robotSmallLabel.textContent = "FRAGMENTOS";
+    robotLargeLabel.textContent = "NÚCLEOS";
+    robotRelicLabel.textContent = "RELIQUIA";
+    robotSmallCounter.textContent = `${robotCompanion.smallCurrent}/${mission01.smallRequired}`;
+    robotLargeCounter.textContent = `${robotCompanion.largeCurrent}/${mission01.largeRequired}`;
+    robotRelicCounter.textContent = `${robotCompanion.relicCurrent}/1`;
+  }
 }
 
 function companionFaceForState(stateName) {
@@ -6047,7 +6344,7 @@ function beginStageNavigation(stageIndex) {
   playAudioEvent("route_detected_ping");
   saveProgress();
   if (safeZoneIndex === finalZoneIndex) {
-    startFinalSequence(new THREE.Vector2(0, 0.12));
+    beginFinalNodeSequence();
     return;
   }
   if (FIXED_AUTHORED_WORLD) startMissionForStage(missionStageIndex);
@@ -6098,13 +6395,17 @@ function saveProgress() {
   }
 }
 
-function nearestScenarioGate(maxDistance = 5.5) {
+function nearestScenarioGate(maxDistance = 0.58) {
   const scenario = scenarioForStage(currentWorldProfileIndex());
+  const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
   let nearest = null;
-  for (const gate of [scenario.backGate, scenario.gate].filter(Boolean)) {
+  for (const object of authoredScenarioGates.filter((candidate) => candidate.userData.scenarioId === scenario.id)) {
+    const gate = object.userData.gate;
+    if (!gate) continue;
     if (gate.to > mission01.gems) continue;
-    const distance = Math.hypot(gate.x - state.worldOffset.x, gate.y - state.worldOffset.y);
-    if (distance <= maxDistance && (!nearest || distance < nearest.distance)) nearest = { gate, distance };
+    const point = backgroundObjectScreenPoint(object, new THREE.Vector2());
+    const distance = actor.distanceTo(point);
+    if (distance <= maxDistance && (!nearest || distance < nearest.distance)) nearest = { gate, object, point, distance };
   }
   return nearest;
 }
@@ -6140,23 +6441,28 @@ function updateGateGuide() {
     return;
   }
 
-  const dx = target.gate.x - state.worldOffset.x;
-  const dy = target.gate.y - state.worldOffset.y;
+  const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  const point = target.object
+    ? backgroundObjectScreenPoint(target.object, new THREE.Vector2())
+    : new THREE.Vector2(0, 0.8);
+  const dx = point.x - actor.x;
+  const dy = point.y - actor.y;
   const distance = Math.hypot(dx, dy);
+  const worldDistance = Math.hypot(target.gate.x - state.worldOffset.x, target.gate.y - state.worldOffset.y);
   const safeDistance = Math.max(0.001, distance);
   const nx = dx / safeDistance;
   const ny = dy / safeDistance;
-  const left = THREE.MathUtils.clamp(50 + nx * 38, 10, 90);
-  const top = THREE.MathUtils.clamp(50 - ny * 34, 12, 86);
+  const left = THREE.MathUtils.clamp(50 + (point.x / Math.max(0.001, viewport.aspect)) * 50, 10, 90);
+  const top = THREE.MathUtils.clamp(50 - point.y * 50, 12, 86);
   const destination = scenarioForStage(target.gate.to);
-  const near = distance <= 5.5;
+  const near = distance <= 0.58;
   gateGuide.hidden = false;
   gateGuide.classList.toggle("is-near", near);
   gateGuide.style.left = `${left}%`;
   gateGuide.style.top = `${top}%`;
   gateGuide.style.setProperty("--gate-angle", `${Math.atan2(nx, ny) * 180 / Math.PI}deg`);
-  gateGuideLabel.textContent = near ? `E · CRUZAR A ${destination.name}` : `GATE → ${destination.name}`;
-  gateGuideDistance.textContent = near ? "GATE ALCANZADO" : `${Math.ceil(distance)}u · SEGUÍ LA FLECHA`;
+  gateGuideLabel.textContent = near ? `ENTRÁ / E · ${destination.name}` : `GATE → ${destination.name}`;
+  gateGuideDistance.textContent = near ? "CRUCE AUTOMÁTICO ACTIVO" : `${Math.ceil(worldDistance)}u · SEGUÍ LA RUTA MAGENTA`;
 }
 
 function tryScenarioGateTravel() {
@@ -6168,6 +6474,24 @@ function tryScenarioGateTravel() {
     return true;
   }
   return startGateTransition(nearest.gate.to);
+}
+
+let gateApproachTime = 0;
+function updateGateInteraction(delta) {
+  if (state.transition || !["navigation", "completed_region", "unlocked"].includes(mission01.state)) {
+    gateApproachTime = 0;
+    return;
+  }
+  const nearest = nearestScenarioGate(0.46);
+  if (!nearest || !nearest.object.visible) {
+    gateApproachTime = 0;
+    return;
+  }
+  gateApproachTime += delta;
+  if (gateApproachTime >= 0.72) {
+    gateApproachTime = 0;
+    startGateTransition(nearest.gate.to);
+  }
 }
 
 function requestWorldTravel(stageIndex) {
@@ -6302,7 +6626,7 @@ function updateTransition(delta, elapsed) {
   interstageOverlay.scale.set(viewport.aspect * 2.08, 2.08, 1);
   interstageOverlay.rotation.z += delta * 0.28;
   interstageStreaks.forEach((streak, index) => {
-    streak.material.opacity = corridor * (0.22 + 0.58 * Math.sin(Math.PI * t));
+    streak.material.opacity = corridor * (0.10 + 0.20 * Math.sin(Math.PI * t));
     streak.position.x = streak.userData.lane * viewport.aspect * 0.92;
     streak.position.y -= delta * (1.2 + (index % 5) * 0.16);
     if (streak.position.y < -1.4) streak.position.y = 1.4;
@@ -6476,8 +6800,12 @@ function updateIntegratedBackground(delta, elapsed, travelVelocity) {
     const orbitY =
       Math.sin(orbitAngle * 0.74) * orbitRadius.y +
       Math.cos(elapsed * driftSpeed * 0.86 + (motion?.phase ?? 0) * 0.9) * driftRadius.y;
-    const relativeX = wrapWorldDelta(base.x - cameraWorld.x * (0.78 + parallax * 0.28), asteroid.userData.worldWrapX || WORLD_WRAP_X);
-    const relativeY = wrapWorldDelta(base.y - cameraWorld.y * (0.88 + parallax * 0.16), asteroid.userData.worldWrapY || WORLD_WRAP_Y);
+    const relativeX = asteroid.userData.authoredMissionTarget
+      ? (base.x - cameraWorld.x) * AUTHORED_TARGET_POSITION_SCALE
+      : wrapWorldDelta(base.x - cameraWorld.x * (0.78 + parallax * 0.28), asteroid.userData.worldWrapX || WORLD_WRAP_X);
+    const relativeY = asteroid.userData.authoredMissionTarget
+      ? (base.y - cameraWorld.y) * AUTHORED_TARGET_POSITION_SCALE
+      : wrapWorldDelta(base.y - cameraWorld.y * (0.88 + parallax * 0.16), asteroid.userData.worldWrapY || WORLD_WRAP_Y);
     if (asteroid.userData.destroyed) asteroid.userData.destroyTime += delta;
     asteroid.userData.hitPulse = Math.max(0, asteroid.userData.hitPulse - delta * 2.8);
     const destroyedFade = asteroid.userData.destroyed
@@ -6633,7 +6961,11 @@ function biomeForStage(stageIndex) {
 }
 
 function worldCompositionCandidate(object, index) {
-  const category = object.userData.worldCategory || depthKindCategory(object.userData.kind);
+  // Final gravity nodes are gameplay targets. Treating them as decorative
+  // landmarks made the two-landmark budget hide one of the required nodes.
+  const category = object.userData.finalNode
+    ? (object.userData.landmarkId === "gravity_node_a" ? "landmark" : "medium")
+    : object.userData.worldCategory || depthKindCategory(object.userData.kind);
   const stageAffinity = THREE.MathUtils.clamp(object.userData.profileStage ?? object.userData.spawnStage ?? 0, 0, 3);
   const bounds = projectedBoundsForWorldObject(object);
   if (!boundsTouchViewport(bounds)) return null;
@@ -6652,7 +6984,19 @@ function worldCompositionCandidate(object, index) {
     protectedFromSafeZone:
       object.userData.authoredGate === true ||
       object.userData.authoredHero === true ||
-      object.userData.authoredLandmark === true,
+      object.userData.finalNode === true ||
+      (object.userData.finalPortal === true && mission01.finalPortalReady),
+    maxScreenDiameter: object.userData.landmarkId === "relic_portal"
+      ? 0.16
+      : object.userData.authoredLandmark
+        ? 0.07
+        : object.userData.authoredGate
+          ? 0.08
+          : object.userData.authoredHero
+            ? 0.42
+            : object.userData.authoredSecondary
+              ? 0.12
+              : undefined,
     record: {
       id: object.uuid,
       biome: biomeForStage(stageAffinity),
@@ -6693,7 +7037,14 @@ function updateWorldCompositionAuthority(rawDelta) {
     const stageAllowed = allowedStages.has(THREE.MathUtils.clamp(stageAffinity, 0, 3));
     const authoredStageAllowed = !object.userData.authoredWorldObject || stageAffinity === primaryStage;
     const revealed = object.userData.reveal === undefined || object.userData.reveal > 0.12;
-    if (stageAllowed && authoredStageAllowed && revealed) {
+    const objectiveAvailable =
+      (!object.userData.authoredGate ||
+        (object.userData.gate.to > object.userData.profileStage && object.userData.gate.to <= mission01.gems)) &&
+      (!object.userData.finalPortal ||
+        mission01.finalPortalReady ||
+        mission01.finalStarted ||
+        mission01.finalComplete);
+    if (stageAllowed && authoredStageAllowed && revealed && objectiveAvailable) {
       const candidate = worldCompositionCandidate(object, index);
       if (candidate) candidates.push(candidate);
     }
@@ -6757,11 +7108,87 @@ function backgroundObjectScreenPoint(object, out = new THREE.Vector2()) {
   return out;
 }
 
+function activeNavigationObjective() {
+  const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  const activeTargets = (mission01.state === "large_obstacle" ? mission01.largeObstacles : mission01.smallAsteroids)
+    .filter((target) => target.visible && target.userData.active && !target.userData.destroyed);
+  if (["small_asteroids", "large_obstacle"].includes(mission01.state) && activeTargets.length) {
+    const target = [...activeTargets].sort((a, b) =>
+      actor.distanceTo(backgroundObjectScreenPoint(a, new THREE.Vector2())) -
+      actor.distanceTo(backgroundObjectScreenPoint(b, new THREE.Vector2()))
+    )[0];
+    return {
+      kind: mission01.state === "large_obstacle" ? "núcleo" : "fragmento",
+      id: `${target.userData.missionRole}-${target.userData.targetIndex}`,
+      point: backgroundObjectScreenPoint(target, new THREE.Vector2()),
+    };
+  }
+  if (mission01.state === "relic" && relicGroup.visible) {
+    return { kind: "reliquia", id: "mission-relic", point: new THREE.Vector2(relicGroup.position.x, relicGroup.position.y) };
+  }
+  if (mission01.state === "final_nodes") {
+    const node = authoredScenarioLandmarks.find((object) =>
+      object.userData.scenarioId === "relic_core" &&
+      object.userData.landmarkId?.startsWith("gravity_node_") &&
+      !object.userData.finalNodeActive
+    );
+    if (node) return { kind: "nodo", id: node.userData.landmarkId, point: backgroundObjectScreenPoint(node, new THREE.Vector2()) };
+  }
+  if (mission01.state === "final_portal") {
+    const portal = authoredScenarioLandmarks.find((object) => object.userData.landmarkId === "relic_portal");
+    if (portal) return { kind: "portal", id: "relic_portal", point: backgroundObjectScreenPoint(portal, new THREE.Vector2()) };
+  }
+  if (["completed_region", "unlocked"].includes(mission01.state)) {
+    const gate = activeForwardGate()?.object;
+    if (gate) return { kind: "gate", id: gate.userData.gate?.name || "gate", point: backgroundObjectScreenPoint(gate, new THREE.Vector2()) };
+  }
+  return null;
+}
+
+function updateNavigationPath(elapsed) {
+  const objective = state.transition ? null : activeNavigationObjective();
+  if (!objective) {
+    navigationPath.visible = false;
+    navigationPathState.targetKind = "none";
+    navigationPathState.targetId = null;
+    navigationPathState.distance = 0;
+    return;
+  }
+  const from = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  const unclamped = objective.point;
+  const to = new THREE.Vector2(
+    THREE.MathUtils.clamp(unclamped.x, -viewport.aspect + 0.13, viewport.aspect - 0.13),
+    THREE.MathUtils.clamp(unclamped.y, -0.86, 0.86),
+  );
+  const delta = to.clone().sub(from);
+  const distance = delta.length();
+  if (distance < 0.16) {
+    navigationPath.visible = false;
+    return;
+  }
+  const perpendicular = new THREE.Vector2(-delta.y, delta.x).normalize().multiplyScalar(Math.min(0.14, distance * 0.09));
+  for (let index = 0; index < NAVIGATION_PATH_POINT_COUNT; index += 1) {
+    const t = (index + 1) / (NAVIGATION_PATH_POINT_COUNT + 1);
+    const wave = Math.sin(Math.PI * t) * Math.sin(elapsed * 0.9) * 0.18;
+    const point = from.clone().lerp(to, t).addScaledVector(perpendicular, Math.sin(Math.PI * t) * (0.72 + wave));
+    navigationPathPositions[index * 3] = point.x;
+    navigationPathPositions[index * 3 + 1] = point.y;
+    navigationPathPositions[index * 3 + 2] = 0.095;
+  }
+  navigationPathGeometry.attributes.position.needsUpdate = true;
+  navigationPathMaterial.color.set(objective.kind === "gate" || objective.kind === "portal" ? 0xff78df : 0x72eaff);
+  navigationPathMaterial.opacity = 0.54 + Math.sin(elapsed * 2.4) * 0.10;
+  navigationPath.visible = true;
+  navigationPathState.targetKind = objective.kind;
+  navigationPathState.targetId = objective.id;
+  navigationPathState.distance = Number(distance.toFixed(3));
+}
+
 const DISCOVERY_OPACITY = {
-  unknown: 0.04,
-  signal_detected: 0.14,
-  scanning: 0.28,
-  partially_revealed: 0.48,
+  unknown: 0.22,
+  signal_detected: 0.44,
+  scanning: 0.62,
+  partially_revealed: 0.78,
   identified: 0.74,
   targetable: 1,
   engaged: 1,
@@ -7187,9 +7614,141 @@ function acquireStageGem() {
   saveProgress();
 }
 
+function finalNodeObjects() {
+  return authoredScenarioLandmarks.filter((object) =>
+    object.userData.scenarioId === "relic_core" && object.userData.finalNode
+  );
+}
+
+function finalPortalObject() {
+  return authoredScenarioLandmarks.find((object) => object.userData.scenarioId === "relic_core" && object.userData.finalPortal) || null;
+}
+
+function beginFinalNodeSequence() {
+  mission01.started = true;
+  mission01.state = "final_nodes";
+  mission01.finalStarted = false;
+  mission01.finalComplete = false;
+  mission01.finalSignalAcquired = false;
+  mission01.finalNodesActivated = 0;
+  mission01.finalSyncTime = 0;
+  mission01.finalPortalReady = false;
+  for (const node of finalNodeObjects()) node.userData.finalNodeActive = false;
+  enterShipMode();
+  updateMissionHud("RELIC CORE", "ACTIVÁ LOS 3 NODOS GRAVITACIONALES", "ATRACT · REPEL · PULSE");
+  syncRobotCompanion("final");
+  updateGemHud();
+  updateStageHud();
+  playAudioEvent("route_detected_ping");
+  saveProgress();
+}
+
+function activateFinalNode(node) {
+  if (mission01.state !== "final_nodes" || !node || node.userData.finalNodeActive) return false;
+  node.userData.finalNodeActive = true;
+  mission01.finalNodesActivated = finalNodeObjects().filter((candidate) => candidate.userData.finalNodeActive).length;
+  playAudioEvent("target_lock");
+  playAudioEvent("robot_item_update");
+  setCompanionAimFeedback(`NODO SINCRONIZADO · ${mission01.finalNodesActivated}/3`, true);
+  updateMissionHud(
+    "RELIC CORE",
+    `NODOS ${mission01.finalNodesActivated}/3`,
+    mission01.finalNodesActivated >= 3 ? "INICIANDO SINCRONIZACIÓN DE GEMAS" : "SEGUÍ LA RUTA AL PRÓXIMO NODO",
+  );
+  if (mission01.finalNodesActivated >= 3) {
+    mission01.state = "final_sync";
+    mission01.finalSyncTime = 0;
+    enterShipMode();
+    triggerCameraCue("gem");
+    playAudioEvent("gem_counter_update");
+  }
+  return true;
+}
+
+function nearestFinalNode(maxDistance = 0.50) {
+  const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  let nearest = null;
+  for (const node of finalNodeObjects()) {
+    if (node.userData.finalNodeActive || !node.visible) continue;
+    const point = backgroundObjectScreenPoint(node, new THREE.Vector2());
+    const distance = actor.distanceTo(point);
+    if (distance <= maxDistance && (!nearest || distance < nearest.distance)) nearest = { object: node, point, distance };
+  }
+  return nearest;
+}
+
+function tryFinalInteraction() {
+  if (mission01.state === "final_nodes") {
+    const nearest = nearestFinalNode();
+    if (!nearest) return false;
+    return activateFinalNode(nearest.object);
+  }
+  if (mission01.state === "final_portal") {
+    const portal = finalPortalObject();
+    if (!portal || !portal.visible) return false;
+    const point = backgroundObjectScreenPoint(portal, new THREE.Vector2());
+    const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
+    if (actor.distanceTo(point) > 0.58) return false;
+    startFinalSequence(point);
+    return true;
+  }
+  return false;
+}
+
+let finalApproachTime = 0;
+let finalApproachId = null;
+function updateFinalObjectiveInteraction(delta) {
+  if (mission01.state === "final_nodes") {
+    const nearest = nearestFinalNode(0.40);
+    const id = nearest?.object.userData.landmarkId || null;
+    if (!nearest || id !== finalApproachId) {
+      finalApproachTime = 0;
+      finalApproachId = id;
+      return;
+    }
+    finalApproachTime += delta;
+    if (finalApproachTime >= 0.62) {
+      finalApproachTime = 0;
+      activateFinalNode(nearest.object);
+    }
+    return;
+  }
+  if (mission01.state === "final_portal") {
+    const portal = finalPortalObject();
+    if (!portal || !portal.visible) return;
+    const point = backgroundObjectScreenPoint(portal, new THREE.Vector2());
+    const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
+    if (actor.distanceTo(point) <= 0.48) {
+      finalApproachTime += delta;
+      if (finalApproachTime >= 0.72) {
+        finalApproachTime = 0;
+        startFinalSequence(point);
+      }
+    } else {
+      finalApproachTime = 0;
+    }
+    return;
+  }
+  finalApproachTime = 0;
+  finalApproachId = null;
+}
+
+function updateFinalNodeSequence(delta) {
+  if (mission01.state !== "final_sync") return;
+  mission01.finalSyncTime += delta;
+  if (mission01.finalSyncTime < 2.8) return;
+  mission01.finalPortalReady = true;
+  mission01.state = "final_portal";
+  triggerCameraCue("relic");
+  playAudioEvent("stage_route_unlocked");
+  updateMissionHud("PORTAL DE RELIQUIA", "ENTRÁ AL PORTAL", "3 GEMAS SINCRONIZADAS");
+  syncRobotCompanion("final");
+}
+
 function startFinalSequence(anchorPoint = null) {
   if (mission01.finalStarted || mission01.finalComplete) return;
   mission01.finalStarted = true;
+  mission01.finalPortalReady = true;
   mission01.finalTime = 0;
   mission01.finalOrientation = astronautGroup.rotation.z;
   mission01.finalAngularVelocity = 0;
@@ -7842,6 +8401,10 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     return;
   }
+  if ((event.key === "e" || event.key === "E") && tryFinalInteraction()) {
+    event.preventDefault();
+    return;
+  }
   if ((event.key === "e" || event.key === "E") && tryScenarioGateTravel()) {
     event.preventDefault();
     return;
@@ -7915,6 +8478,28 @@ window.addEventListener("pointerdown", (event) => {
   const shipDistance = point.distanceTo(state.position);
   const target = findInteractiveTarget(point);
   const relicPoint = new THREE.Vector2(relicGroup.position.x, relicGroup.position.y);
+
+  if (mission01.state === "final_nodes") {
+    const node = finalNodeObjects().find((candidate) =>
+      !candidate.userData.finalNodeActive &&
+      point.distanceTo(backgroundObjectScreenPoint(candidate, new THREE.Vector2())) < 0.22
+    );
+    if (node) {
+      activateFinalNode(node);
+      return;
+    }
+  }
+
+  if (mission01.state === "final_portal") {
+    const portal = finalPortalObject();
+    if (portal) {
+      const portalPoint = backgroundObjectScreenPoint(portal, new THREE.Vector2());
+      if (point.distanceTo(portalPoint) < 0.30) {
+        startFinalSequence(portalPoint);
+        return;
+      }
+    }
+  }
 
   if (mission01.relicState === "collectible" && point.distanceTo(relicPoint) < 0.18) {
     beginAimAssistRelic(point);
@@ -8173,12 +8758,17 @@ function animate() {
     : 1;
   updateTransition(delta * qaTransitionSpeed, elapsed);
   updateGateGuide();
+  updateGateInteraction(rawDelta);
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(rawDelta);
   updateAimAssist(rawDelta, elapsed);
   updateMission01(delta, elapsed);
+  updateFinalNodeSequence(rawDelta);
+  updateFinalObjectiveInteraction(rawDelta);
   updateFinalSequence(rawDelta, elapsed);
+  updateNavigationPath(elapsed);
   updateRobotCompanion(delta, elapsed);
+  updateCompanionDirective();
   updateTether(elapsed);
   holographicMap.draw();
   updateGameplayCamera(rawDelta);
