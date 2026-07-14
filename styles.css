@@ -346,6 +346,85 @@ body.debug-hud .hud {
   color: #ff7cbf;
 }
 
+.gate-guide {
+  position: fixed;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  max-width: min(300px, calc(100vw - 36px));
+  padding: 0 13px 0 8px;
+  border: 1px solid rgba(105, 232, 255, 0.62);
+  border-radius: 999px;
+  background: rgba(2, 7, 18, 0.86);
+  box-shadow: 0 0 28px rgba(76, 219, 255, 0.16), 0 12px 30px rgba(0, 0, 0, 0.34);
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(12px);
+}
+
+.gate-guide[hidden] {
+  display: none;
+}
+
+.gate-guide-arrow {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  border-radius: 50%;
+  background: rgba(92, 226, 255, 0.15);
+  color: #8aeeff;
+  font-size: 19px;
+  font-weight: 900;
+  transform: rotate(var(--gate-angle, 0deg));
+}
+
+.gate-guide-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.gate-guide-copy strong {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.gate-guide-copy small {
+  color: rgba(132, 236, 255, 0.82);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gate-guide.is-near {
+  border-color: rgba(255, 119, 225, 0.82);
+  box-shadow: 0 0 34px rgba(255, 87, 218, 0.20), 0 12px 30px rgba(0, 0, 0, 0.34);
+}
+
+.gate-guide.is-near .gate-guide-arrow {
+  background: rgba(255, 92, 220, 0.18);
+  color: #ff8be3;
+}
+
+.gate-guide.is-transition {
+  left: 50% !important;
+  top: auto !important;
+  bottom: 8% !important;
+  transform: translateX(-50%);
+  border-color: rgba(255, 255, 255, 0.62);
+}
+
+.gate-guide.is-transition .gate-guide-arrow {
+  transform: none;
+}
+
 .gem-badge[hidden] {
   display: none;
 }

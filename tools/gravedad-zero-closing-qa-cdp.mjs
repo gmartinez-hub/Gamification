@@ -318,7 +318,12 @@ const testCases = [
     query: "?qa=oceanicGem",
     delayMs: 2200,
     waitForDebug: (debug) =>
-      debug?.missionState === "completed_region" && debug?.gems === 1 && debug?.stageIndex === 1 && !debug?.transition,
+      debug?.missionState === "completed_region" &&
+      debug?.gems === 1 &&
+      debug?.stageIndex === 1 &&
+      !debug?.transition &&
+      debug?.gateGuide?.visible === true &&
+      debug?.gateGuide?.label?.includes("MECHANICAL"),
     waitTimeoutMs: 8000,
     shots: [{ suffix: "full" }],
   },
@@ -328,7 +333,11 @@ const testCases = [
     delayMs: 1000,
     keyPress: "e",
     postKeyDelayMs: 1200,
-    waitForDebug: (debug) => debug?.transition?.duration === 30 && debug?.transition?.targetWorldStage === 1,
+    waitForDebug: (debug) =>
+      debug?.transition?.duration === 30 &&
+      debug?.transition?.targetWorldStage === 1 &&
+      debug?.gateGuide?.visible === true &&
+      debug?.gateGuide?.label?.includes("CORREDOR"),
     waitTimeoutMs: 8000,
     shots: [{ suffix: "full" }],
   },
@@ -338,7 +347,13 @@ const testCases = [
     delayMs: 1000,
     keyPress: "e",
     postKeyDelayMs: 8500,
-    waitForDebug: (debug) => !debug?.transition && debug?.currentStageIndex === 1 && debug?.worldStageIndex === 1,
+    waitForDebug: (debug) =>
+      !debug?.transition &&
+      debug?.currentStageIndex === 1 &&
+      debug?.worldStageIndex === 1 &&
+      debug?.missionState === "small_asteroids" &&
+      debug?.smallTargets === 3 &&
+      debug?.gateGuide?.visible === false,
     waitTimeoutMs: 8000,
     shots: [{ suffix: "full" }],
   },

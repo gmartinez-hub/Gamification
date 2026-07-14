@@ -39,6 +39,10 @@ const missionProgress = document.querySelector("#missionProgress");
 const gemHud = document.querySelector("#gemHud");
 const gemBadge = document.querySelector("#gemBadge");
 const shieldHud = document.querySelector("#shieldHud");
+const gateGuide = document.querySelector("#gateGuide");
+const gateGuideArrow = document.querySelector("#gateGuideArrow");
+const gateGuideLabel = document.querySelector("#gateGuideLabel");
+const gateGuideDistance = document.querySelector("#gateGuideDistance");
 const regionHud = document.querySelector("#regionHud");
 const robotPanel = document.querySelector("#robotPanel");
 const robotStateLabel = document.querySelector("#robotStateLabel");
@@ -636,6 +640,10 @@ const missionAudioItems = {
   navigation_whoosh: {
     path: "assets/runtime/final-showable/audio/interstage_exit.wav",
     volume: 0.15,
+  },
+  interstage_enter: {
+    path: "assets/runtime/final-showable/audio/interstage_enter.wav",
+    volume: 0.18,
   },
   aim_stabilize: {
     path: "assets/runtime/v2/audio/zero_g_lock_stabilize.wav",
@@ -1648,11 +1656,11 @@ function createIntegratedAsteroid({
       map,
       normalMap,
       normalScale: new THREE.Vector2(0.24, 0.24),
-      color: objective ? 0x3a4057 : 0x30364a,
-      roughness: 0.88,
+      color: objective ? 0xd0c2df : interactive ? 0xb8c8de : 0x46516a,
+      roughness: 0.80,
       metalness: 0.10,
-      emissive: objective ? 0x0b2638 : 0x101426,
-      emissiveIntensity: objective ? 0.56 : 0.24,
+      emissive: objective ? 0x3b315a : interactive ? 0x263e58 : 0x101426,
+      emissiveIntensity: objective ? 0.82 : interactive ? 0.74 : 0.24,
       flatShading: false,
       transparent: true,
       opacity: 1,
@@ -1682,7 +1690,7 @@ function createIntegratedAsteroid({
   if (objective) {
     const halo = new THREE.Sprite(
       new THREE.SpriteMaterial({
-        map: bgAuraTexture,
+        map: missionFxTextures.relicGlow,
         transparent: true,
         opacity: 0.58,
         blending: THREE.AdditiveBlending,
@@ -1698,16 +1706,17 @@ function createIntegratedAsteroid({
   if (interactive) {
     const targetHalo = new THREE.Sprite(
       new THREE.SpriteMaterial({
-        map: bgAuraTexture,
+        map: missionFxTextures.relicGlow,
+        color: size === "large" ? 0xff72df : 0x72eaff,
         transparent: true,
-        opacity: size === "large" ? 0.48 : 0.38,
+        opacity: size === "large" ? 0.58 : 0.50,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       })
     );
-    targetHalo.scale.set(radius * (size === "large" ? 5.8 : 4.9), radius * (size === "large" ? 5.8 : 4.9), 1);
+    targetHalo.scale.set(radius * (size === "large" ? 5.4 : 4.5), radius * (size === "large" ? 5.4 : 4.5), 1);
     targetHalo.userData.isMissionTargetHalo = true;
-    targetHalo.userData.baseOpacity = size === "large" ? 0.48 : 0.38;
+    targetHalo.userData.baseOpacity = size === "large" ? 0.58 : 0.50;
     group.add(targetHalo);
   }
 
@@ -3115,17 +3124,23 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
   );
   const texture = authoredLandmarkTextures[landmark.texture];
   if (texture) {
-    for (const child of body.children) child.visible = false;
+    for (const child of body.children) {
+      child.position.multiplyScalar(0.48);
+      child.scale.multiplyScalar(0.48);
+    }
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      opacity: 0.96,
+      opacity: 0.22,
       depthWrite: false,
       alphaTest: 0.015,
+      blending: THREE.AdditiveBlending,
     }));
-    sprite.scale.setScalar(landmark.scale * AUTHORED_SPRITE_SCALE);
-    sprite.userData.baseOpacity = 0.96;
+    sprite.position.z = 0.18;
+    sprite.scale.setScalar(landmark.scale * AUTHORED_SPRITE_SCALE * 0.52);
+    sprite.userData.baseOpacity = 0.22;
     sprite.userData.authoredTexture = landmark.texture;
+    sprite.userData.authoredIndicator = true;
     body.add(sprite);
     body.userData.textureId = landmark.texture;
     body.userData.spin = 0;
@@ -3213,16 +3228,45 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   const region = [REGION_CONFIGS.north, REGION_CONFIGS.east, REGION_CONFIGS.west, REGION_CONFIGS.final][scenario.stageIndex];
   const body = createProceduralBody("broken_gate", 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[scenario.stageIndex], region);
   for (const child of body.children) child.visible = false;
+  const gateColor = new THREE.Color(scenario.accent);
+  const frame = new THREE.Mesh(
+    new THREE.TorusGeometry(0.42, 0.035, 10, 96),
+    new THREE.MeshBasicMaterial({
+      color: gateColor,
+      transparent: true,
+      opacity: 0.68,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  frame.userData.baseOpacity = 0.68;
+  frame.userData.defaultBaseOpacity = 0.68;
+  body.add(frame);
+  const innerFrame = new THREE.Mesh(
+    new THREE.TorusGeometry(0.32, 0.012, 8, 72),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.42,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  innerFrame.userData.baseOpacity = 0.42;
+  innerFrame.userData.defaultBaseOpacity = 0.42;
+  body.add(innerFrame);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: authoredGateTexture,
     transparent: true,
-    opacity: 0.72,
+    opacity: 0.18,
     depthWrite: false,
     alphaTest: 0.015,
+    blending: THREE.AdditiveBlending,
   }));
-  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 1.45);
-  sprite.userData.baseOpacity = 0.72;
-  sprite.userData.defaultBaseOpacity = 0.72;
+  sprite.position.z = 0.08;
+  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 0.92);
+  sprite.userData.baseOpacity = 0.18;
+  sprite.userData.defaultBaseOpacity = 0.18;
   body.add(sprite);
   body.userData.base.set(gate.x, gate.y, -2.2);
   body.userData.profileStage = scenario.stageIndex;
@@ -3237,7 +3281,7 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   body.userData.gate = gate;
   body.userData.reveal = 1;
   body.userData.discovered = true;
-  body.userData.radius = AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 1.45 * 0.5;
+  body.userData.radius = 0.48;
   body.userData.visualScale = 1;
   body.userData.spin = 0;
   body.userData.drift.set(0, 0);
@@ -3576,7 +3620,9 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
       if (!child.material || child.userData.baseOpacity === undefined) return;
       if (object.userData.authoredGate) {
         const unlocked = object.userData.gate.to <= Math.max(state.stageIndex, mission01.gems);
-        child.userData.baseOpacity = unlocked ? child.userData.defaultBaseOpacity : 0.14;
+        const defaultOpacity = child.userData.defaultBaseOpacity ?? child.userData.baseOpacity ?? 0.30;
+        child.userData.defaultBaseOpacity = defaultOpacity;
+        child.userData.baseOpacity = unlocked ? defaultOpacity : Math.min(defaultOpacity, 0.08);
       }
       child.material.opacity = THREE.MathUtils.clamp(
         (child.userData.baseOpacity * stageBlend * pulse * decorativeFade * clearanceFade + finalBoost) * reveal,
@@ -4197,6 +4243,11 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
         }
       : null,
     controlMode: state.controlMode,
+    gateGuide: {
+      visible: !!gateGuide && !gateGuide.hidden,
+      label: gateGuideLabel?.textContent || "",
+      distance: gateGuideDistance?.textContent || "",
+    },
     worldOffset: { x: Number(state.worldOffset.x.toFixed(2)), y: Number(state.worldOffset.y.toFixed(2)) },
     visibleDepth: visibleDepthComposition(),
     worldComposition: {
@@ -4521,6 +4572,7 @@ const interstageStreaks = Array.from({ length: 22 }, (_, index) => {
     material,
   );
   streak.position.set(-1.2 + interstageRandom() * 2.4, -1.2 + interstageRandom() * 2.4, 0.2);
+  streak.userData.lane = streak.position.x / 1.2;
   streak.rotation.z = (interstageRandom() - 0.5) * 0.3;
   streak.renderOrder = 1001;
   interstageGroup.add(streak);
@@ -5068,6 +5120,17 @@ function robotTutorialContent(missionState = mission01.state) {
     };
   }
 
+  if (missionState === "completed_region") {
+    const currentScenario = scenarioForStage(currentWorldProfileIndex());
+    const nextScenario = scenarioForStage(currentScenario.gate?.to ?? currentWorldProfileIndex());
+    return {
+      label: "COMPANION / GATE",
+      goal: `${currentScenario.name} estabilizado.`,
+      action: `Seguí el indicador hasta el gate a ${nextScenario.name} y presioná E.`,
+      tip: "La nueva misión comienza al terminar el corredor interstage.",
+    };
+  }
+
   return {
     label: "COMPANION / RUMBO",
     goal: `Gemas ${mission01.gems}/3. ${currentTurboUnlock().label}.`,
@@ -5182,6 +5245,13 @@ function syncRobotCompanion(missionState = mission01.state) {
   if (missionState === "navigation") {
     const zone = missionZoneSpecForStage(mission01.zoneIndex);
     setRobotCompanionState("hint", `${zone.subtitle}. ZONA ABIERTA`);
+    return;
+  }
+
+  if (missionState === "completed_region") {
+    const scenario = scenarioForStage(currentWorldProfileIndex());
+    const destination = scenarioForStage(scenario.gate?.to ?? currentWorldProfileIndex());
+    setRobotCompanionState("stage_clear", `GATE A ${destination.name} DISPONIBLE`);
     return;
   }
 
@@ -5690,7 +5760,10 @@ function resizeAstronaut() {
 }
 
 function currentAstronautAnchor() {
-  astronautState.anchor.set(-Math.min(0.58, viewport.aspect * 0.34), 0.21);
+  astronautState.anchor.set(
+    THREE.MathUtils.clamp(state.position.x - 0.28, -viewport.aspect + 0.12, viewport.aspect - 0.12),
+    THREE.MathUtils.clamp(state.position.y + 0.11, -0.82, 0.82),
+  );
   return astronautState.anchor;
 }
 
@@ -5927,11 +6000,13 @@ function startGateTransition(targetWorldStage) {
     evolve: false,
     gateTravel: true,
     direction: plan.direction,
+    lastAnnouncedSecond: null,
   };
   enterShipMode();
   triggerCameraCue(plan.direction === "forward" ? "corridor" : "gate");
   stageButton.disabled = true;
   playShipOneShot("warp");
+  playMissionAudio("interstage_enter");
   playAudioEvent(plan.direction === "forward" ? "stage_route_unlocked" : "navigation_whoosh");
   return true;
 }
@@ -6034,6 +6109,56 @@ function nearestScenarioGate(maxDistance = 5.5) {
   return nearest;
 }
 
+function activeForwardGate() {
+  const scenario = scenarioForStage(currentWorldProfileIndex());
+  if (!scenario.gate || scenario.gate.to > mission01.gems) return null;
+  const object = authoredScenarioGates.find((candidate) =>
+    candidate.userData.scenarioId === scenario.id && candidate.userData.gate?.to === scenario.gate.to
+  );
+  return { scenario, gate: scenario.gate, object };
+}
+
+function updateGateGuide() {
+  if (!gateGuide || !gateGuideArrow || !gateGuideLabel || !gateGuideDistance) return;
+  if (state.transition) {
+    const destination = scenarioForStage(state.transition.targetWorldStage);
+    const remaining = Math.max(0, Math.ceil(state.transition.duration - state.transition.time));
+    gateGuide.hidden = false;
+    gateGuide.classList.remove("is-near");
+    gateGuide.classList.add("is-transition");
+    gateGuideArrow.textContent = "↟";
+    gateGuideLabel.textContent = `CORREDOR → ${destination.name}`;
+    gateGuideDistance.textContent = `${remaining}s · NUEVO SECTOR Y NUEVA MISIÓN AL ARRIBAR`;
+    return;
+  }
+
+  gateGuide.classList.remove("is-transition");
+  gateGuideArrow.textContent = "↑";
+  const target = ["completed_region", "unlocked"].includes(mission01.state) ? activeForwardGate() : null;
+  if (!target) {
+    gateGuide.hidden = true;
+    return;
+  }
+
+  const dx = target.gate.x - state.worldOffset.x;
+  const dy = target.gate.y - state.worldOffset.y;
+  const distance = Math.hypot(dx, dy);
+  const safeDistance = Math.max(0.001, distance);
+  const nx = dx / safeDistance;
+  const ny = dy / safeDistance;
+  const left = THREE.MathUtils.clamp(50 + nx * 38, 10, 90);
+  const top = THREE.MathUtils.clamp(50 - ny * 34, 12, 86);
+  const destination = scenarioForStage(target.gate.to);
+  const near = distance <= 5.5;
+  gateGuide.hidden = false;
+  gateGuide.classList.toggle("is-near", near);
+  gateGuide.style.left = `${left}%`;
+  gateGuide.style.top = `${top}%`;
+  gateGuide.style.setProperty("--gate-angle", `${Math.atan2(nx, ny) * 180 / Math.PI}deg`);
+  gateGuideLabel.textContent = near ? `E · CRUZAR A ${destination.name}` : `GATE → ${destination.name}`;
+  gateGuideDistance.textContent = near ? "GATE ALCANZADO" : `${Math.ceil(distance)}u · SEGUÍ LA FLECHA`;
+}
+
 function tryScenarioGateTravel() {
   const nearest = nearestScenarioGate();
   if (!nearest) return false;
@@ -6081,7 +6206,7 @@ function requestWorldTravel(stageIndex) {
   mission01.relicState = "hidden";
   if (mission01.relicGroup) mission01.relicGroup.visible = false;
   updateMissionHud(scenario.name, "REGIÓN ESTABILIZADA", "M · MAPA / TAB · RUTA GLOBAL");
-  syncRobotCompanion("navigation");
+  syncRobotCompanion("completed_region");
   updateGemHud();
   updateStageHud();
   playAudioEvent("navigation_whoosh");
@@ -6134,6 +6259,7 @@ function applyStage(stageIndex) {
 function updateTransition(delta, elapsed) {
   const transition = state.transition;
   if (!transition) {
+    authoredStageGroup.visible = true;
     portalSprite.visible = false;
     ringSprite.visible = false;
     transitionStreak.visible = false;
@@ -6143,6 +6269,8 @@ function updateTransition(delta, elapsed) {
   }
 
   transition.time += delta;
+  authoredStageGroup.visible = false;
+  for (const asteroid of integratedBackground.asteroids) asteroid.visible = false;
   const t = Math.min(transition.time / transition.duration, 1);
   const entrance = THREE.MathUtils.clamp(transition.time / 2, 0, 1);
   const exit = THREE.MathUtils.clamp((transition.time - (transition.duration - 2)) / 2, 0, 1);
@@ -6171,14 +6299,23 @@ function updateTransition(delta, elapsed) {
   transitionStreak.position.set(0.12, ((elapsed * 0.42) % 1.8) - 0.9, 0);
 
   interstageOverlay.material.opacity = corridor * (0.18 + 0.34 * Math.sin(Math.PI * t));
+  interstageOverlay.scale.set(viewport.aspect * 2.08, 2.08, 1);
   interstageOverlay.rotation.z += delta * 0.28;
   interstageStreaks.forEach((streak, index) => {
-    streak.material.opacity = corridor * (0.12 + 0.52 * Math.sin(Math.PI * t));
+    streak.material.opacity = corridor * (0.22 + 0.58 * Math.sin(Math.PI * t));
+    streak.position.x = streak.userData.lane * viewport.aspect * 0.92;
     streak.position.y -= delta * (1.2 + (index % 5) * 0.16);
     if (streak.position.y < -1.4) streak.position.y = 1.4;
   });
 
   ringSprite.rotation.z = elapsed * 0.5;
+
+  const remainingSecond = Math.max(0, Math.ceil(transition.duration - transition.time));
+  if (transition.lastAnnouncedSecond !== remainingSecond) {
+    transition.lastAnnouncedSecond = remainingSecond;
+    const destination = scenarioForStage(transition.targetWorldStage);
+    updateMissionHud("CORREDOR INTERSTAGE", `RUMBO A ${destination.name}`, `${remainingSecond}s · PREPARANDO NUEVA MISIÓN`);
+  }
 
   if (t >= 1) finishStageTransition();
 }
@@ -7136,7 +7273,7 @@ function touchMissionRelic() {
       "ALCANZÁ EL GATE Y PRESIONÁ E",
       `NAVE STAGE ${state.stageIndex + 1} · CORREDOR A ${nextScenario.name}`,
     );
-    syncRobotCompanion("navigation");
+    syncRobotCompanion("completed_region");
     updateStageHud();
     saveProgress();
   }, 760);
@@ -7550,6 +7687,9 @@ function enterShipMode() {
   state.controlMode = "ship";
   astronautState.actionTime = 0;
   astronautState.returnPulse = 0.6;
+  const anchor = currentAstronautAnchor();
+  if (astronautState.position.distanceTo(anchor) > 0.46) astronautState.position.copy(anchor);
+  astronautState.velocity.set(0, 0);
   updateStageHud();
 }
 
@@ -7642,7 +7782,7 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
   if (isControlled) {
     const tetherAnchor = currentAstronautAnchor();
     const tetherOffset = astronautState.position.clone().sub(tetherAnchor);
-    const maxTetherDistance = 0.78;
+    const maxTetherDistance = 0.44;
     if (tetherOffset.length() > maxTetherDistance) {
       tetherOffset.setLength(maxTetherDistance);
       astronautState.position.copy(tetherAnchor).add(tetherOffset);
@@ -7651,7 +7791,7 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
     }
   }
 
-  const visualVelocity = isControlled ? astronautState.velocity : controlVelocity;
+  const visualVelocity = astronautState.velocity;
   if (visualVelocity.x > 0.035) astronautState.facing = "right";
   if (visualVelocity.x < -0.035) astronautState.facing = "left";
 
@@ -8032,6 +8172,7 @@ function animate() {
     ? THREE.MathUtils.clamp(Number(params.get("qaTransitionSpeed") || 1), 1, 12)
     : 1;
   updateTransition(delta * qaTransitionSpeed, elapsed);
+  updateGateGuide();
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(rawDelta);
   updateAimAssist(rawDelta, elapsed);
