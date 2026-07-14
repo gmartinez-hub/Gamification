@@ -1,7 +1,6 @@
 import type { BiomeId, ProjectedBounds, StageId, WorldCoordinate } from "../domain/types";
 import { BiomeDirector, type BiomeBlend } from "../world/BiomeDirector";
 import { WorldComposition, type CompositionCandidate, type CompositionResult } from "../world/WorldComposition";
-import { MissionSimulation } from "../missions/MissionSimulation";
 import { TargetDiscovery } from "../discovery/TargetDiscovery";
 import { COMBAT_TUNING } from "../config/CombatTuning";
 
@@ -14,7 +13,6 @@ export interface ShieldSnapshot {
 export class V2Runtime {
   readonly composition = new WorldComposition();
   readonly biomes = new BiomeDirector();
-  readonly mission = new MissionSimulation();
   readonly discovery = new TargetDiscovery();
   readonly shield: ShieldSnapshot = {
     value: COMBAT_TUNING.shield.max,
@@ -28,7 +26,7 @@ export class V2Runtime {
     return this.biome;
   }
 
-  composeWorld(candidates: CompositionCandidate[], safeZone: ProjectedBounds): CompositionResult {
+  composeWorld(candidates: CompositionCandidate[], safeZone: ProjectedBounds | ProjectedBounds[]): CompositionResult {
     return this.composition.compose(candidates, safeZone);
   }
 

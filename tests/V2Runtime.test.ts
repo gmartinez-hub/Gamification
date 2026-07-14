@@ -6,6 +6,7 @@ describe("V2Runtime", () => {
     const runtime = new V2Runtime();
     expect(runtime.updateBiome({ x: 92, y: 60 }, 0).primary).toBe("oceanic");
     expect(runtime.updateBiome({ x: 92, y: 60 }, 1).primary).toBe("mechanical");
+    expect(runtime.updateBiome({ x: 92, y: 60 }, 1).mix).toBe(0);
     expect(runtime.updateBiome({ x: -96, y: 128 }, 2).primary).toBe("synthetic");
   });
 

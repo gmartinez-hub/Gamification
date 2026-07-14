@@ -27,7 +27,7 @@ export function overlapRatio(a: ProjectedBounds, b: ProjectedBounds): number {
 export class WorldComposition {
   compose(
     candidates: CompositionCandidate[],
-    safeZone: ProjectedBounds,
+    safeZone: ProjectedBounds | ProjectedBounds[],
   ): CompositionResult {
     const accepted: CompositionCandidate[] = [];
     const rejected: Array<{ candidate: CompositionCandidate; reason: string }> = [];
@@ -51,12 +51,9 @@ export class WorldComposition {
     )) {
       const { record, bounds } = candidate;
 
-      if (!candidate.protectedFromSafeZone && overlapRatio(bounds, safeZone) > 0) {
+      const safeZones = Array.isArray(safeZone) ? safeZone : [safeZone];
+      if (!candidate.protectedFromSafeZone && safeZones.some((zone) => overlapRatio(bounds, zone) > 0)) {
         rejected.push({ candidate, reason: "gameplay-safe-zone" });
-        continue;
-      }
-      if (record.kind === "hero" && heroCount >= WORLD_TUNING.maxHeroVisible) {
-        rejected.push({ candidate, reason: "hero-budget" });
         continue;
       }
       if (record.kind === "medium" && mediumCount >= WORLD_TUNING.maxMediumVisible) {
@@ -84,6 +81,10 @@ export class WorldComposition {
         )
       ) {
         rejected.push({ candidate, reason: "hero-overlap" });
+        continue;
+      }
+      if (record.kind === "hero" && heroCount >= WORLD_TUNING.maxHeroVisible) {
+        rejected.push({ candidate, reason: "hero-budget" });
         continue;
       }
       if (

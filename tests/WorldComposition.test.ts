@@ -27,7 +27,7 @@ describe("WorldComposition", () => {
       { x: -0.25, y: -0.25, width: 0.5, height: 0.5 },
     );
 
-    expect(result.accepted.length).toBeLessThanOrEqual(2);
+    expect(result.accepted.length).toBeLessThanOrEqual(1);
     expect(result.accepted.every((item) => item.bounds.x + item.bounds.width <= -0.25 || item.bounds.x >= 0.25)).toBe(true);
   });
 
@@ -58,7 +58,7 @@ describe("WorldComposition", () => {
     expect(result.rejected.some((item) => item.reason === "hero-overlap")).toBe(true);
   });
 
-  it("keeps an authored landmark visible when its large texture grazes the safe zone", () => {
+  it("keeps authored landmarks out of the gameplay safe zone", () => {
     const system = new WorldComposition();
     const result = system.compose([
       {
@@ -75,9 +75,8 @@ describe("WorldComposition", () => {
           materialLocked: true,
           discovered: true,
         },
-        bounds: { x: -0.58, y: -0.24, width: 0.57, height: 0.92 },
+        bounds: { x: -0.82, y: -0.24, width: 0.30, height: 0.30 },
         depth: 1,
-        protectedFromSafeZone: true,
       },
     ], { x: -0.2, y: -0.2, width: 0.4, height: 0.4 });
 

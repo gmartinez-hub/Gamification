@@ -132,9 +132,41 @@ async function runCase(cdp, qa, testCase) {
   await cdp.send("Emulation.setDeviceMetricsOverride", VIEWPORT, sessionId);
   await cdp.send("Page.navigate", { url }, sessionId);
   await cdp.waitFor("Page.loadEventFired", sessionId, 10000);
+  const readyStarted = Date.now();
+  while (Date.now() - readyStarted < 20000) {
+    const ready = await cdp.send(
+      "Runtime.evaluate",
+      {
+        expression: `location.href === ${JSON.stringify(url)} && document.readyState === "complete" && typeof window.__gzDebug === "function"`,
+        returnByValue: true,
+      },
+      sessionId,
+    );
+    if (ready.result?.value === true) break;
+    await delay(120);
+  }
   await delay(testCase.delayMs);
 
+  if (testCase.keyPress) {
+    const key = testCase.keyPress;
+    const code = key.toLowerCase() === "e" ? "KeyE" : key;
+    const virtualKeyCode = key.toLowerCase() === "e" ? 69 : key.toUpperCase().charCodeAt(0);
+    await cdp.send("Page.bringToFront", {}, sessionId);
+    await cdp.send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key,
+      code,
+      text: key,
+      unmodifiedText: key,
+      windowsVirtualKeyCode: virtualKeyCode,
+      nativeVirtualKeyCode: virtualKeyCode,
+    }, sessionId);
+    await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: virtualKeyCode }, sessionId);
+    if (testCase.postKeyDelayMs) await delay(testCase.postKeyDelayMs);
+  }
+
   let waitDebug = null;
+  let waitSatisfied = !testCase.waitForDebug;
   if (testCase.waitForDebug) {
     const started = Date.now();
     while (Date.now() - started < (testCase.waitTimeoutMs || 16000)) {
@@ -148,10 +180,16 @@ async function runCase(cdp, qa, testCase) {
         sessionId
       );
       waitDebug = debugResult.result?.value || null;
-      if (testCase.waitForDebug(waitDebug)) break;
+      if (testCase.waitForDebug(waitDebug)) {
+        waitSatisfied = true;
+        break;
+      }
       await delay(120);
     }
     if (testCase.postWaitDelayMs) await delay(testCase.postWaitDelayMs);
+    if (!waitSatisfied) {
+      throw new Error(`QA condition timed out for ${testCase.name}: ${JSON.stringify(waitDebug)}`);
+    }
   }
 
   const metaExpression = `(() => {
@@ -255,6 +293,49 @@ const qa = {
 };
 
 const testCases = [
+  {
+    name: "00-oceanic-layout",
+    query: "?autoMission=1",
+    delayMs: 2600,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-oceanic-relic",
+    query: "?qa=oceanicRelic",
+    delayMs: 1200,
+    waitForDebug: (debug) => debug?.missionState === "relic" && debug?.relicState === "collectible",
+    waitTimeoutMs: 8000,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-oceanic-gem-evolution",
+    query: "?qa=oceanicGem",
+    delayMs: 2200,
+    waitForDebug: (debug) =>
+      debug?.missionState === "completed_region" && debug?.gems === 1 && debug?.stageIndex === 1 && !debug?.transition,
+    waitTimeoutMs: 8000,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-oceanic-gate-input",
+    query: "?qa=oceanicGate",
+    delayMs: 1000,
+    keyPress: "e",
+    postKeyDelayMs: 1200,
+    waitForDebug: (debug) => debug?.transition?.duration === 30 && debug?.transition?.targetWorldStage === 1,
+    waitTimeoutMs: 8000,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-oceanic-arrival",
+    query: "?qa=oceanicGate&qaTransitionSpeed=12",
+    delayMs: 1000,
+    keyPress: "e",
+    postKeyDelayMs: 8500,
+    waitForDebug: (debug) => !debug?.transition && debug?.currentStageIndex === 1 && debug?.worldStageIndex === 1,
+    waitTimeoutMs: 8000,
+    shots: [{ suffix: "full" }],
+  },
   {
     name: "01-companion-panel",
     query: "?autoMission=1&robotPanel=1",

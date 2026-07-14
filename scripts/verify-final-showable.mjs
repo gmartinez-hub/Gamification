@@ -6,6 +6,8 @@ const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const main = read("src/main.js");
 const scenarios = read("src/world/ScenarioDefinitions.ts");
+const worldTuning = read("src/config/WorldTuning.ts");
+const progressionRules = read("src/missions/ProgressionRules.ts");
 const manifest = JSON.parse(read("assets/runtime/manifest.json"));
 const errors = [];
 
@@ -33,6 +35,15 @@ assert(count(main, /const camera = new THREE\.(?:Orthographic|Perspective)Camera
 assert(count(main, /const backgroundCamera = new THREE\.(?:Orthographic|Perspective)Camera/g) === 1, "Expected one render-only background camera.");
 assert(count(main, /new THREE\.(?:Orthographic|Perspective)Camera/g) === 2, "Unexpected additional camera constructor found.");
 assert(count(main, /renderer\.render\(/g) === 2, "Expected one background render and one main-scene render in the single loop.");
+assert(!main.includes("v2Runtime.mission"), "Parallel mission authority is still active.");
+assert(count(main, /state\.worldOffset\.set\(/g) === 1, "World position must have one set writer.");
+assert(count(main, /state\.worldOffset\.x \+=/g) === 1, "World X movement must have one writer.");
+assert(count(main, /state\.worldOffset\.y \+=/g) === 1, "World Y movement must have one writer.");
+assert(worldTuning.includes("maxHeroVisible: 1"), "Expected one dominant hero planet.");
+assert(progressionRules.includes("FIRST_VISIT_CORRIDOR_SECONDS = 30"), "Forward corridor must last 30 seconds.");
+assert(progressionRules.includes("RETURN_CORRIDOR_SECONDS = 6.5"), "Return corridor must last 6.5 seconds.");
+assert(main.includes('qaRoute === "reset"'), "Missing ?qa=reset progress reset.");
+assert(main.includes('mission01.state = "completed_region"'), "Mission completion does not wait at the world gate.");
 
 for (const integration of [
   "new GravityFieldSystem(SCENARIOS)",

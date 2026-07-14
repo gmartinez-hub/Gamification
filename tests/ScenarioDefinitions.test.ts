@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { BIOME_LABELS, SCENARIOS, WORLD_PROFILES, scenarioForStage } from "../src/world/ScenarioDefinitions";
+import {
+  AUTHORED_GATE_SCALE,
+  AUTHORED_SPRITE_SCALE,
+  AUTHORED_WORLD_SCALE,
+  BIOME_LABELS,
+  SCENARIOS,
+  WORLD_PROFILES,
+  scenarioForStage,
+} from "../src/world/ScenarioDefinitions";
 
 describe("authored scenario definitions", () => {
   it("defines the four connected game regions in stage order", () => {
@@ -35,6 +43,16 @@ describe("authored scenario definitions", () => {
         scale: 2.7,
       }),
     ]));
+  });
+
+  it("projects manifest world units with the release-package scale", () => {
+    expect(AUTHORED_WORLD_SCALE).toBe(0.072);
+    expect(AUTHORED_SPRITE_SCALE).toBe(0.24);
+    expect(AUTHORED_GATE_SCALE).toBe(2.7);
+    expect(scenarioForStage(1).hero).toEqual(expect.objectContaining({
+      texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png",
+      scale: 8.4,
+    }));
   });
 
   it("drives runtime profiles and UI labels from the same source", () => {

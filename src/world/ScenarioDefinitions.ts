@@ -36,6 +36,13 @@ export interface ScenarioDefinition {
   prohibitedMotifs: readonly string[];
   center: { x: number; y: number };
   bounds: ScenarioBounds;
+  hero: {
+    texture: string;
+    worldKind: string;
+    x: number;
+    y: number;
+    scale: number;
+  };
   gate?: ScenarioGate;
   backGate?: ScenarioGate;
   worldProfile: {
@@ -61,6 +68,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     prohibitedMotifs: ["aquatic fauna", "whales", "fish", "jellyfish", "coral", "underwater scenery"],
     center: { x: 0, y: -8 },
     bounds: { minX: -34, maxX: 34, minY: -40, maxY: 26 },
+    hero: { texture: "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png", worldKind: "planet_ocean_large", x: 22, y: -2, scale: 8.8 },
     gate: { x: 0, y: 23, to: 1, name: "CORREDOR ORBITAL" },
     worldProfile: {
       name: "STAGE_1_CLEAN_OCEAN",
@@ -89,6 +97,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     prohibitedMotifs: [],
     center: { x: 92, y: 60 },
     bounds: { minX: 55, maxX: 130, minY: 27, maxY: 96 },
+    hero: { texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png", worldKind: "mechanical_moon", x: 112, y: 65, scale: 8.4 },
     gate: { x: 92, y: 94, to: 2, name: "FRONTERA FRACTURADA" },
     backGate: { x: 92, y: 29, to: 0, name: "RETORNO OCEANIC" },
     worldProfile: {
@@ -118,6 +127,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     prohibitedMotifs: [],
     center: { x: -96, y: 128 },
     bounds: { minX: -134, maxX: -58, minY: 94, maxY: 162 },
+    hero: { texture: "assets/runtime/gravedad-zero/planets/planet_dark_crater_albedo.png", worldKind: "planet_dark_giant", x: -116, y: 132, scale: 9.2 },
     gate: { x: -96, y: 160, to: 3, name: "RIFT ESTABILIZADO" },
     backGate: { x: -96, y: 96, to: 1, name: "RETORNO MECHANICAL" },
     worldProfile: {
@@ -148,6 +158,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     prohibitedMotifs: [],
     center: { x: 18, y: 196 },
     bounds: { minX: -18, maxX: 54, minY: 168, maxY: 226 },
+    hero: { texture: "assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png", worldKind: "planet_ocean_large", x: 36, y: 203, scale: 8.0 },
     backGate: { x: 18, y: 170, to: 2, name: "RETORNO DARK CRATER" },
     worldProfile: {
       name: "FINAL_RELIC_ALIGNMENT",
@@ -170,6 +181,12 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     ],
   },
 ] as const;
+
+// Projection constants copied from the release package. Manifest scales are world
+// authoring units, not direct screen-space sprite sizes.
+export const AUTHORED_WORLD_SCALE = 0.072;
+export const AUTHORED_SPRITE_SCALE = 0.24;
+export const AUTHORED_GATE_SCALE = 2.7;
 
 export function scenarioForStage(stageIndex: number): ScenarioDefinition {
   const safeIndex = Math.max(0, Math.min(SCENARIOS.length - 1, Math.trunc(stageIndex || 0)));

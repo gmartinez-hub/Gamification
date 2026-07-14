@@ -3,8 +3,20 @@ import { V2Runtime } from "./app/V2Runtime.ts";
 import { ASSET_CATALOG, assetPath as v2AssetPath } from "./assets/AssetCatalog.ts";
 import { updateAimRotation } from "./combat/AimCombat.ts";
 import { resolveMeteorCollision } from "./meteors/MeteorCollision.ts";
+import {
+  evolvedShipStageForGems,
+  planGateTravel,
+} from "./missions/ProgressionRules.ts";
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
-import { BIOME_LABELS, SCENARIOS, WORLD_PROFILES, scenarioForStage } from "./world/ScenarioDefinitions.ts";
+import {
+  AUTHORED_GATE_SCALE,
+  AUTHORED_SPRITE_SCALE,
+  AUTHORED_WORLD_SCALE,
+  BIOME_LABELS,
+  SCENARIOS,
+  WORLD_PROFILES,
+  scenarioForStage,
+} from "./world/ScenarioDefinitions.ts";
 import { GravityFieldSystem } from "./world/GravityFieldSystem.ts";
 import { HolographicMap } from "./ui/HolographicMap.js";
 import {
@@ -61,11 +73,54 @@ backgroundScene.fog = new THREE.FogExp2(0x030513, 0.018);
 const backgroundCamera = new THREE.PerspectiveCamera(42, 1, 0.1, 90);
 backgroundCamera.position.set(0, 0.12, 9.6);
 
+const CAMERA_CUES = {
+  follow: { zoom: 1, attack: 0.18, hold: 0, release: 0.30 },
+  mission: { zoom: 1.035, attack: 0.42, hold: 1.1, release: 0.65 },
+  relic: { zoom: 1.075, attack: 0.34, hold: 1.4, release: 0.80 },
+  gem: { zoom: 1.11, attack: 0.22, hold: 1.2, release: 0.95 },
+  gate: { zoom: 0.96, attack: 0.55, hold: 1.1, release: 0.85 },
+  corridor: { zoom: 0.92, attack: 1.0, hold: 28, release: 1.0 },
+};
+const cameraRig = { cue: "follow", elapsed: 0, aim: 0, roll: 0 };
+
+function triggerCameraCue(name) {
+  cameraRig.cue = CAMERA_CUES[name] ? name : "follow";
+  cameraRig.elapsed = 0;
+}
+
+function updateGameplayCamera(delta) {
+  const cue = CAMERA_CUES[cameraRig.cue];
+  cameraRig.elapsed += delta;
+  const attack = THREE.MathUtils.smoothstep(cameraRig.elapsed, 0, Math.max(0.001, cue.attack));
+  const releaseStart = cue.attack + cue.hold;
+  const release = 1 - THREE.MathUtils.smoothstep(cameraRig.elapsed, releaseStart, releaseStart + cue.release);
+  const envelope = cue.hold === 0 ? 0 : attack * release;
+  if (cameraRig.cue !== "follow" && cameraRig.elapsed >= releaseStart + cue.release) cameraRig.cue = "follow";
+  const targetZoom = THREE.MathUtils.lerp(1, cue.zoom, envelope) + cameraRig.aim * 0.035;
+  camera.zoom = THREE.MathUtils.lerp(camera.zoom, targetZoom, 1 - Math.pow(0.002, delta));
+  camera.updateProjectionMatrix();
+  backgroundCamera.fov = THREE.MathUtils.lerp(backgroundCamera.fov, 42 / camera.zoom, 1 - Math.pow(0.002, delta));
+  backgroundCamera.rotation.z = THREE.MathUtils.lerp(backgroundCamera.rotation.z, cameraRig.roll, 1 - Math.pow(0.01, delta));
+  backgroundCamera.updateProjectionMatrix();
+}
+
 const loader = new THREE.TextureLoader();
 const clock = new THREE.Clock();
 const viewport = { width: 1, height: 1, aspect: 1 };
 const params = new URLSearchParams(window.location.search);
 const PROGRESS_KEY = "gravedad-zero-full-progress-v1";
+const qaRoute = params.get("qa");
+const qaPersistenceEnabled = params.get("qaPersist") === "1";
+if (qaRoute === "reset") {
+  try {
+    localStorage.removeItem(PROGRESS_KEY);
+    for (const scenario of SCENARIOS) {
+      for (const landmark of scenario.landmarks) localStorage.removeItem(`gz-discovery-${landmark.id}`);
+    }
+  } catch {
+    // Storage is optional; reset remains safe when unavailable.
+  }
+}
 const v2Runtime = new V2Runtime();
 const scenarioGravity = new GravityFieldSystem(SCENARIOS);
 let scenarioGravitySample = { x: 0, y: 0, magnitude: 0, fieldId: null, fieldType: null };
@@ -194,6 +249,21 @@ const state = {
   controlMode: params.get("mode") === "astronaut" ? "astronaut" : "ship",
   hoveredTarget: null,
 };
+
+function syncWorldProgress() {
+  state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+}
+
+function setWorldOffset(x, y) {
+  state.worldOffset.set(x, y);
+  syncWorldProgress();
+}
+
+function moveWorldOffset(x, y) {
+  state.worldOffset.x += x;
+  state.worldOffset.y += y;
+  syncWorldProgress();
+}
 
 const manifest = await fetch("/assets/runtime/manifest.json").then((response) => {
   if (!response.ok) throw new Error(`Runtime manifest unavailable: ${response.status}`);
@@ -1811,10 +1881,6 @@ const mission01 = {
   zoneIndex: initialStageIndex,
 };
 
-function dispatchV2Mission(type, payload = null) {
-  return v2Runtime.mission.dispatch({ type, payload, at: clock.elapsedTime });
-}
-
 const aimAssist = {
   active: false,
   target: null,
@@ -2197,24 +2263,17 @@ function startMissionForStage(stageIndex) {
   const safeStageIndex = THREE.MathUtils.clamp(stageIndex, 0, missionStageConfigs.length - 1);
   const config = currentMissionConfig(safeStageIndex);
   hideMenu();
+  triggerCameraCue("mission");
   if (state.stageIndex !== safeStageIndex) applyStage(safeStageIndex);
-  if (v2Runtime.mission.value.state === "boot") dispatchV2Mission("MISSION_STARTED");
-  if (v2Runtime.mission.value.stage !== safeStageIndex) {
-    dispatchV2Mission("NEXT_REGION_ENTERED", { stage: safeStageIndex });
-  } else {
-    dispatchV2Mission("ZONE_ENTERED", { stage: safeStageIndex });
-  }
   if (mission01.finalComplete || mission01.finalStarted) return;
   if (params.get("autoMission") === "1" || params.get("qaZone") === "1") {
     const zone = missionZoneSpecForStage(safeStageIndex);
-    state.worldOffset.set(zone.x, zone.y);
-    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    setWorldOffset(zone.x, zone.y);
   }
   spawnStageTargets(safeStageIndex);
   clearPreviousStageTargets();
   resetStageMission(safeStageIndex);
   activateStageTargets(safeStageIndex);
-  dispatchV2Mission("SMALL_TARGETS_REVEALED", { required: config.smallRequired });
   updateMissionHud(config.mission, missionObjectiveCopy(config), config.subtitle);
   playMissionAudio("mission_start");
   playAudioEvent("long_travel_low_rumble");
@@ -2518,6 +2577,12 @@ const authoredLandmarkTextures = {
   "assets/runtime/final-showable/textures/gravity_node.png": loadTexture("assets/runtime/final-showable/textures/gravity_node.png"),
 };
 const authoredGateTexture = loadTexture("assets/runtime/final-showable/textures/gate.png");
+const authoredHeroTextures = {
+  "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png": worldTextures.oceanPrime,
+  "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png": worldTextures.mechanicalMoonPremium,
+  "assets/runtime/gravedad-zero/planets/planet_dark_crater_albedo.png": worldTextures.darkCraterPremium,
+  "assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png": worldTextures.nebulaCore,
+};
 
 const proceduralPremiumTexturePools = {
   STAGE_1_CLEAN_OCEAN: {
@@ -3049,7 +3114,7 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
       depthWrite: false,
       alphaTest: 0.015,
     }));
-    sprite.scale.setScalar(landmark.scale);
+    sprite.scale.setScalar(landmark.scale * AUTHORED_SPRITE_SCALE);
     sprite.userData.baseOpacity = 0.96;
     sprite.userData.authoredTexture = landmark.texture;
     body.add(sprite);
@@ -3057,18 +3122,20 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
     body.userData.spin = 0;
     body.userData.drift.set(0, 0);
   }
-  body.userData.base.set(landmark.x, landmark.y, 0.8 - (seedOffset % 4) * 0.18);
+  body.userData.base.set(landmark.x, landmark.y, -2.5);
   body.userData.profileStage = stageIndex;
   body.userData.spawnStage = stageIndex;
   body.userData.stageAffinity = stageIndex;
   body.userData.worldCategory = "landmark";
   body.userData.worldSource = "authored-scenario";
   body.userData.authoredLandmark = true;
-  body.userData.scenarioId = scenario.id;
-  body.userData.landmarkId = landmark.id;
+  body.userData.authoredWorldObject = true;
+    body.userData.scenarioId = scenario.id;
+    body.userData.landmarkId = landmark.id;
+    body.userData.landmarkRole = landmark.role;
   body.userData.reveal = 1;
   body.userData.discovered = true;
-  body.userData.radius = landmark.scale * 0.5;
+  body.userData.radius = landmark.scale * AUTHORED_SPRITE_SCALE * 0.5;
   body.userData.visualScale = 1;
   proceduralWorld.objects.push(body);
   return body;
@@ -3078,6 +3145,102 @@ const authoredScenarioLandmarks = SCENARIOS.flatMap((scenario) =>
   scenario.landmarks.map((landmark, index) =>
     createAuthoredScenarioLandmark(scenario, landmark, scenario.stageIndex * 11 + index + 1)
   )
+);
+
+function createAuthoredScenarioHero(scenario, seedOffset) {
+  let seed = 0x7f4a7c15 ^ seedOffset;
+  const rand = () => {
+    seed = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    seed ^= seed + Math.imul(seed ^ (seed >>> 7), 61 | seed);
+    return ((seed ^ (seed >>> 14)) >>> 0) / 4294967296;
+  };
+  const region = [REGION_CONFIGS.north, REGION_CONFIGS.east, REGION_CONFIGS.west, REGION_CONFIGS.final][scenario.stageIndex];
+  const body = createProceduralBody(scenario.hero.worldKind, 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[scenario.stageIndex], region);
+  for (const child of body.children) child.visible = false;
+  const heroTexture = authoredHeroTextures[scenario.hero.texture];
+  const isMechanicalHero = scenario.biome === "mechanical";
+  const heroMaterial = isMechanicalHero
+    ? new THREE.MeshBasicMaterial({ map: heroTexture, transparent: true, opacity: 0.96 })
+    : new THREE.MeshStandardMaterial({
+        map: heroTexture,
+        transparent: true,
+        opacity: 0.96,
+        roughness: 0.72,
+        metalness: 0.02,
+        emissive: 0x071426,
+        emissiveIntensity: 0.18,
+      });
+  const sprite = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), heroMaterial);
+  sprite.scale.setScalar(scenario.hero.scale * AUTHORED_SPRITE_SCALE * 0.72);
+  sprite.userData.baseOpacity = 0.96;
+  body.add(sprite);
+  body.userData.base.set(scenario.hero.x, scenario.hero.y, -4.2);
+  body.userData.profileStage = scenario.stageIndex;
+  body.userData.spawnStage = scenario.stageIndex;
+  body.userData.stageAffinity = scenario.stageIndex;
+  body.userData.worldCategory = "hero";
+  body.userData.worldSource = "authored-scenario";
+  body.userData.textureId = scenario.hero.texture;
+  body.userData.authoredHero = true;
+  body.userData.authoredWorldObject = true;
+  body.userData.scenarioId = scenario.id;
+  body.userData.reveal = 1;
+  body.userData.discovered = true;
+  body.userData.radius = scenario.hero.scale * AUTHORED_SPRITE_SCALE * 0.72;
+  body.userData.visualScale = 1;
+  body.userData.spin = 0;
+  body.userData.drift.set(0, 0);
+  proceduralWorld.objects.push(body);
+  return body;
+}
+
+function createAuthoredScenarioGate(scenario, gate, seedOffset) {
+  let seed = 0x51ed270b ^ seedOffset;
+  const rand = () => {
+    seed = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    seed ^= seed + Math.imul(seed ^ (seed >>> 7), 61 | seed);
+    return ((seed ^ (seed >>> 14)) >>> 0) / 4294967296;
+  };
+  const region = [REGION_CONFIGS.north, REGION_CONFIGS.east, REGION_CONFIGS.west, REGION_CONFIGS.final][scenario.stageIndex];
+  const body = createProceduralBody("broken_gate", 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[scenario.stageIndex], region);
+  for (const child of body.children) child.visible = false;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: authoredGateTexture,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+    alphaTest: 0.015,
+  }));
+  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 1.45);
+  sprite.userData.baseOpacity = 0.72;
+  sprite.userData.defaultBaseOpacity = 0.72;
+  body.add(sprite);
+  body.userData.base.set(gate.x, gate.y, -2.2);
+  body.userData.profileStage = scenario.stageIndex;
+  body.userData.spawnStage = scenario.stageIndex;
+  body.userData.stageAffinity = scenario.stageIndex;
+  body.userData.worldCategory = "medium";
+  body.userData.worldSource = "authored-scenario";
+  body.userData.textureId = "assets/runtime/final-showable/textures/gate.png";
+  body.userData.authoredGate = true;
+  body.userData.authoredWorldObject = true;
+  body.userData.scenarioId = scenario.id;
+  body.userData.gate = gate;
+  body.userData.reveal = 1;
+  body.userData.discovered = true;
+  body.userData.radius = AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 1.45 * 0.5;
+  body.userData.visualScale = 1;
+  body.userData.spin = 0;
+  body.userData.drift.set(0, 0);
+  proceduralWorld.objects.push(body);
+  return body;
+}
+
+const authoredScenarioHeroes = SCENARIOS.map((scenario, index) => createAuthoredScenarioHero(scenario, 101 + index));
+const authoredScenarioGates = SCENARIOS.flatMap((scenario, index) =>
+  [scenario.backGate, scenario.gate]
+    .filter(Boolean)
+    .map((gate, gateIndex) => createAuthoredScenarioGate(scenario, gate, 121 + index * 3 + gateIndex))
 );
 
 const scenarioDiscoveryTargets = new Map(
@@ -3117,7 +3280,6 @@ const holographicMap = new HolographicMap({
       .map((target) => target.id),
   }),
   onAudio: () => playAudioEvent("route_detected_ping"),
-  onTravel: (stageIndex) => requestWorldTravel(stageIndex),
 });
 
 function directionVector(direction) {
@@ -3325,6 +3487,7 @@ const worldCompositionTelemetry = {
   biome: "oceanic",
   biomeMix: 0,
   candidates: 0,
+  acceptedAuthored: [],
 };
 
 function visibleDepthComposition() {
@@ -3336,20 +3499,28 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
   proceduralWorld.audioCooldown = Math.max(0, proceduralWorld.audioCooldown - delta);
   let nearestSynthetic = Infinity;
   for (const object of proceduralWorld.objects) {
-    const wrapped = wrapWorldObject(object);
+    const authoredPositionScale = object.userData.authoredHero
+      ? 0.18
+      : object.userData.authoredLandmark
+        ? 0.11
+        : AUTHORED_WORLD_SCALE;
+    const wrapped = object.userData.authoredWorldObject
+      ? {
+          x: (object.userData.base.x - state.worldOffset.x) * authoredPositionScale,
+          y: (object.userData.base.y - state.worldOffset.y) * authoredPositionScale,
+        }
+      : wrapWorldObject(object);
     const phase = elapsed * object.userData.orbitSpeed + object.userData.phase;
     const drift = object.userData.drift;
-    object.position.x =
-      wrapped.x +
-      Math.cos(phase) * object.userData.orbitRadius.x -
-      travelVelocity.x * object.userData.parallax * 0.40 +
-      drift.x * elapsed;
-    object.position.y =
-      wrapped.y +
-      Math.sin(phase * 0.83) * object.userData.orbitRadius.y -
-      travelVelocity.y * object.userData.parallax * 0.22 +
-      drift.y * elapsed;
-    object.position.z = object.userData.base.z + Math.sin(phase * 0.52) * 0.34;
+    object.position.x = object.userData.authoredWorldObject
+      ? wrapped.x
+      : wrapped.x + Math.cos(phase) * object.userData.orbitRadius.x - travelVelocity.x * object.userData.parallax * 0.40 + drift.x * elapsed;
+    object.position.y = object.userData.authoredWorldObject
+      ? wrapped.y
+      : wrapped.y + Math.sin(phase * 0.83) * object.userData.orbitRadius.y - travelVelocity.y * object.userData.parallax * 0.22 + drift.y * elapsed;
+    object.position.z = object.userData.authoredWorldObject
+      ? object.userData.base.z
+      : object.userData.base.z + Math.sin(phase * 0.52) * 0.34;
     const visualRadius = visualRadiusForBody(object);
     const enteringView = !isOutsideViewportWithMargin(object.position, visualRadius, 0.08);
     if (enteringView) object.userData.discovered = true;
@@ -3378,6 +3549,10 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
     const clearanceFade = centralBodyClearanceFade(object.position, visualRadius);
     object.traverse((child) => {
       if (!child.material || child.userData.baseOpacity === undefined) return;
+      if (object.userData.authoredGate) {
+        const unlocked = object.userData.gate.to <= Math.max(state.stageIndex, mission01.gems);
+        child.userData.baseOpacity = unlocked ? child.userData.defaultBaseOpacity : 0.14;
+      }
       child.material.opacity = THREE.MathUtils.clamp(
         (child.userData.baseOpacity * stageBlend * pulse * decorativeFade * clearanceFade + finalBoost) * reveal,
         0,
@@ -3457,20 +3632,6 @@ function createMissionZone(index, spec) {
   gate.rotation.x = Math.PI * 0.48;
   gate.userData.baseOpacity = 0.36;
   group.add(gate);
-
-  const authoredGate = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: authoredGateTexture,
-    color,
-    transparent: true,
-    opacity: 0.88,
-    alphaTest: 0.015,
-    depthWrite: false,
-  }));
-  authoredGate.scale.set(1.72, 1.72, 1);
-  authoredGate.position.z = 0.08;
-  authoredGate.userData.baseOpacity = 0.88;
-  authoredGate.userData.authoredGate = true;
-  group.add(authoredGate);
 
   const cage = createLineCage(() => 0.42, 0.82, color);
   cage.userData.baseOpacity = 0.30;
@@ -3958,6 +4119,8 @@ function debugMissionTargetSummary() {
         motion: motion.name || "none",
         chaseRequired: !!motion.chaseRequired,
         velocity: Number(velocity.length().toFixed(3)),
+        targetable: target.userData.targetable !== false,
+        discoveryState: target.userData.discovery?.state || null,
       };
     });
 }
@@ -3976,11 +4139,30 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
     activeShots: activeShots.length,
     activeImpacts: activeImpacts.length,
     missionState: mission01.state,
+    smallDestroyed: mission01.smallDestroyed,
+    smallRequired: mission01.smallRequired,
+    largeDestroyed: mission01.largeDestroyed,
+    largeRequired: mission01.largeRequired,
+    relicState: mission01.relicState,
+    relicScreen: relicGroup.visible
+      ? { x: Number(relicGroup.position.x.toFixed(3)), y: Number(relicGroup.position.y.toFixed(3)) }
+      : null,
     stageIndex: state.stageIndex,
+    worldStageIndex: currentWorldProfileIndex(),
     currentStageIndex: mission01.currentStageIndex,
     gems: mission01.gems,
     finalStarted: mission01.finalStarted,
     finalComplete: mission01.finalComplete,
+    cameraCue: cameraRig.cue,
+    transition: state.transition
+      ? {
+          targetWorldStage: state.transition.targetWorldStage,
+          time: Number(state.transition.time.toFixed(2)),
+          duration: state.transition.duration,
+          evolve: state.transition.evolve,
+          gateTravel: state.transition.gateTravel,
+        }
+      : null,
     controlMode: state.controlMode,
     worldOffset: { x: Number(state.worldOffset.x.toFixed(2)), y: Number(state.worldOffset.y.toFixed(2)) },
     visibleDepth: visibleDepthComposition(),
@@ -3990,12 +4172,16 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
       rejected: { ...worldCompositionTelemetry.rejected },
       violations: [...worldCompositionTelemetry.violations],
     },
-    authoredLandmarks: proceduralWorld.objects
-      .filter((object) => object.userData.authoredLandmark)
+    authoredWorldObjects: proceduralWorld.objects
+      .filter((object) => object.userData.authoredWorldObject)
       .map((object) => {
         const bounds = projectedBoundsForWorldObject(object);
         return {
           kind: object.userData.kind,
+          scenarioId: object.userData.scenarioId || null,
+          landmarkId: object.userData.landmarkId || null,
+          authoredHero: !!object.userData.authoredHero,
+          authoredGate: !!object.userData.authoredGate,
           visible: object.visible,
           discovered: !!object.userData.discovered,
           reveal: Number((object.userData.reveal || 0).toFixed(3)),
@@ -4265,6 +4451,45 @@ transitionStreak.visible = false;
 transitionStreak.material.rotation = -0.35;
 shipGroup.add(transitionStreak);
 
+// Release-package corridor effect, integrated into the existing scene/runtime.
+const interstageGroup = new THREE.Group();
+interstageGroup.visible = false;
+interstageGroup.renderOrder = 1000;
+scene.add(interstageGroup);
+
+const interstageOverlay = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: authoredGateTexture,
+  transparent: true,
+  opacity: 0,
+  depthTest: false,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+}));
+interstageOverlay.scale.set(2.4, 2.4, 1);
+interstageOverlay.renderOrder = 1000;
+interstageGroup.add(interstageOverlay);
+
+const interstageRandom = seedRandom(9041);
+const interstageStreaks = Array.from({ length: 22 }, (_, index) => {
+  const material = new THREE.MeshBasicMaterial({
+    color: index % 2 ? 0x6ee9ff : 0xd66cff,
+    transparent: true,
+    opacity: 0,
+    depthTest: false,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const streak = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.012, 0.7 + interstageRandom() * 0.8),
+    material,
+  );
+  streak.position.set(-1.2 + interstageRandom() * 2.4, -1.2 + interstageRandom() * 2.4, 0.2);
+  streak.rotation.z = (interstageRandom() - 0.5) * 0.3;
+  streak.renderOrder = 1001;
+  interstageGroup.add(streak);
+  return streak;
+});
+
 const relicGroup = new THREE.Group();
 relicGroup.visible = false;
 relicGroup.renderOrder = 34;
@@ -4291,6 +4516,10 @@ const relicVisual = new RelicGem({
   noiseTexture: visualPackTextures.gemNoise,
   fresnelTexture: visualPackTextures.gemFresnel,
 });
+relicVisual.outer.material.color.set(0x9ecbff);
+relicVisual.outer.material.emissive.set(0x7a4dff);
+relicVisual.outer.material.emissiveIntensity = 1.15;
+relicVisual.outer.material.transmission = 0.08;
 relicGroup.add(relicVisual);
 
 const unlockFlash = makeMissionSprite(missionFxTextures.stageUnlockFlash, { opacity: 0.0, renderOrder: 42 });
@@ -5177,8 +5406,8 @@ function clearAimAssistSprites() {
 function updateAimAssist(delta, elapsed) {
   if (!aimAssist.active) {
     astronautGroup.rotation.z = THREE.MathUtils.lerp(astronautGroup.rotation.z, 0, 0.12);
-    backgroundCamera.position.z = THREE.MathUtils.lerp(backgroundCamera.position.z, 9.6, 0.08);
-    backgroundCamera.rotation.z = THREE.MathUtils.lerp(backgroundCamera.rotation.z, 0, 0.10);
+    cameraRig.aim = THREE.MathUtils.lerp(cameraRig.aim, 0, 0.10);
+    cameraRig.roll = THREE.MathUtils.lerp(cameraRig.roll, 0, 0.10);
     return;
   }
   aimAssist.time += delta;
@@ -5246,8 +5475,8 @@ function updateAimAssist(delta, elapsed) {
   const sideVector = new THREE.Vector2(-aimDirection.y, aimDirection.x);
   const recoilRoll = THREE.MathUtils.clamp(-Math.sin(aimAngle) * aimAssist.recoil * 3.8, -0.18, 0.18);
   aimAssist.recoilRoll = THREE.MathUtils.lerp(aimAssist.recoilRoll, recoilRoll, 0.34);
-  backgroundCamera.position.z = THREE.MathUtils.lerp(backgroundCamera.position.z, 9.35 - orientation * 0.26, 0.22);
-  backgroundCamera.rotation.z = THREE.MathUtils.lerp(backgroundCamera.rotation.z, sideVector.x * orientation * 0.020, 0.18);
+  cameraRig.aim = THREE.MathUtils.lerp(cameraRig.aim, orientation, 0.22);
+  cameraRig.roll = THREE.MathUtils.lerp(cameraRig.roll, sideVector.x * orientation * 0.020, 0.18);
 
   if (aimAssist.shooter === "ship") {
     setDirection(baseDirection);
@@ -5367,15 +5596,15 @@ function stageWidth(stage, direction) {
 function maxShipHeight(stage) {
   if (viewport.aspect < 0.75) {
     return {
-      stage1: 0.56,
-      stage2: 0.62,
-      stage3: 0.70,
+      stage1: 0.38,
+      stage2: 0.40,
+      stage3: 0.42,
     }[stage];
   }
   return {
-    stage1: 0.66,
-    stage2: 0.74,
-    stage3: 0.86,
+    stage1: 0.33,
+    stage2: 0.35,
+    stage3: 0.37,
   }[stage];
 }
 
@@ -5580,27 +5809,69 @@ function startStageTransition() {
   if (state.transition || mission01.finalStarted || mission01.finalComplete) return;
   const from = state.stageIndex;
   const to = Math.min(from + 1, mission01.gems, STAGES.length - 1);
-  if (to === from) return;
+  const targetWorldStage = THREE.MathUtils.clamp(mission01.gems, 0, SCENARIOS.length - 1);
+  if (to === from && targetWorldStage === from) return;
+  if (to !== from) applyStage(to);
   state.transition = {
     from,
     to,
+    targetWorldStage,
     time: 0,
-    duration: 1.05,
-    applied: false,
+    duration: 30,
+    applied: true,
+    evolve: false,
+    gateTravel: false,
+    direction: "forward",
   };
+  enterShipMode();
+  triggerCameraCue("corridor");
   stageButton.disabled = true;
   playShipOneShot("warp");
+  playAudioEvent("stage_route_unlocked");
 }
 
 function finishStageTransition() {
+  const completed = state.transition;
   state.transition = null;
   shipVisualRig.setOpacity(1);
   portalSprite.visible = false;
   ringSprite.visible = false;
   transitionStreak.visible = false;
+  interstageGroup.visible = false;
   stageButton.disabled = false;
+  const targetWorldStage = THREE.MathUtils.clamp(completed?.targetWorldStage ?? state.stageIndex, 0, SCENARIOS.length - 1);
+  const scenario = scenarioForStage(targetWorldStage);
+  setWorldOffset(scenario.center.x, scenario.center.y);
   updateStageHud();
-  beginStageNavigation(state.stageIndex);
+  if (completed?.gateTravel) requestWorldTravel(targetWorldStage);
+  else beginStageNavigation(targetWorldStage);
+}
+
+function startGateTransition(targetWorldStage) {
+  if (state.transition || mission01.finalStarted || mission01.finalComplete) return false;
+  const plan = planGateTravel(currentWorldProfileIndex(), targetWorldStage, mission01.gems);
+  if (!plan.allowed) return false;
+  if (plan.direction === "forward") {
+    const requiredStage = evolvedShipStageForGems(mission01.gems, STAGES.length - 1);
+    if (state.stageIndex < requiredStage) return false;
+  }
+  state.transition = {
+    from: state.stageIndex,
+    to: state.stageIndex,
+    targetWorldStage,
+    time: 0,
+    duration: plan.duration,
+    applied: true,
+    evolve: false,
+    gateTravel: true,
+    direction: plan.direction,
+  };
+  enterShipMode();
+  triggerCameraCue(plan.direction === "forward" ? "corridor" : "gate");
+  stageButton.disabled = true;
+  playShipOneShot("warp");
+  playAudioEvent(plan.direction === "forward" ? "stage_route_unlocked" : "navigation_whoosh");
+  return true;
 }
 
 function beginStageNavigation(stageIndex) {
@@ -5652,14 +5923,30 @@ function readProgressSnapshot() {
 
 function saveProgress() {
   if (!mission01.started && !mission01.finalComplete) return;
+  if (qaRoute && !qaPersistenceEnabled) return;
   const worldStage = currentWorldProfileIndex();
+  const discoveredLandmarks = [...scenarioDiscoveryTargets.values()]
+    .filter((target) => target.state === "identified" || target.state === "targetable")
+    .map((target) => target.id);
+  const unlockedGates = SCENARIOS.flatMap((scenario) =>
+    [scenario.backGate, scenario.gate]
+      .filter((gate) => gate && gate.to <= mission01.gems)
+      .map((gate) => `${scenario.stageIndex}:${gate.to}`),
+  );
   const snapshot = {
     version: 1,
     gems: THREE.MathUtils.clamp(mission01.gems, 0, 3),
     shipStage: THREE.MathUtils.clamp(state.stageIndex, 0, STAGES.length - 1),
+    maxShipStage: THREE.MathUtils.clamp(state.stageIndex, 0, STAGES.length - 1),
+    highestUnlockedStage: THREE.MathUtils.clamp(mission01.gems, 0, 3),
     worldStage,
     resumeStage: mission01.state === "completed_region" ? worldStage : THREE.MathUtils.clamp(mission01.gems, 0, 3),
     finalComplete: mission01.finalComplete,
+    discoveredLandmarks,
+    completedSecondaries: discoveredLandmarks.filter((id) =>
+      SCENARIOS.some((scenario) => scenario.landmarks.some((landmark) => landmark.id === id && landmark.role === "secondary")),
+    ),
+    unlockedGates,
     savedAt: Date.now(),
   };
   try {
@@ -5667,6 +5954,28 @@ function saveProgress() {
   } catch {
     // The game remains fully playable when storage is unavailable.
   }
+}
+
+function nearestScenarioGate(maxDistance = 5.5) {
+  const scenario = scenarioForStage(currentWorldProfileIndex());
+  let nearest = null;
+  for (const gate of [scenario.backGate, scenario.gate].filter(Boolean)) {
+    if (gate.to > mission01.gems) continue;
+    const distance = Math.hypot(gate.x - state.worldOffset.x, gate.y - state.worldOffset.y);
+    if (distance <= maxDistance && (!nearest || distance < nearest.distance)) nearest = { gate, distance };
+  }
+  return nearest;
+}
+
+function tryScenarioGateTravel() {
+  const nearest = nearestScenarioGate();
+  if (!nearest) return false;
+  if (!["navigation", "completed_region", "unlocked"].includes(mission01.state)) {
+    setCompanionAimFeedback("COMPLETÁ LA MISIÓN ACTIVA ANTES DE CRUZAR EL GATE");
+    playAudioEvent("invalid_target_blip");
+    return true;
+  }
+  return startGateTransition(nearest.gate.to);
 }
 
 function requestWorldTravel(stageIndex) {
@@ -5684,8 +5993,7 @@ function requestWorldTravel(stageIndex) {
 
   holographicMap.toggle(false);
   const scenario = scenarioForStage(targetStage);
-  state.worldOffset.set(scenario.center.x, scenario.center.y);
-  state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+  setWorldOffset(scenario.center.x, scenario.center.y);
   state.position.set(0, -0.03);
   missionZones.lastEntered = null;
   clearPreviousStageTargets();
@@ -5720,15 +6028,23 @@ function restoreProgress() {
   }
   mission01.started = true;
   mission01.gems = THREE.MathUtils.clamp(Math.trunc(snapshot.gems || 0), 0, 3);
-  const evolvedStage = Math.max(snapshot.shipStage || 0, Math.min(mission01.gems, STAGES.length - 1));
+  const evolvedStage = Math.max(
+    snapshot.maxShipStage || snapshot.shipStage || 0,
+    evolvedShipStageForGems(mission01.gems, STAGES.length - 1),
+  );
   applyStage(THREE.MathUtils.clamp(Math.trunc(evolvedStage), 0, STAGES.length - 1));
+  for (const id of snapshot.discoveredLandmarks || []) {
+    const target = scenarioDiscoveryTargets.get(id);
+    if (!target) continue;
+    target.state = "targetable";
+    target.scanProgress = 1;
+  }
   if (snapshot.finalComplete) {
     mission01.finalComplete = true;
     mission01.finalSignalAcquired = true;
     mission01.state = "complete";
     const finalScenario = scenarioForStage(3);
-    state.worldOffset.set(finalScenario.center.x, finalScenario.center.y);
-    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    setWorldOffset(finalScenario.center.x, finalScenario.center.y);
     updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
     updateGemHud();
     updateStageHud();
@@ -5752,50 +6068,46 @@ function updateTransition(delta, elapsed) {
     portalSprite.visible = false;
     ringSprite.visible = false;
     transitionStreak.visible = false;
+    interstageGroup.visible = false;
     shipVisualRig.setOpacity(state.controlMode === "astronaut" ? 0.56 : 1);
     return;
   }
 
   transition.time += delta;
   const t = Math.min(transition.time / transition.duration, 1);
-  const burstFrame = Math.min(fxFrames.burst.length - 1, Math.floor(t * fxFrames.burst.length));
+  const entrance = THREE.MathUtils.clamp(transition.time / 2, 0, 1);
+  const exit = THREE.MathUtils.clamp((transition.time - (transition.duration - 2)) / 2, 0, 1);
+  const corridor = entrance * (1 - exit);
+  const burstFrame = Math.floor(elapsed * 12) % fxFrames.burst.length;
   setSpriteAsset(portalSprite, fxFrames.burst[burstFrame]);
 
-  ringSprite.visible = t < 0.62;
-  portalSprite.visible = t >= 0.34 && t <= 0.76;
-  transitionStreak.visible = t > 0.70;
-
-  if (t < 0.28) {
-    shipVisualRig.setOpacity(1);
-    ringSprite.material.opacity = THREE.MathUtils.smoothstep(t, 0.02, 0.28) * 0.52;
-    ringSprite.scale.setScalar(0.72 + t * 1.1);
-    portalSprite.material.opacity = 0;
-  } else if (t < 0.46) {
-    const local = THREE.MathUtils.smoothstep(t, 0.28, 0.46);
-    shipVisualRig.setOpacity(1 - local);
-    ringSprite.material.opacity = 0.50 - local * 0.18;
-    ringSprite.scale.setScalar(0.98 + local * 0.62);
-    portalSprite.material.opacity = local * 0.52;
-    scaleSprite(portalSprite, 0.62 + local * 0.12);
-  } else if (t < 0.62) {
-    shipVisualRig.setOpacity(0);
-    ringSprite.material.opacity = 0.22;
-    portalSprite.material.opacity = 0.62;
-    scaleSprite(portalSprite, 0.74 + Math.sin(elapsed * 16) * 0.025);
-  } else {
-    if (!transition.applied) {
-      applyStage(transition.to);
-      transition.applied = true;
-      updateStageHud();
-    }
-    const local = THREE.MathUtils.smoothstep(t, 0.62, 0.92);
-    shipVisualRig.setOpacity(local);
-    portalSprite.material.opacity = Math.max(0, 0.42 * (1 - local));
-    transitionStreak.material.opacity = Math.max(0, 0.28 * (1 - local));
-    scaleSprite(portalSprite, 0.64 - local * 0.10);
-    scaleSprite(transitionStreak, 0.80);
-    transitionStreak.position.set(0.12, -0.02, 0);
+  if (!transition.applied && transition.time >= 1) {
+    if (transition.evolve) applyStage(transition.to);
+    transition.applied = true;
+    updateStageHud();
   }
+
+  ringSprite.visible = true;
+  portalSprite.visible = true;
+  transitionStreak.visible = true;
+  interstageGroup.visible = true;
+  const pulse = 0.5 + Math.sin(elapsed * 3.2) * 0.5;
+  shipVisualRig.setOpacity(1 - corridor * 0.32);
+  ringSprite.material.opacity = corridor * (0.30 + pulse * 0.14);
+  ringSprite.scale.setScalar(0.84 + corridor * 0.72 + pulse * 0.06);
+  portalSprite.material.opacity = corridor * (0.28 + pulse * 0.18);
+  transitionStreak.material.opacity = corridor * (0.16 + pulse * 0.15);
+  scaleSprite(portalSprite, 0.62 + corridor * 0.18 + pulse * 0.03);
+  scaleSprite(transitionStreak, 0.82 + pulse * 0.08);
+  transitionStreak.position.set(0.12, ((elapsed * 0.42) % 1.8) - 0.9, 0);
+
+  interstageOverlay.material.opacity = corridor * (0.18 + 0.34 * Math.sin(Math.PI * t));
+  interstageOverlay.rotation.z += delta * 0.28;
+  interstageStreaks.forEach((streak, index) => {
+    streak.material.opacity = corridor * (0.12 + 0.52 * Math.sin(Math.PI * t));
+    streak.position.y -= delta * (1.2 + (index % 5) * 0.16);
+    if (streak.position.y < -1.4) streak.position.y = 1.4;
+  });
 
   ringSprite.rotation.z = elapsed * 0.5;
 
@@ -6073,25 +6385,24 @@ function projectedBoundsForWorldObject(object) {
   };
 }
 
-function compositionSafeZone() {
+function compositionSafeZones() {
   shipGroup.getWorldPosition(compositionShip).project(camera);
-  const points = [compositionShip];
+  const zones = [{
+    x: compositionShip.x - 0.24,
+    y: compositionShip.y - 0.24,
+    width: 0.48,
+    height: 0.48,
+  }];
   if (astronautSprite) {
     astronautGroup.getWorldPosition(compositionAstronaut).project(camera);
-    points.push(compositionAstronaut);
+    zones.push({
+      x: compositionAstronaut.x - 0.12,
+      y: compositionAstronaut.y - 0.12,
+      width: 0.24,
+      height: 0.24,
+    });
   }
-  const minX = Math.min(...points.map((point) => point.x));
-  const maxX = Math.max(...points.map((point) => point.x));
-  const minY = Math.min(...points.map((point) => point.y));
-  const maxY = Math.max(...points.map((point) => point.y));
-  const paddingX = state.controlMode === "astronaut" ? 0.22 : 0.18;
-  const paddingY = state.controlMode === "astronaut" ? 0.24 : 0.20;
-  return {
-    x: minX - paddingX,
-    y: minY - paddingY,
-    width: maxX - minX + paddingX * 2,
-    height: maxY - minY + paddingY * 2,
-  };
+  return zones;
 }
 
 function boundsTouchViewport(bounds, margin = 0.16) {
@@ -6114,7 +6425,16 @@ function worldCompositionCandidate(object, index) {
   if (!boundsTouchViewport(bounds)) return null;
   return {
     object,
-    protectedFromSafeZone: object.userData.authoredLandmark === true,
+    priority: object.userData.authoredHero
+      ? -3
+      : object.userData.authoredGate
+        ? -2
+        : object.userData.landmarkRole === "primary"
+          ? -1
+          : undefined,
+    // Gate art is a hollow ring: its projected rectangle can surround the ship
+    // without covering the playable silhouette.
+    protectedFromSafeZone: object.userData.authoredGate === true,
     record: {
       id: object.uuid,
       biome: biomeForStage(stageAffinity),
@@ -6149,15 +6469,16 @@ function updateWorldCompositionAuthority(rawDelta) {
   worldObjects.forEach((object, index) => {
     const stageAffinity = object.userData.profileStage ?? object.userData.spawnStage ?? 0;
     const stageAllowed = allowedStages.has(THREE.MathUtils.clamp(stageAffinity, 0, 3));
+    const authoredStageAllowed = !object.userData.authoredWorldObject || stageAffinity === primaryStage;
     const revealed = object.userData.reveal === undefined || object.userData.reveal > 0.12;
-    if (stageAllowed && revealed) {
+    if (stageAllowed && authoredStageAllowed && revealed) {
       const candidate = worldCompositionCandidate(object, index);
       if (candidate) candidates.push(candidate);
     }
     object.visible = false;
   });
 
-  const result = v2Runtime.composeWorld(candidates, compositionSafeZone());
+  const result = v2Runtime.composeWorld(candidates, compositionSafeZones());
   for (const candidate of result.accepted) candidate.object.visible = true;
   const counts = { hero: 0, landmark: 0, medium: 0, debris: 0 };
   for (const candidate of result.accepted) counts[candidate.record.kind] += 1;
@@ -6170,6 +6491,9 @@ function updateWorldCompositionAuthority(rawDelta) {
   worldCompositionTelemetry.biome = blend.primary;
   worldCompositionTelemetry.biomeMix = Number(blend.mix.toFixed(3));
   worldCompositionTelemetry.candidates = candidates.length;
+  worldCompositionTelemetry.acceptedAuthored = result.accepted
+    .filter((candidate) => candidate.object.userData.authoredWorldObject)
+    .map((candidate) => candidate.object.userData.landmarkId || candidate.object.userData.gate?.name || candidate.object.userData.scenarioId);
   biomeVisualLighting.apply(blend.primary, shipVisualRig, astronautVisualRig);
   if (mission01.started && previousBiome && previousBiome !== blend.primary) {
     playAudioEvent("sector_beacon");
@@ -6569,7 +6893,6 @@ function startMission01() {
 function completeSmallMissionTargets() {
   if (mission01.state !== "small_asteroids") return;
   mission01.state = "large_obstacle";
-  dispatchV2Mission("LARGE_TARGETS_REVEALED", { required: mission01.largeRequired });
   const config = currentMissionConfig();
   updateMissionHud("NÚCLEOS DETECTADOS", largeObjectiveLabel(mission01.largeRequired), config.subtitle);
   playAudioEvent("mission_zone_enter");
@@ -6599,7 +6922,7 @@ function revealMissionRelic(sourceTarget) {
   if (mission01.state === "relic" || mission01.state === "unlocked") return;
   const config = currentMissionConfig();
   mission01.state = "relic";
-  dispatchV2Mission("RELIC_REVEALED");
+  triggerCameraCue("relic");
   mission01.relicState = "revealing";
   mission01.revealTime = 0;
   const point = sourceTarget?.userData.screenPoint || new THREE.Vector2(0.2, 0.2);
@@ -6608,7 +6931,7 @@ function revealMissionRelic(sourceTarget) {
     THREE.MathUtils.clamp(point.y, -0.70, 0.72),
     0.12
   );
-  relicGroup.scale.setScalar(0.62);
+  relicGroup.scale.setScalar(0.42);
   relicGroup.visible = true;
   relicVisual.setReveal(0, 1, 0);
   updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", config.subtitle);
@@ -6630,7 +6953,6 @@ function acquireStageGem() {
   const nextGemCount = THREE.MathUtils.clamp(mission01.currentStageIndex + 1, 1, 3);
   if (mission01.gems < nextGemCount) {
     mission01.gems = nextGemCount;
-    dispatchV2Mission("GEM_ACQUIRED");
     playAudioEvent("gem_acquired");
     playAudioEvent("gem_counter_update");
     pulseGemBadge();
@@ -6646,7 +6968,6 @@ function acquireStageGem() {
 function startFinalSequence(anchorPoint = null) {
   if (mission01.finalStarted || mission01.finalComplete) return;
   mission01.finalStarted = true;
-  dispatchV2Mission("FINAL_STARTED");
   mission01.finalTime = 0;
   mission01.finalOrientation = astronautGroup.rotation.z;
   mission01.finalAngularVelocity = 0;
@@ -6683,7 +7004,7 @@ function touchMissionRelic() {
   mission01.unlockStarted = true;
   mission01.relicTouched = true;
   mission01.state = "unlocked";
-  dispatchV2Mission("GEM_TRANSFER_STARTED");
+  triggerCameraCue("gem");
   mission01.relicState = "destroying";
   mission01.relicDestroyTime = 0;
   stopMissionAudio("relic_idle");
@@ -6716,11 +7037,21 @@ function touchMissionRelic() {
 
   window.setTimeout(() => {
     playAudioEvent("stage_route_unlocked");
-    if (isFinalStageGem) {
-      beginStageNavigation(3);
-      return;
+    const evolvedStage = evolvedShipStageForGems(mission01.gems, STAGES.length - 1);
+    if (state.stageIndex < evolvedStage) {
+      applyStage(evolvedStage);
+      playMissionAudio("stage_unlocked");
     }
-    startStageTransition();
+    mission01.state = "completed_region";
+    enterShipMode();
+    updateMissionHud(
+      "OCEANIC ESTABILIZADO",
+      "ALCANZÁ EL GATE NORTE Y PRESIONÁ E",
+      "NAVE STAGE 2 · CORREDOR A MECHANICAL",
+    );
+    syncRobotCompanion("navigation");
+    updateStageHud();
+    saveProgress();
   }, 760);
 }
 
@@ -6728,7 +7059,6 @@ function handleMissionTargetDestroyed(target, shooter) {
   if (!target?.userData.missionRole) return;
   const config = currentMissionConfig();
   if (target.userData.missionRole === "small") {
-    dispatchV2Mission("SMALL_TARGET_DESTROYED");
     playAudioEvent("fragment_collected");
     mission01.smallDestroyed = Math.min(mission01.smallRequired, mission01.smallDestroyed + 1);
     updateMissionHud(
@@ -6743,7 +7073,6 @@ function handleMissionTargetDestroyed(target, shooter) {
     }
   }
   if (target.userData.missionRole === "large") {
-    dispatchV2Mission("LARGE_TARGET_DESTROYED");
     playAudioEvent("core_destroyed");
     mission01.largeDestroyed = Math.min(mission01.largeRequired, mission01.largeDestroyed + 1);
     updateMissionHud(
@@ -7108,7 +7437,6 @@ function updateFinalSequence(delta, elapsed) {
 
   if (!mission01.finalComplete && t >= 7.45) {
     mission01.finalComplete = true;
-    dispatchV2Mission("FINAL_COMPLETE");
     playAudioEvent("mission_complete_resolve");
     updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
     syncRobotCompanion("final");
@@ -7279,6 +7607,10 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (holographicMap.open) {
+    event.preventDefault();
+    return;
+  }
+  if ((event.key === "e" || event.key === "E") && tryScenarioGateTravel()) {
     event.preventDefault();
     return;
   }
@@ -7521,8 +7853,9 @@ function animate() {
   const delta = rawDelta * (hitStopped ? 0.04 : aimAssist.active ? 0.40 : finalSlow ? 0.48 : 1);
   updateSpeedState(rawDelta);
 
-  const keyX = holographicMap.open ? 0 : keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
-  const keyY = holographicMap.open ? 0 : keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
+  const inputLocked = holographicMap.open || state.transition;
+  const keyX = inputLocked ? 0 : keyAxis(["ArrowLeft", "a", "A"], ["ArrowRight", "d", "D"]);
+  const keyY = inputLocked ? 0 : keyAxis(["ArrowDown", "s", "S"], ["ArrowUp", "w", "W"]);
   const targetVelocity = new THREE.Vector2(keyX, keyY);
   if (targetVelocity.length() > 1) targetVelocity.normalize();
 
@@ -7571,9 +7904,10 @@ function animate() {
       (state.transition ? 0.72 : 1.72) *
       speedState.currentTuning.worldMoveSpeed *
       speedState.currentMultiplier;
-    state.worldOffset.x += input.velocity.x * worldMoveSpeed * delta;
-    state.worldOffset.y += input.velocity.y * worldMoveSpeed * 1.18 * delta;
-    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    moveWorldOffset(
+      input.velocity.x * worldMoveSpeed * delta,
+      input.velocity.y * worldMoveSpeed * 1.18 * delta,
+    );
   } else {
     setDirection(input.debugDirection || "idle");
     state.routeVelocity = THREE.MathUtils.lerp(state.routeVelocity, 0, 1 - Math.pow(0.006, delta));
@@ -7602,7 +7936,10 @@ function animate() {
   updateMissionZones(delta, elapsed);
   updateShipEngineAudio(travelVelocity, state.transition, rawDelta);
   updateShipFx(elapsed, travelVelocity);
-  updateTransition(delta, elapsed);
+  const qaTransitionSpeed = qaRoute
+    ? THREE.MathUtils.clamp(Number(params.get("qaTransitionSpeed") || 1), 1, 12)
+    : 1;
+  updateTransition(delta * qaTransitionSpeed, elapsed);
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(rawDelta);
   updateAimAssist(rawDelta, elapsed);
@@ -7611,6 +7948,7 @@ function animate() {
   updateRobotCompanion(delta, elapsed);
   updateTether(elapsed);
   holographicMap.draw();
+  updateGameplayCamera(rawDelta);
 
   renderer.clear();
   renderer.render(backgroundScene, backgroundCamera);
@@ -7631,7 +7969,6 @@ window.addEventListener("resize", resize);
 resize();
 showMenu("title_menu");
 const qaWorldStages = { stage1: 0, stage2: 1, stage3: 2, final: 3 };
-const qaRoute = params.get("qa");
 if (qaRoute in qaWorldStages) {
   window.setTimeout(() => {
     const worldStage = qaWorldStages[qaRoute];
@@ -7639,8 +7976,7 @@ if (qaRoute in qaWorldStages) {
     mission01.started = true;
     applyStage(Math.min(worldStage, STAGES.length - 1));
     const scenario = scenarioForStage(worldStage);
-    state.worldOffset.set(scenario.center.x, scenario.center.y);
-    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    setWorldOffset(scenario.center.x, scenario.center.y);
     beginStageNavigation(worldStage);
     hideMenu();
   }, 350);
@@ -7653,6 +7989,94 @@ if (qaRoute === "map") {
     holographicMap.toggle(true);
     if (params.get("mapMode") === "route") holographicMap.toggleMode();
   }, 500);
+}
+if (qaRoute === "gravity") {
+  window.setTimeout(() => {
+    mission01.started = true;
+    mission01.state = "navigation";
+    mission01.gems = 0;
+    const field = scenarioForStage(0).gravityFields[0];
+    setWorldOffset(field.x, field.y);
+    updateMissionHud("CAMPO GRAVITACIONAL", "PROBÁ EL ESTABILIZADOR CON ESPACIO", "OCEANIC FRONTIER");
+    hideMenu();
+  }, 350);
+}
+if (qaRoute === "gateBack") {
+  window.setTimeout(() => {
+    mission01.started = true;
+    mission01.state = "navigation";
+    mission01.gems = 1;
+    mission01.currentStageIndex = 1;
+    mission01.zoneIndex = 1;
+    applyStage(1);
+    const gate = scenarioForStage(1).backGate;
+    setWorldOffset(gate.x, gate.y);
+    updateGemHud();
+    updateMissionHud("RETORNO DISPONIBLE", "PRESIONÁ E PARA VOLVER A OCEANIC", "LA NAVE CONSERVA STAGE 2");
+    hideMenu();
+  }, 350);
+}
+if (qaRoute === "oceanicRelic") {
+  window.setTimeout(() => {
+    setWorldOffset(scenarioForStage(0).center.x, scenarioForStage(0).center.y);
+    startMissionForStage(0);
+    mission01.smallDestroyed = mission01.smallRequired;
+    mission01.largeDestroyed = mission01.largeRequired;
+    mission01.state = "large_obstacle";
+    revealMissionRelic(null);
+    hideMenu();
+  }, 350);
+}
+if (qaRoute === "oceanicGem") {
+  window.setTimeout(() => {
+    setWorldOffset(scenarioForStage(0).center.x, scenarioForStage(0).center.y);
+    startMissionForStage(0);
+    mission01.smallDestroyed = mission01.smallRequired;
+    mission01.largeDestroyed = mission01.largeRequired;
+    mission01.state = "relic";
+    mission01.relicState = "collectible";
+    relicGroup.position.set(0.2, 0.2, 0.12);
+    relicGroup.visible = true;
+    hideMenu();
+    touchMissionRelic();
+  }, 1800);
+}
+if (qaRoute === "oceanicGate" || qaRoute === "oceanicCorridor") {
+  window.setTimeout(() => {
+    mission01.started = true;
+    mission01.state = "completed_region";
+    mission01.gems = 1;
+    mission01.currentStageIndex = 0;
+    mission01.zoneIndex = 0;
+    applyStage(1);
+    const gate = scenarioForStage(0).gate;
+    setWorldOffset(gate.x, gate.y);
+    enterShipMode();
+    updateGemHud();
+    updateMissionHud(
+      "OCEANIC ESTABILIZADO",
+      qaRoute === "oceanicCorridor" ? "CORREDOR A MECHANICAL" : "PRESIONÁ E PARA ENTRAR AL GATE",
+      "NAVE STAGE 2 · GEMA 1 SINCRONIZADA",
+    );
+    hideMenu();
+    if (qaRoute === "oceanicCorridor") startGateTransition(1);
+  }, 350);
+}
+const qaTransitionStages = { transition12: 1, transition23: 2, transition3final: 3 };
+if (qaRoute in qaTransitionStages) {
+  window.setTimeout(() => {
+    const targetStage = qaTransitionStages[qaRoute];
+    mission01.started = true;
+    mission01.state = "unlocked";
+    mission01.gems = targetStage;
+    mission01.currentStageIndex = Math.max(0, targetStage - 1);
+    applyStage(Math.max(0, Math.min(STAGES.length - 1, targetStage - 1)));
+    const origin = scenarioForStage(Math.max(0, targetStage - 1));
+    setWorldOffset(origin.center.x, origin.center.y);
+    updateGemHud();
+    hideMenu();
+    startStageTransition();
+  }, 450);
 }
 if (params.get("autoStage") === "1") {
   window.setTimeout(() => {
@@ -7706,8 +8130,7 @@ if (params.get("autoFinal") === "1") {
     mission01.gems = 3;
     mission01.currentStageIndex = missionStageConfigs.length - 1;
     state.stageIndex = missionStageConfigs.length - 1;
-    state.worldOffset.set(missionZoneSpecs[3].x, missionZoneSpecs[3].y);
-    state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+    setWorldOffset(missionZoneSpecs[3].x, missionZoneSpecs[3].y);
     updateGemHud();
     updateStageHud();
     enterShipMode();
@@ -7719,9 +8142,10 @@ function centerQaViewOnTarget(target) {
   if (!target?.userData?.base) return;
   const parallax = target.userData.parallax ?? missionTargetParallax(target.userData.base.z || -2);
   const desired = new THREE.Vector2(0.34, 0.02);
-  state.worldOffset.x = (target.userData.base.x - desired.x) / (0.78 + parallax * 0.28);
-  state.worldOffset.y = (target.userData.base.y - desired.y) / (0.88 + parallax * 0.16);
-  state.routeProgress = routeProgressFromWorldY(state.worldOffset.y);
+  setWorldOffset(
+    (target.userData.base.x - desired.x) / (0.78 + parallax * 0.28),
+    (target.userData.base.y - desired.y) / (0.88 + parallax * 0.16),
+  );
 }
 
 function positionQaShooterForTarget(target) {

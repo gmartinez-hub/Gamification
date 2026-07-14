@@ -31,6 +31,10 @@ export class BiomeDirector {
       }
     }
 
+    if (bestDistance <= WORLD_TUNING.biomeCoreRadius) {
+      return { primary: BIOMES[best]!, mix: 0 };
+    }
+
     const boundary = Math.max(1, secondDistance - bestDistance);
     const mix = Math.max(0, Math.min(1, 1 - boundary / WORLD_TUNING.transitionBandWidth));
     const result: BiomeBlend = {
