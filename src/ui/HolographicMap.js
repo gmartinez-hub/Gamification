@@ -1,8 +1,9 @@
 export class HolographicMap {
-  constructor({ scenarios, getState, onAudio }) {
+  constructor({ scenarios, getState, onAudio, onTravel }) {
     this.scenarios = scenarios;
     this.getState = getState;
     this.onAudio = onAudio;
+    this.onTravel = onTravel;
     this.open = false;
     this.mode = "BIOME";
 
@@ -21,8 +22,10 @@ export class HolographicMap {
     document.body.appendChild(this.root);
     this.canvas = this.root.querySelector("canvas");
     this.ctx = this.canvas.getContext("2d");
+    this.routeHitAreas = [];
     this.title = this.root.querySelector("#gzMapTitle");
     this.footer = this.root.querySelector("#gzMapFooter");
+    this.canvas.addEventListener("click", (event) => this.handleCanvasClick(event));
 
     this.trigger = document.createElement("button");
     this.trigger.type = "button";
@@ -65,6 +68,17 @@ export class HolographicMap {
     if (!this.open) return;
     this.mode = this.mode === "BIOME" ? "ROUTE" : "BIOME";
     this.draw();
+  }
+
+  handleCanvasClick(event) {
+    if (!this.open || this.mode !== "ROUTE") return;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * (this.canvas.width / Math.max(1, rect.width));
+    const y = (event.clientY - rect.top) * (this.canvas.height / Math.max(1, rect.height));
+    const hit = this.routeHitAreas.find((area) => Math.hypot(x - area.x, y - area.y) <= area.radius);
+    if (!hit?.unlocked) return;
+    this.toggle(false);
+    this.onTravel?.(hit.index);
   }
 
   draw() {
@@ -137,11 +151,13 @@ export class HolographicMap {
     const start = 170;
     const end = w - 170;
     const step = (end - start) / (this.scenarios.length - 1);
+    this.routeHitAreas = [];
     ctx.lineWidth = 8; ctx.strokeStyle = "rgba(95,213,255,.25)";
     ctx.beginPath(); ctx.moveTo(start, y); ctx.lineTo(end, y); ctx.stroke();
     this.scenarios.forEach((scenario, index) => {
       const x = start + index * step;
       const unlocked = index <= state.highestUnlockedStage;
+      this.routeHitAreas.push({ index, x, y, radius: 48, unlocked });
       ctx.beginPath(); ctx.arc(x, y, unlocked ? 34 : 24, 0, Math.PI * 2);
       ctx.fillStyle = unlocked ? (index === state.worldStageIndex ? "#ffffff" : "#7feaff") : "rgba(255,255,255,.16)";
       ctx.fill();
@@ -149,6 +165,6 @@ export class HolographicMap {
       ctx.textAlign = "center"; ctx.font = "600 18px system-ui"; ctx.fillText(scenario.name, x, y + 70);
     });
     ctx.textAlign = "left";
-    this.footer.textContent = "LOS GATES PERMITEN VOLVER A BIOMAS DESBLOQUEADOS · LA NAVE NO INVOLUCIONA";
+    this.footer.textContent = "CLIC EN UN SECTOR DESBLOQUEADO PARA VIAJAR · LA NAVE NO INVOLUCIONA";
   }
 }

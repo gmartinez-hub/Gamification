@@ -274,12 +274,17 @@ export class DirectionalThrusterSystem extends THREE.Group {
     }
     this.core.material.opacity = intensity.core;
     this.cone.material.opacity = intensity.cone;
-    this.wake.material.opacity = intensity.wake;
-    this.distortion.material.opacity = intensity.distortion;
+    // These source sheets contain opaque dark padding. Even at low opacity the
+    // padding reads as a rectangular trail, so the released rig uses only the
+    // alpha-clean core and cone layers for every propulsion tier.
+    this.wake.material.opacity = 0;
+    this.distortion.material.opacity = 0;
+    this.wake.visible = false;
+    this.distortion.visible = false;
     const boost = level === "turbo" ? 1 : level === "warp" ? 1.22 : 0.66;
     this.core.scale.set(width * 0.34 * boost, height * 0.16, 1);
     this.cone.scale.set(width * 0.72 * boost, height * 0.26, 1);
-    this.wake.scale.set(width * 1.05 * boost, height * 0.32, 1);
+    this.wake.scale.set(width * 0.72 * boost, height * 0.22, 1);
     this.distortion.scale.set(width * 0.62 * boost, height * 0.52, 1);
   }
 }

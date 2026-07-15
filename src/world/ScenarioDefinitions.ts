@@ -199,10 +199,13 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
 export const AUTHORED_WORLD_SCALE = 0.072;
 export const AUTHORED_SPRITE_SCALE = 0.24;
 export const AUTHORED_GATE_SCALE = 2.7;
-export const AUTHORED_HERO_POSITION_SCALE = 0.42;
-export const AUTHORED_LANDMARK_POSITION_SCALE = 0.11;
-export const AUTHORED_GATE_POSITION_SCALE = 0.072;
-export const AUTHORED_TARGET_POSITION_SCALE = 0.22;
+// Fixed sectors are authored as traversable spaces, not as one-screen tableaux.
+// At 0.34 the Oceanic bounds span roughly three viewport widths on the active
+// camera while the hero planet still establishes the sector from its edge.
+export const AUTHORED_HERO_POSITION_SCALE = 0.34;
+export const AUTHORED_LANDMARK_POSITION_SCALE = 0.34;
+export const AUTHORED_GATE_POSITION_SCALE = 0.34;
+export const AUTHORED_TARGET_POSITION_SCALE = 0.34;
 
 export function scenarioForStage(stageIndex: number): ScenarioDefinition {
   const safeIndex = Math.max(0, Math.min(SCENARIOS.length - 1, Math.trunc(stageIndex || 0)));

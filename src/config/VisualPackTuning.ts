@@ -11,9 +11,9 @@ export const VISUAL_PACK_TUNING = {
     emissiveIntensity: 0.30,
   },
   thruster: {
-    normal: { core: 0.28, cone: 0.18, wake: 0.055, distortion: 0 },
-    turbo: { core: 0.62, cone: 0.46, wake: 0.24, distortion: 0.10 },
-    warp: { core: 0.82, cone: 0.66, wake: 0.42, distortion: 0.18 },
+    normal: { core: 0.24, cone: 0.13, wake: 0, distortion: 0 },
+    turbo: { core: 0.58, cone: 0.38, wake: 0, distortion: 0 },
+    warp: { core: 0.76, cone: 0.54, wake: 0, distortion: 0 },
   },
   gem: {
     rotationSpeed: 0.22,

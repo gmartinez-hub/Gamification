@@ -49,14 +49,14 @@ describe("authored scenario definitions", () => {
     ]));
   });
 
-  it("projects manifest world units with the release-package scale", () => {
+  it("projects fixed authored sectors with coherent depth scales", () => {
     expect(AUTHORED_WORLD_SCALE).toBe(0.072);
     expect(AUTHORED_SPRITE_SCALE).toBe(0.24);
     expect(AUTHORED_GATE_SCALE).toBe(2.7);
-    expect(AUTHORED_HERO_POSITION_SCALE).toBe(0.42);
-    expect(AUTHORED_LANDMARK_POSITION_SCALE).toBe(0.11);
-    expect(AUTHORED_GATE_POSITION_SCALE).toBe(0.072);
-    expect(AUTHORED_TARGET_POSITION_SCALE).toBe(0.22);
+    expect(AUTHORED_HERO_POSITION_SCALE).toBe(0.34);
+    expect(AUTHORED_LANDMARK_POSITION_SCALE).toBe(0.34);
+    expect(AUTHORED_GATE_POSITION_SCALE).toBe(0.34);
+    expect(AUTHORED_TARGET_POSITION_SCALE).toBe(0.34);
     expect(scenarioForStage(1).hero).toEqual(expect.objectContaining({
       texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png",
       scale: 8.4,

@@ -161,6 +161,7 @@ async function runCase(cdp, qa, testCase) {
       windowsVirtualKeyCode: virtualKeyCode,
       nativeVirtualKeyCode: virtualKeyCode,
     }, sessionId);
+    if (testCase.keyHoldMs) await delay(testCase.keyHoldMs);
     await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: virtualKeyCode }, sessionId);
     if (testCase.postKeyDelayMs) await delay(testCase.postKeyDelayMs);
   }
@@ -303,6 +304,25 @@ const testCases = [
     name: "00-oceanic-layout",
     query: "?autoMission=1",
     delayMs: 2600,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-holographic-map",
+    query: "?autoMission=1",
+    delayMs: 1400,
+    keyPress: "m",
+    postKeyDelayMs: 700,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-landmark-activation",
+    query: "?qa=landmark",
+    delayMs: 900,
+    keyPress: "e",
+    keyHoldMs: 4200,
+    postKeyDelayMs: 500,
+    waitForDebug: (debug) => debug?.scenarioGameplay?.discovery?.some((entry) => entry.id === "fractured_beacon" && entry.state === "targetable"),
+    waitTimeoutMs: 5000,
     shots: [{ suffix: "full" }],
   },
   {
