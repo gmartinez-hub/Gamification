@@ -80,6 +80,10 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     hero: { texture: "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png", worldKind: "planet_ocean_large", x: 22, y: -2, scale: 8.8 },
     secondaryBodies: [
       { id: "oceanic_moon", texture: "assets/runtime/gravedad-zero/planets/planet_ocean_prime_albedo.png", x: -24, y: -5, radius: 0.64 },
+      { id: "oceanic_sw", texture: "assets/runtime/three-textures/ocean-world-bright-color.png", x: -27, y: -34, radius: 0.56 },
+      { id: "oceanic_se", texture: "assets/runtime/three-textures/ocean-color.png", x: 27, y: -33, radius: 0.48 },
+      { id: "oceanic_nw", texture: "assets/runtime/three-textures/ocean-color.png", x: -27, y: 20, radius: 0.50 },
+      { id: "oceanic_ne", texture: "assets/runtime/three-textures/ocean-world-bright-color.png", x: 27, y: 19, radius: 0.54 },
     ],
     gate: { x: 0, y: 23, to: 1, name: "CORREDOR ORBITAL" },
     worldProfile: {
@@ -110,6 +114,12 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     center: { x: 92, y: 60 },
     bounds: { minX: 55, maxX: 130, minY: 27, maxY: 96 },
     hero: { texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png", worldKind: "mechanical_moon", x: 112, y: 65, scale: 8.4 },
+    secondaryBodies: [
+      { id: "mechanical_sw", texture: "assets/runtime/three-textures/network-planet-dark-color.png", x: 62, y: 34, radius: 0.52 },
+      { id: "mechanical_se", texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png", x: 123, y: 34, radius: 0.46 },
+      { id: "mechanical_nw", texture: "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png", x: 62, y: 89, radius: 0.48 },
+      { id: "mechanical_ne", texture: "assets/runtime/three-textures/network-planet-dark-color.png", x: 123, y: 89, radius: 0.54 },
+    ],
     gate: { x: 92, y: 94, to: 2, name: "FRONTERA FRACTURADA" },
     backGate: { x: 92, y: 29, to: 0, name: "RETORNO OCEANIC" },
     worldProfile: {
@@ -140,6 +150,12 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     center: { x: -96, y: 128 },
     bounds: { minX: -134, maxX: -58, minY: 94, maxY: 162 },
     hero: { texture: "assets/runtime/gravedad-zero/planets/planet_dark_crater_albedo.png", worldKind: "planet_dark_giant", x: -116, y: 132, scale: 9.2 },
+    secondaryBodies: [
+      { id: "crater_sw", texture: "assets/runtime/three-textures/dark-crater-color.png", x: -127, y: 101, radius: 0.50 },
+      { id: "crater_se", texture: "assets/runtime/three-textures/asteroid-crater-magenta-color.png", x: -65, y: 101, radius: 0.44 },
+      { id: "crater_nw", texture: "assets/runtime/three-textures/asteroid-crater-magenta-color.png", x: -127, y: 155, radius: 0.48 },
+      { id: "crater_ne", texture: "assets/runtime/three-textures/dark-crater-color.png", x: -65, y: 155, radius: 0.52 },
+    ],
     gate: { x: -96, y: 160, to: 3, name: "RIFT ESTABILIZADO" },
     backGate: { x: -96, y: 96, to: 1, name: "RETORNO MECHANICAL" },
     worldProfile: {
@@ -171,6 +187,12 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     center: { x: 18, y: 196 },
     bounds: { minX: -18, maxX: 54, minY: 168, maxY: 226 },
     hero: { texture: "assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png", worldKind: "planet_ocean_large", x: 36, y: 203, scale: 8.0 },
+    secondaryBodies: [
+      { id: "relic_sw", texture: "assets/runtime/gravedad-zero/planets/planet_aurora_gas_albedo.png", x: -11, y: 175, radius: 0.48 },
+      { id: "relic_se", texture: "assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png", x: 47, y: 175, radius: 0.44 },
+      { id: "relic_nw", texture: "assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png", x: -11, y: 219, radius: 0.46 },
+      { id: "relic_ne", texture: "assets/runtime/gravedad-zero/planets/planet_aurora_gas_albedo.png", x: 47, y: 219, radius: 0.50 },
+    ],
     backGate: { x: 18, y: 170, to: 2, name: "RETORNO DARK CRATER" },
     worldProfile: {
       name: "FINAL_RELIC_ALIGNMENT",
@@ -203,6 +225,7 @@ export const AUTHORED_GATE_SCALE = 2.7;
 // At 0.34 the Oceanic bounds span roughly three viewport widths on the active
 // camera while the hero planet still establishes the sector from its edge.
 export const AUTHORED_HERO_POSITION_SCALE = 0.34;
+export const AUTHORED_SECONDARY_POSITION_SCALE = 0.46;
 export const AUTHORED_LANDMARK_POSITION_SCALE = 0.34;
 export const AUTHORED_GATE_POSITION_SCALE = 0.34;
 export const AUTHORED_TARGET_POSITION_SCALE = 0.34;

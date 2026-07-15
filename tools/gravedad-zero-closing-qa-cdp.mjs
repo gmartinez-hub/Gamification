@@ -133,6 +133,7 @@ async function runCase(cdp, qa, testCase) {
   await cdp.send("Page.navigate", { url }, sessionId);
   await cdp.waitFor("Page.loadEventFired", sessionId, 10000);
   const readyStarted = Date.now();
+  let appReady = false;
   while (Date.now() - readyStarted < 20000) {
     const ready = await cdp.send(
       "Runtime.evaluate",
@@ -142,8 +143,22 @@ async function runCase(cdp, qa, testCase) {
       },
       sessionId,
     );
-    if (ready.result?.value === true) break;
+    if (ready.result?.value === true) {
+      appReady = true;
+      break;
+    }
     await delay(120);
+  }
+  if (!appReady) {
+    const diagnostic = await cdp.send(
+      "Runtime.evaluate",
+      {
+        expression: `({ href: location.href, readyState: document.readyState, title: document.title, body: (document.body?.innerText || "").slice(0, 300), debugType: typeof window.__gzDebug })`,
+        returnByValue: true,
+      },
+      sessionId,
+    );
+    throw new Error(`QA app did not become ready for ${testCase.name}: ${JSON.stringify({ diagnostic: diagnostic.result?.value || diagnostic.exceptionDetails || null, collector })}`);
   }
   await delay(testCase.delayMs);
 
@@ -180,7 +195,9 @@ async function runCase(cdp, qa, testCase) {
         },
         sessionId
       );
-      waitDebug = debugResult.result?.value || null;
+      waitDebug = debugResult.exceptionDetails
+        ? { evaluationError: debugResult.exceptionDetails.exception?.description || debugResult.exceptionDetails.text }
+        : debugResult.result?.value || null;
       if (testCase.waitForDebug(waitDebug)) {
         waitSatisfied = true;
         break;
@@ -295,6 +312,35 @@ const qa = {
 
 const testCases = [
   {
+    name: "00-natural-mission-start",
+    query: "?qa=reset&autoMission=1",
+    delayMs: 1400,
+    waitForDebug: (debug) =>
+      debug?.missionState === "small_asteroids" &&
+      debug?.controlMode === "ship" &&
+      debug?.navigationPath?.visible === true &&
+      debug?.navigationPath?.targetKind === "landmark" &&
+      debug?.navigationPath?.worldDistance > 1 &&
+      debug?.objectiveGuide?.visible === true &&
+      debug?.objectiveGuide?.label?.length > 0 &&
+      debug?.storyBeat?.visible === true,
+    waitTimeoutMs: 4000,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-eva-combat-auto-recall",
+    query: "?qa=reset&autoMission=1&autoAim=small&qaApproachTarget=1&qaAimDistance=0.30&qaTargetIndex=0&forceHit=1&qaSkipLandmark=1",
+    delayMs: 0,
+    waitForDebug: (debug) =>
+      debug?.smallDestroyed === 1 &&
+      debug?.aimActive === false &&
+      debug?.controlMode === "ship" &&
+      debug?.qaTelemetry?.lastImpact?.hit === true,
+    waitTimeoutMs: 16000,
+    postWaitDelayMs: 450,
+    shots: [{ suffix: "full" }],
+  },
+  {
     name: "00-boot-menu",
     query: "?qa=reset",
     delayMs: 1200,
@@ -304,6 +350,20 @@ const testCases = [
     name: "00-oceanic-layout",
     query: "?autoMission=1",
     delayMs: 2600,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-oceanic-edge-navigation",
+    query: "?qa=stage1Edge",
+    delayMs: 1400,
+    waitForDebug: (debug) =>
+      debug?.controlMode === "ship" &&
+      debug?.worldOffset?.x === -34 &&
+      debug?.worldOffset?.y === -40 &&
+      debug?.navigationPath?.visible === true &&
+      debug?.navigationPath?.targetKind === "landmark" &&
+      debug?.worldComposition?.violations?.length === 0,
+    waitTimeoutMs: 5000,
     shots: [{ suffix: "full" }],
   },
   {
@@ -430,7 +490,7 @@ const testCases = [
   },
   {
     name: "04-stage2-chase-targets",
-    query: "?autoMission=1&stage=2&autoAim=small&qaApproachTarget=1&qaAimDistance=1.45&qaTargetIndex=1",
+    query: "?autoMission=1&stage=2&autoAim=small&qaApproachTarget=1&qaAimDistance=1.45&qaTargetIndex=1&qaSkipLandmark=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.aimActive && debug.aimMode === "normal" && debug.aimTime >= 0.55,
     waitTimeoutMs: 30000,
@@ -440,7 +500,7 @@ const testCases = [
   },
   {
     name: "05-stage3-miss-real-a",
-    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=0",
+    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=0&qaSkipLandmark=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
     waitTimeoutMs: 36000,
@@ -450,7 +510,7 @@ const testCases = [
   },
   {
     name: "06-stage3-miss-real-b",
-    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=1",
+    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=1&qaSkipLandmark=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
     waitTimeoutMs: 36000,
@@ -459,7 +519,7 @@ const testCases = [
   },
   {
     name: "07-stage3-miss-real-c",
-    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=2",
+    query: "?autoMission=1&stage=3&autoAim=small&qaApproachTarget=1&qaAimDistance=1.86&qaTargetIndex=2&qaSkipLandmark=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
     waitTimeoutMs: 36000,
@@ -468,7 +528,7 @@ const testCases = [
   },
   {
     name: "08-hit-normal-real",
-    query: "?autoMission=1&stage=1&autoAim=small&qaApproachTarget=1&qaAimDistance=0.24&qaTargetIndex=0",
+    query: "?autoMission=1&stage=1&autoAim=small&qaApproachTarget=1&qaAimDistance=0.24&qaTargetIndex=0&qaSkipLandmark=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.qaTelemetry?.aimAttempts >= 1 && (debug?.activeShots > 0 || debug?.aimPhase === "projectile_travel"),
     waitTimeoutMs: 36000,
@@ -478,7 +538,7 @@ const testCases = [
   },
   {
     name: "09-major-shot-real",
-    query: "?autoMission=1&stage=2&autoAim=ship&qaApproachTarget=1&qaAimDistance=0.62&qaTargetIndex=0&aimCinematic=1",
+    query: "?autoMission=1&stage=2&autoAim=ship&qaApproachTarget=1&qaAimDistance=0.62&qaTargetIndex=0&aimCinematic=1&qaSkipLandmark=1",
     delayMs: 0,
     waitForDebug: (debug) => debug?.aimActive && debug.aimMode === "major" && debug.aimTime >= 1.35,
     waitTimeoutMs: 35000,

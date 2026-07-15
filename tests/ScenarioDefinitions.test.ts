@@ -4,6 +4,7 @@ import {
   AUTHORED_GATE_POSITION_SCALE,
   AUTHORED_HERO_POSITION_SCALE,
   AUTHORED_LANDMARK_POSITION_SCALE,
+  AUTHORED_SECONDARY_POSITION_SCALE,
   AUTHORED_SPRITE_SCALE,
   AUTHORED_TARGET_POSITION_SCALE,
   AUTHORED_WORLD_SCALE,
@@ -54,6 +55,7 @@ describe("authored scenario definitions", () => {
     expect(AUTHORED_SPRITE_SCALE).toBe(0.24);
     expect(AUTHORED_GATE_SCALE).toBe(2.7);
     expect(AUTHORED_HERO_POSITION_SCALE).toBe(0.34);
+    expect(AUTHORED_SECONDARY_POSITION_SCALE).toBe(0.46);
     expect(AUTHORED_LANDMARK_POSITION_SCALE).toBe(0.34);
     expect(AUTHORED_GATE_POSITION_SCALE).toBe(0.34);
     expect(AUTHORED_TARGET_POSITION_SCALE).toBe(0.34);
@@ -65,9 +67,11 @@ describe("authored scenario definitions", () => {
 
   it("keeps the Oceanic secondary moon opposite the hero planet", () => {
     const oceanic = scenarioForStage(0);
-    expect(oceanic.secondaryBodies).toEqual([
+    expect(oceanic.secondaryBodies).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "oceanic_moon", x: -24, radius: 0.64 }),
-    ]);
+      expect.objectContaining({ id: "oceanic_sw", x: -27, y: -34 }),
+      expect.objectContaining({ id: "oceanic_ne", x: 27, y: 19 }),
+    ]));
     expect(Math.sign(oceanic.secondaryBodies![0]!.x - oceanic.center.x)).not.toBe(
       Math.sign(oceanic.hero.x - oceanic.center.x),
     );

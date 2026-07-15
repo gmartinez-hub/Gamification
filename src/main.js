@@ -13,6 +13,7 @@ import {
   AUTHORED_GATE_POSITION_SCALE,
   AUTHORED_HERO_POSITION_SCALE,
   AUTHORED_LANDMARK_POSITION_SCALE,
+  AUTHORED_SECONDARY_POSITION_SCALE,
   AUTHORED_SPRITE_SCALE,
   AUTHORED_TARGET_POSITION_SCALE,
   AUTHORED_WORLD_SCALE,
@@ -64,6 +65,10 @@ const gateGuideDistance = document.querySelector("#gateGuideDistance");
 const landmarkGuide = document.querySelector("#landmarkGuide");
 const landmarkGuideName = document.querySelector("#landmarkGuideName");
 const landmarkGuideState = document.querySelector("#landmarkGuideState");
+const objectiveGuide = document.querySelector("#objectiveGuide");
+const objectiveGuideArrow = document.querySelector("#objectiveGuideArrow");
+const objectiveGuideLabel = document.querySelector("#objectiveGuideLabel");
+const objectiveGuideDistance = document.querySelector("#objectiveGuideDistance");
 const regionHud = document.querySelector("#regionHud");
 const robotPanel = document.querySelector("#robotPanel");
 const robotStateLabel = document.querySelector("#robotStateLabel");
@@ -81,6 +86,10 @@ const companionDirective = document.querySelector("#companionDirective");
 const companionDirectiveKicker = document.querySelector("#companionDirectiveKicker");
 const companionDirectiveTitle = document.querySelector("#companionDirectiveTitle");
 const companionDirectiveAction = document.querySelector("#companionDirectiveAction");
+const storyBeat = document.querySelector("#storyBeat");
+const storyBeatKicker = document.querySelector("#storyBeatKicker");
+const storyBeatTitle = document.querySelector("#storyBeatTitle");
+const storyBeatBody = document.querySelector("#storyBeatBody");
 const gameMenu = document.querySelector("#gameMenu");
 const menuEyebrow = document.querySelector("#menuEyebrow");
 const menuTitle = document.querySelector("#menuTitle");
@@ -304,7 +313,7 @@ function moveWorldOffset(x, y) {
     if (landmark.userData.profileStage !== state.worldStageIndex || landmark.userData.finalPortal) continue;
     const base = landmark.userData.base;
     const away = new THREE.Vector2(state.worldOffset.x - base.x, state.worldOffset.y - base.y);
-    const minimumDistance = landmark.userData.finalNode ? 0.72 : 4.6;
+    const minimumDistance = landmark.userData.finalNode ? 0.72 : 2.45;
     if (away.length() >= minimumDistance) continue;
     if (away.lengthSq() < 0.0001) away.set(-x || 1, -y || 0);
     away.setLength(minimumDistance);
@@ -658,6 +667,26 @@ const missionAudioItems = {
     volume: 0.055,
     loop: true,
   },
+  ambient_oceanic: {
+    path: "assets/runtime/final-showable/audio/ambient_oceanic_45s.wav",
+    volume: 0.052,
+    loop: true,
+  },
+  ambient_mechanical: {
+    path: "assets/runtime/final-showable/audio/ambient_mechanical_45s.wav",
+    volume: 0.050,
+    loop: true,
+  },
+  ambient_dark_crater: {
+    path: "assets/runtime/final-showable/audio/ambient_dark_crater_45s.wav",
+    volume: 0.046,
+    loop: true,
+  },
+  ambient_relic_core: {
+    path: "assets/runtime/final-showable/audio/ambient_relic_core_45s.wav",
+    volume: 0.052,
+    loop: true,
+  },
   route_detected_ping: {
     path: "assets/runtime/v2/audio/ui_hover_sonar_02.wav",
     volume: 0.18,
@@ -673,6 +702,10 @@ const missionAudioItems = {
   gem_counter_update: {
     path: "assets/runtime/v2/audio/ui_mission_accept_refined_03.wav",
     volume: 0.22,
+  },
+  fragment_capture: {
+    path: "assets/runtime/v2/audio/reward_unlock_sparkle_refined_13.wav",
+    volume: 0.16,
   },
   stage_route_unlocked: {
     path: "assets/runtime/final-showable/audio/gate_open.wav",
@@ -736,7 +769,7 @@ const audioEventMap = {
   long_travel_low_rumble: "long_travel_low_rumble",
   route_detected_ping: "route_detected_ping",
   mission_zone_enter: "mission_zone_enter",
-  fragment_collected: "small_break",
+  fragment_collected: "fragment_capture",
   core_hit: "large_hit",
   core_destroyed: "large_break",
   relic_reveal: "relic_reveal",
@@ -891,6 +924,26 @@ function updateShipEngineAudio(shipVelocity, transition, delta) {
   shipEngineAudio.update(shipVelocity, transition, delta, intensity);
 }
 
+const BIOME_AMBIENT_IDS = [
+  "ambient_oceanic",
+  "ambient_mechanical",
+  "ambient_dark_crater",
+  "ambient_relic_core",
+];
+
+function updateBiomeAmbientAudio(delta) {
+  if (!missionAudio.ready || !mission01.started) return;
+  const activeIndex = THREE.MathUtils.clamp(currentWorldProfileIndex(), 0, BIOME_AMBIENT_IDS.length - 1);
+  BIOME_AMBIENT_IDS.forEach((id, index) => {
+    if (index === activeIndex && !missionAudio.loops[id]) {
+      const loop = playMissionAudio(id);
+      if (loop) loop.volume = 0;
+    }
+    if (!missionAudio.loops[id]) return;
+    fadeMissionLoop(id, index === activeIndex ? missionAudioItems[id].volume : 0, delta * 0.34);
+  });
+}
+
 function playMissionAudio(id) {
   const item = missionAudioItems[id];
   if (!item || !missionAudio.ready) return null;
@@ -955,11 +1008,33 @@ function stopMissionAudio(id) {
   loop.currentTime = 0;
 }
 
+let missionHudInstruction = "";
+let storyBeatHideTimer = null;
+
+function showStoryBeat(kicker, title, body, { duration = 3400, accent = "#7eeaff" } = {}) {
+  if (!storyBeat || !storyBeatKicker || !storyBeatTitle || !storyBeatBody) return;
+  if (storyBeatHideTimer) window.clearTimeout(storyBeatHideTimer);
+  storyBeatKicker.textContent = kicker;
+  storyBeatTitle.textContent = title;
+  storyBeatBody.textContent = body;
+  storyBeat.style.setProperty("--story-accent", accent);
+  storyBeat.hidden = false;
+  window.requestAnimationFrame(() => storyBeat.classList.add("is-visible"));
+  storyBeatHideTimer = window.setTimeout(() => {
+    storyBeat.classList.remove("is-visible");
+    storyBeatHideTimer = window.setTimeout(() => {
+      storyBeat.hidden = true;
+      storyBeatHideTimer = null;
+    }, 280);
+  }, duration);
+}
+
 function updateMissionHud(status, progress = "", subtitle = "") {
   if (!missionTitle || !missionSubtitle || !missionStatus || !missionProgress) return;
   missionTitle.textContent = "GRAVEDAD ZERO";
   if (subtitle) missionSubtitle.textContent = subtitle;
   missionStatus.textContent = status;
+  missionHudInstruction = progress;
   renderMissionProgress(progress);
   updateGemHud();
 }
@@ -990,6 +1065,12 @@ function renderMissionProgress(progress = "") {
 
   if (mission01.started) {
     missionProgress.classList.add("mission-progress-stack");
+    if (missionHudInstruction) {
+      const instruction = document.createElement("div");
+      instruction.className = "mission-instruction";
+      instruction.textContent = missionHudInstruction;
+      missionProgress.append(instruction);
+    }
     missionProgress.append(
       makeHudCounterRow("FRAGMENTOS", `${mission01.smallDestroyed}/${mission01.smallRequired}`),
       makeHudCounterRow("NÚCLEOS", `${mission01.largeDestroyed}/${mission01.largeRequired}`)
@@ -2348,6 +2429,7 @@ function resetStageMission(stageIndex) {
 
 function activateStageTargets(stageIndex) {
   const pool = spawnStageTargets(stageIndex);
+  const landmarkPending = missionPrimaryLandmarkPending(stageIndex);
   setMissionTargetsActive(pool.small, true);
   setMissionTargetsActive(pool.large, false);
   for (const [index, target] of pool.small.entries()) {
@@ -2355,10 +2437,14 @@ function activateStageTargets(stageIndex) {
     target.userData.discovery = {
       id: `stage-${stageIndex}-small-${index}`,
       position: { x: 0, y: 0 },
-      state: index === 0 ? "signal_detected" : "unknown",
+      state: !landmarkPending && index === 0 ? "signal_detected" : "unknown",
       signalStrength: 0,
-      scanProgress: index === 0 ? 0.08 : 0,
+      scanProgress: !landmarkPending && index === 0 ? 0.08 : 0,
     };
+    if (landmarkPending) {
+      target.visible = false;
+      setGroupOpacity(target, 0);
+    }
   }
 }
 
@@ -2381,7 +2467,20 @@ function startMissionForStage(stageIndex) {
   playMissionAudio("mission_start");
   playAudioEvent("route_detected_ping");
   syncRobotCompanion("small_asteroids");
-  enterAstronautMode();
+  enterShipMode();
+  const primary = primaryLandmarkEntryForStage(safeStageIndex);
+  const accent = scenarioForStage(safeStageIndex).accent;
+  const primaryEncounter = primary ? encounterForLandmark(primary.landmark.id) : null;
+  showStoryBeat(
+    `ACTO ${safeStageIndex + 1} · RASTREO`,
+    primary && !primary.activated ? primary.landmark.name : config.name,
+    primary && !primary.activated
+      ? primaryEncounter?.requiresStabilizer
+        ? "Piloteá hasta la señal. Activá ESPACIO y mantené E durante la ventana estable."
+        : "Piloteá la nave hasta la señal y mantené E para escanearla."
+      : "Seguí la ruta cyan. El astronauta se despliega al fijar un fragmento.",
+    { duration: 4200, accent },
+  );
 }
 
 const orbitalWorld = {
@@ -2685,6 +2784,12 @@ const authoredHeroTextures = {
   "assets/runtime/gravedad-zero/planets/planet_mechanical_moon_albedo.png": worldTextures.mechanicalMoonPremium,
   "assets/runtime/gravedad-zero/planets/planet_dark_crater_albedo.png": worldTextures.darkCraterPremium,
   "assets/runtime/gravedad-zero/planets/planet_nebula_core_albedo.png": worldTextures.nebulaCore,
+  "assets/runtime/gravedad-zero/planets/planet_aurora_gas_albedo.png": worldTextures.auroraGas,
+  "assets/runtime/three-textures/ocean-world-bright-color.png": worldTextures.oceanWorld,
+  "assets/runtime/three-textures/ocean-color.png": worldTextures.oceanColor,
+  "assets/runtime/three-textures/network-planet-dark-color.png": worldTextures.networkPlanet,
+  "assets/runtime/three-textures/asteroid-crater-magenta-color.png": worldTextures.craterWorld,
+  "assets/runtime/three-textures/dark-crater-color.png": worldTextures.darkCrater,
 };
 
 const proceduralPremiumTexturePools = {
@@ -3657,6 +3762,19 @@ const scenarioDiscoveryTargets = new Map(
   })),
 );
 
+function primaryLandmarkEntryForStage(stageIndex = currentWorldProfileIndex()) {
+  return [...scenarioDiscoveryTargets.values()].find(
+    (entry) => entry.stageIndex === stageIndex && entry.landmark.role === "primary",
+  ) || null;
+}
+
+function missionPrimaryLandmarkPending(stageIndex = mission01.currentStageIndex) {
+  if (params.get("qaSkipLandmark") === "1") return false;
+  if (!mission01.started || mission01.state !== "small_asteroids") return false;
+  const entry = primaryLandmarkEntryForStage(stageIndex);
+  return Boolean(entry && !entry.activated);
+}
+
 let lastScenarioDiscoveryMessage = "";
 const scenarioScannerState = { active: false, progress: 0 };
 let scenarioScanTargetId = null;
@@ -3672,12 +3790,12 @@ const LANDMARK_ACTIVATION_COPY = {
 };
 
 const LANDMARK_ENCOUNTERS = {
-  fractured_beacon: { range: 0.64, requiresStabilizer: false, reward: "RUTA DE OBJETIVOS REVELADA" },
-  orbital_ruins: { range: 0.58, requiresStabilizer: false, reward: "ESCUDO +24" },
-  broken_ring: { range: 0.68, requiresStabilizer: false, reward: "CORREDOR MECÁNICO TRAZADO" },
-  scanner_array: { range: 0.62, requiresStabilizer: true, reward: "OBJETIVOS MÓVILES MARCADOS" },
-  synthetic_rift: { range: 0.68, requiresStabilizer: true, reward: "VENTANA GRAVITACIONAL SEGURA" },
-  gravity_tower: { range: 0.62, requiresStabilizer: true, reward: "ESTABILIZADOR RECARGADO" },
+  fractured_beacon: { range: 0.94, requiresStabilizer: false, reward: "RUTA DE OBJETIVOS REVELADA" },
+  orbital_ruins: { range: 0.88, requiresStabilizer: false, reward: "ESCUDO +24" },
+  broken_ring: { range: 0.98, requiresStabilizer: false, reward: "CORREDOR MECÁNICO TRAZADO" },
+  scanner_array: { range: 0.92, requiresStabilizer: true, reward: "OBJETIVOS MÓVILES MARCADOS" },
+  synthetic_rift: { range: 0.98, requiresStabilizer: true, reward: "VENTANA GRAVITACIONAL SEGURA" },
+  gravity_tower: { range: 0.92, requiresStabilizer: true, reward: "ESTABILIZADOR RECARGADO" },
 };
 
 function encounterForLandmark(id) {
@@ -3700,7 +3818,11 @@ function activateScenarioLandmark(entry) {
     target.userData.discovery.state = revealsTargets ? "targetable" : target.userData.discovery.state === "unknown" ? "signal_detected" : target.userData.discovery.state;
     target.userData.discovery.signalStrength = Math.max(target.userData.discovery.signalStrength || 0, revealsTargets ? 1 : 0.58);
     target.userData.discovery.scanProgress = Math.max(target.userData.discovery.scanProgress || 0, revealsTargets ? 1 : 0.18);
-    if (revealsTargets) target.userData.targetable = true;
+    if (revealsTargets) {
+      target.userData.targetable = true;
+      target.visible = true;
+      setGroupOpacity(target, 1);
+    }
   }
 
   if (entry.landmark.role === "secondary") {
@@ -3716,7 +3838,24 @@ function activateScenarioLandmark(entry) {
   robotCompanion.pulse = 1;
   qaTelemetry.lastCompanionMessage = copy;
   updateRobotPanel();
-  updateMissionHud(entry.landmark.name, "LANDMARK ACTIVADO", copy);
+  const primaryMissionLandmark =
+    entry.landmark.role === "primary" &&
+    mission01.started &&
+    mission01.state === "small_asteroids" &&
+    entry.stageIndex === mission01.currentStageIndex;
+  updateMissionHud(
+    entry.landmark.name,
+    primaryMissionLandmark ? "SEÑALES DE FRAGMENTOS REVELADAS" : encounterForLandmark(entry.landmark.id).reward,
+    copy,
+  );
+  showStoryBeat(
+    primaryMissionLandmark ? `ACTO ${entry.stageIndex + 1} · SEÑAL ABIERTA` : "LANDMARK SINCRONIZADO",
+    entry.landmark.name,
+    primaryMissionLandmark
+      ? "La estructura trazó la ruta. Seguí las señales cyan y fijá cada fragmento."
+      : encounterForLandmark(entry.landmark.id).reward,
+    { duration: 3800, accent: scenarioForStage(entry.stageIndex).accent },
+  );
   saveProgress();
 }
 
@@ -3983,7 +4122,7 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
     const authoredPositionScale = object.userData.authoredHero
       ? AUTHORED_HERO_POSITION_SCALE
       : object.userData.authoredSecondary
-        ? 0.066
+        ? AUTHORED_SECONDARY_POSITION_SCALE
         : object.userData.finalNode
           ? 0.25
         : object.userData.authoredLandmark
@@ -4702,7 +4841,7 @@ const navigationPath = new THREE.Points(navigationPathGeometry, navigationPathMa
 navigationPath.renderOrder = 29;
 navigationPath.visible = false;
 scene.add(navigationPath);
-const navigationPathState = { targetKind: "none", targetId: null, distance: 0 };
+const navigationPathState = { targetKind: "none", targetId: null, distance: 0, worldDistance: null };
 
 function debugMissionTargetSummary() {
   const origin = state.controlMode === "ship" ? state.position : astronautState.position;
@@ -4779,6 +4918,17 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
       visible: navigationPath.visible,
       ...navigationPathState,
     },
+    objectiveGuide: {
+      visible: !!objectiveGuide && !objectiveGuide.hidden,
+      label: objectiveGuideLabel?.textContent || "",
+      distance: objectiveGuideDistance?.textContent || "",
+    },
+    storyBeat: {
+      visible: !!storyBeat && !storyBeat.hidden && storyBeat.classList.contains("is-visible"),
+      kicker: storyBeatKicker?.textContent || "",
+      title: storyBeatTitle?.textContent || "",
+      body: storyBeatBody?.textContent || "",
+    },
     worldOffset: { x: Number(state.worldOffset.x.toFixed(2)), y: Number(state.worldOffset.y.toFixed(2)) },
     visibleDepth: visibleDepthComposition(),
     worldComposition: {
@@ -4834,7 +4984,7 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
       thrusterVisible: shipThrusters.visible,
       thrusterLayers: shipThrusters.visible
         ? [shipThrusters.core, shipThrusters.cone, shipThrusters.wake, shipThrusters.distortion]
-            .filter((layer) => layer.visible && layer.material.opacity > 0.001).length
+            .filter((layer) => layer?.visible && layer.material?.opacity > 0.001).length
         : 0,
       relicGeometry: relicVisual?.outer?.geometry?.type || "none",
       shipShieldVisible: shipShieldFx.visible,
@@ -5725,16 +5875,24 @@ function robotTutorialContent(missionState = mission01.state) {
 
   if (missionState === "small_asteroids") {
     const config = currentMissionConfig();
-    const stageAction = mission01.currentStageIndex === 0
-      ? "Escaneá la baliza y usá el astronauta para recuperar fragmentos a la deriva."
+    const primary = primaryLandmarkEntryForStage(mission01.currentStageIndex);
+    const landmarkPending = missionPrimaryLandmarkPending();
+    const stageAction = landmarkPending
+      ? `Piloteá hasta ${primary?.landmark.name || "el landmark"} y mantené E para escanear sus 3 nodos.`
+      : mission01.currentStageIndex === 0
+      ? "Seguí cada señal cyan; el astronauta se despliega al clickear un fragmento."
       : mission01.currentStageIndex === 1
         ? "Perseguí los fragmentos móviles; dispará cuando su núcleo quede vulnerable."
         : "Usá ESPACIO para estabilizar la gravedad y anticipá los fragmentos volátiles.";
     return {
       label: `${config.mission} · ${config.name}`,
-      goal: `Localizá ${mission01.smallRequired} fragmentos de señal y neutralizá el núcleo principal.`,
+      goal: landmarkPending
+        ? `Sincronizá ${primary?.landmark.name || "el landmark"} para revelar la ruta.`
+        : `Localizá ${mission01.smallRequired} fragmentos de señal y neutralizá el núcleo principal.`,
       action: stageAction,
-      tip: mission01.currentStageIndex === 2
+      tip: landmarkPending
+        ? "Los tres nodos se encienden durante el escaneo; al completarlo el sector cambia."
+        : mission01.currentStageIndex === 2
         ? "El estabilizador reduce la gravedad durante una ventana corta; después entra en recarga."
         : "Clickeá cerca del fragmento: el autoaim corrige orientación y trayectoria.",
     };
@@ -5807,8 +5965,14 @@ function updateCompanionDirective() {
     return;
   }
   if (mission01.state === "small_asteroids") {
-    companionDirectiveTitle.textContent = `FRAGMENTOS ${mission01.smallDestroyed}/${mission01.smallRequired}`;
-    companionDirectiveAction.textContent = "Seguí la ruta cyan · E escanea · clic dispara";
+    const primary = primaryLandmarkEntryForStage(mission01.currentStageIndex);
+    if (missionPrimaryLandmarkPending() && primary) {
+      companionDirectiveTitle.textContent = primary.landmark.name;
+      companionDirectiveAction.textContent = "Piloteá hasta la señal · mantené E para escanear";
+    } else {
+      companionDirectiveTitle.textContent = `FRAGMENTOS ${mission01.smallDestroyed}/${mission01.smallRequired}`;
+      companionDirectiveAction.textContent = "Seguí la ruta cyan · clic despliega EVA y dispara";
+    }
     return;
   }
   if (mission01.state === "large_obstacle") {
@@ -5955,6 +6119,11 @@ function syncRobotCompanion(missionState = mission01.state) {
   }
 
   if (missionState === "small_asteroids") {
+    const primary = primaryLandmarkEntryForStage(mission01.currentStageIndex);
+    if (missionPrimaryLandmarkPending() && primary) {
+      setRobotCompanionState("hint", `SEÑAL PRIMARIA · ${primary.landmark.name}`);
+      return;
+    }
     const remaining = Math.max(0, mission01.smallRequired - mission01.smallDestroyed);
     setRobotCompanionState("ready", `${currentMissionConfig().routeHint}. FALTAN ${remaining} FRAGMENTOS`);
     return;
@@ -6143,10 +6312,10 @@ function beginAimAssistTarget(target, clickPoint) {
   }
 
   const shooter = shooterForTarget(target);
-  if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
-  if (shooter === "ship") enterShipMode();
   const mode = aimModeForTarget(target);
-  const origin = shooter === "astronaut" ? astronautState.position : state.position;
+  const origin = shooter === "astronaut"
+    ? state.controlMode === "astronaut" ? astronautState.position : currentAstronautAnchor()
+    : state.position;
   const targetPoint = predictedTargetPoint(target, mode);
   const distance = origin.distanceTo(targetPoint);
   const maxRange = aimRangeForTarget(target, shooter);
@@ -6155,6 +6324,8 @@ function beginAimAssistTarget(target, clickPoint) {
     showInvalidAim(clickPoint, `FUERA DE RANGO · ${meters}% DEL ALCANCE`);
     return;
   }
+  if (shooter === "astronaut" && astronautSprite) enterAstronautMode("combat");
+  if (shooter === "ship") enterShipMode();
   const successChance = aimSuccessForDistance(distance, maxRange, target, shooter);
   const forcedMiss = params.get("forceMiss") === "1";
   const forcedHit = params.get("forceHit") === "1";
@@ -6225,7 +6396,7 @@ function beginAimAssistRelic(clickPoint) {
     showInvalidAim(clickPoint);
     return;
   }
-  enterAstronautMode();
+  enterAstronautMode("relic");
   configureAimAssistTiming(params.get("aimCinematic") === "1" ? "major" : "major");
   aimAssist.active = true;
   aimAssist.phase = "lock";
@@ -6258,6 +6429,10 @@ function beginAimAssistRelic(clickPoint) {
 }
 
 function clearAimAssistSprites() {
+  const recallAstronaut =
+    aimAssist.kind === "target" &&
+    aimAssist.shooter === "astronaut" &&
+    mission01.state === "small_asteroids";
   aimReticle.visible = false;
   aimClickPulse.visible = false;
   aimVignette.visible = false;
@@ -6280,6 +6455,10 @@ function clearAimAssistSprites() {
   }
   cameraRig.aim = 0;
   cameraRig.roll = 0;
+  if (recallAstronaut) {
+    enterShipMode();
+    setCompanionAimFeedback("EVA RECUPERADO · PILOTAJE RESTABLECIDO");
+  }
 }
 
 function updateAimAssist(delta, elapsed) {
@@ -6926,6 +7105,13 @@ function updateGateGuide() {
     return;
   }
 
+  // Narrative beats own the top-center hierarchy for a few seconds. The
+  // persistent gate guide returns as soon as the beat clears.
+  if (storyBeat && !storyBeat.hidden) {
+    gateGuide.hidden = true;
+    return;
+  }
+
   gateGuide.classList.remove("is-transition");
   gateGuideArrow.textContent = "↑";
   const target = ["completed_region", "unlocked"].includes(mission01.state) ? activeForwardGate() : null;
@@ -6947,7 +7133,7 @@ function updateGateGuide() {
   const ny = dy / safeDistance;
   const baseLeft = 50 + (point.x / Math.max(0.001, viewport.aspect)) * 50;
   const left = THREE.MathUtils.clamp(baseLeft + (distance <= 0.58 ? 16 : 0), 10, 90);
-  const top = THREE.MathUtils.clamp(50 - point.y * 50, 12, 86);
+  const top = THREE.MathUtils.clamp(50 - point.y * 50, 18, 86);
   const destination = scenarioForStage(target.gate.to);
   const near = distance <= 0.58;
   gateGuide.hidden = false;
@@ -7606,7 +7792,10 @@ function updateWorldCompositionAuthority(rawDelta) {
   const previousBiome = worldCompositionTelemetry.biome;
   worldCompositionTelemetry.counts = counts;
   worldCompositionTelemetry.rejected = rejected;
-  worldCompositionTelemetry.violations = assertComposition(result);
+  const hasLandmarkCandidate = candidates.some((candidate) => candidate.record.kind === "landmark");
+  worldCompositionTelemetry.violations = assertComposition(result).filter(
+    (violation) => violation.code !== "landmark-minimum" || hasLandmarkCandidate,
+  );
   worldCompositionTelemetry.biome = blend.primary;
   worldCompositionTelemetry.biomeMix = Number(blend.mix.toFixed(3));
   worldCompositionTelemetry.candidates = candidates.length;
@@ -7656,6 +7845,21 @@ function backgroundObjectScreenPoint(object, out = new THREE.Vector2()) {
 
 function activeNavigationObjective() {
   const actor = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  if (mission01.state === "small_asteroids" && missionPrimaryLandmarkPending()) {
+    const entry = primaryLandmarkEntryForStage(mission01.currentStageIndex);
+    if (entry?.object) {
+      return {
+        kind: "landmark",
+        id: entry.id,
+        label: entry.landmark.name,
+        point: backgroundObjectScreenPoint(entry.object, new THREE.Vector2()),
+        worldDistance: Math.hypot(
+          entry.object.userData.base.x - state.worldOffset.x,
+          entry.object.userData.base.y - state.worldOffset.y,
+        ),
+      };
+    }
+  }
   const activeTargets = (mission01.state === "large_obstacle" ? mission01.largeObstacles : mission01.smallAsteroids)
     .filter((target) => target.visible && target.userData.active && !target.userData.destroyed);
   if (["small_asteroids", "large_obstacle"].includes(mission01.state) && activeTargets.length) {
@@ -7666,11 +7870,15 @@ function activeNavigationObjective() {
     return {
       kind: mission01.state === "large_obstacle" ? "núcleo" : "fragmento",
       id: `${target.userData.missionRole}-${target.userData.targetIndex}`,
+      label: mission01.state === "large_obstacle" ? "NÚCLEO INESTABLE" : "FRAGMENTO DE SEÑAL",
       point: backgroundObjectScreenPoint(target, new THREE.Vector2()),
+      worldDistance: target.userData.base
+        ? Math.hypot(target.userData.base.x - state.worldOffset.x, target.userData.base.y - state.worldOffset.y)
+        : null,
     };
   }
   if (mission01.state === "relic" && relicGroup.visible) {
-    return { kind: "reliquia", id: "mission-relic", point: new THREE.Vector2(relicGroup.position.x, relicGroup.position.y) };
+    return { kind: "reliquia", id: "mission-relic", label: "RELIQUIA LIBERADA", point: new THREE.Vector2(relicGroup.position.x, relicGroup.position.y), worldDistance: 0 };
   }
   if (mission01.state === "final_nodes") {
     const node = authoredScenarioLandmarks.find((object) =>
@@ -7678,30 +7886,59 @@ function activeNavigationObjective() {
       object.userData.landmarkId?.startsWith("gravity_node_") &&
       !object.userData.finalNodeActive
     );
-    if (node) return { kind: "nodo", id: node.userData.landmarkId, point: backgroundObjectScreenPoint(node, new THREE.Vector2()) };
+    if (node) return { kind: "nodo", id: node.userData.landmarkId, label: "NODO GRAVITACIONAL", point: backgroundObjectScreenPoint(node, new THREE.Vector2()) };
   }
   if (mission01.state === "final_portal") {
     const portal = authoredScenarioLandmarks.find((object) => object.userData.landmarkId === "relic_portal");
-    if (portal) return { kind: "portal", id: "relic_portal", point: backgroundObjectScreenPoint(portal, new THREE.Vector2()) };
+    if (portal) return { kind: "portal", id: "relic_portal", label: "PORTAL DE RELIQUIA", point: backgroundObjectScreenPoint(portal, new THREE.Vector2()) };
   }
   if (["completed_region", "unlocked"].includes(mission01.state)) {
     const gate = activeForwardGate()?.object;
-    if (gate) return { kind: "gate", id: gate.userData.gate?.name || "gate", point: backgroundObjectScreenPoint(gate, new THREE.Vector2()) };
+    if (gate) return { kind: "gate", id: gate.userData.gate?.name || "gate", label: gate.userData.gate?.name || "GATE", point: backgroundObjectScreenPoint(gate, new THREE.Vector2()) };
   }
   return null;
+}
+
+function updateObjectiveGuide(objective, from) {
+  if (!objectiveGuide || !objectiveGuideArrow || !objectiveGuideLabel || !objectiveGuideDistance || !objective) {
+    if (objectiveGuide) objectiveGuide.hidden = true;
+    return;
+  }
+  const point = objective.point;
+  const offscreen = Math.abs(point.x) > viewport.aspect * 0.76 || Math.abs(point.y) > 0.74;
+  if (!offscreen || objective.kind === "gate") {
+    objectiveGuide.hidden = true;
+    return;
+  }
+  const edgeX = THREE.MathUtils.clamp(point.x, -viewport.aspect + 0.20, viewport.aspect - 0.20);
+  const edgeY = THREE.MathUtils.clamp(point.y, -0.76, 0.72);
+  objectiveGuide.style.left = `${THREE.MathUtils.clamp(((edgeX / viewport.aspect) * 0.5 + 0.5) * viewport.width, 112, viewport.width - 112)}px`;
+  objectiveGuide.style.top = `${THREE.MathUtils.clamp((0.5 - edgeY * 0.5) * viewport.height, 210, viewport.height - 78)}px`;
+  const direction = point.clone().sub(from).normalize();
+  objectiveGuide.style.setProperty("--objective-angle", `${Math.atan2(direction.x, direction.y) * 180 / Math.PI}deg`);
+  objectiveGuideLabel.textContent = objective.label || objective.kind.toUpperCase();
+  objectiveGuideDistance.textContent = Number.isFinite(objective.worldDistance)
+    ? `${Math.max(1, Math.ceil(objective.worldDistance))}u · SEGUÍ LA RUTA CYAN`
+    : "SEGUÍ LA RUTA CYAN";
+  objectiveGuide.classList.toggle("is-landmark", objective.kind === "landmark");
+  objectiveGuide.classList.toggle("is-relic", objective.kind === "reliquia" || objective.kind === "portal");
+  objectiveGuide.hidden = false;
 }
 
 function updateNavigationPath(elapsed) {
   const objective = state.transition ? null : activeNavigationObjective();
   if (!objective) {
     navigationPath.visible = false;
+    updateObjectiveGuide(null, state.position);
     navigationPathState.targetKind = "none";
     navigationPathState.targetId = null;
     navigationPathState.distance = 0;
+    navigationPathState.worldDistance = null;
     return;
   }
   const from = state.controlMode === "astronaut" ? astronautState.position : state.position;
   const unclamped = objective.point;
+  updateObjectiveGuide(objective, from);
   const to = new THREE.Vector2(
     THREE.MathUtils.clamp(unclamped.x, -viewport.aspect + 0.13, viewport.aspect - 0.13),
     THREE.MathUtils.clamp(unclamped.y, -0.86, 0.86),
@@ -7729,6 +7966,9 @@ function updateNavigationPath(elapsed) {
   navigationPathState.targetKind = objective.kind;
   navigationPathState.targetId = objective.id;
   navigationPathState.distance = Number(distance.toFixed(3));
+  navigationPathState.worldDistance = Number.isFinite(objective.worldDistance)
+    ? Number(objective.worldDistance.toFixed(1))
+    : null;
 }
 
 const DISCOVERY_OPACITY = {
@@ -7742,6 +7982,8 @@ const DISCOVERY_OPACITY = {
   destroyed: 0,
 };
 
+let lastTargetPhaseStory = "";
+
 function updateTargetDiscovery(delta) {
   if (scenarioScannerState.active) {
     astronautVisualRig?.setScan(true, scenarioScannerState.progress);
@@ -7753,10 +7995,17 @@ function updateTargetDiscovery(delta) {
   }
   const targets = [...mission01.smallAsteroids, ...mission01.largeObstacles];
   const player = state.controlMode === "astronaut" ? astronautState.position : state.position;
+  const landmarkPending = missionPrimaryLandmarkPending();
   let scanActive = false;
   let scanProgress = 0;
   for (const target of targets) {
     if (!target.userData.active || target.userData.destroyed || !target.userData.discovery) continue;
+    if (landmarkPending && target.userData.missionRole === "small") {
+      target.userData.targetable = false;
+      target.visible = false;
+      setGroupOpacity(target, 0);
+      continue;
+    }
     const point = backgroundObjectScreenPoint(target, new THREE.Vector2());
     const toTarget = point.clone().sub(player);
     const distance = toTarget.length();
@@ -7764,8 +8013,7 @@ function updateTargetDiscovery(delta) {
     const scanHeld =
       input.keys.has("e") ||
       input.keys.has("E") ||
-      input.keys.has(" ") ||
-      distance < (target.userData.missionRole === "large" ? 2.2 : 1.9) ||
+      distance < (target.userData.missionRole === "large" ? 0.94 : 0.78) ||
       params.has("qaCdp");
     const previousState = target.userData.discovery.state;
     target.userData.discovery = v2Runtime.discovery.update(
@@ -7798,7 +8046,24 @@ function updateTargetDiscovery(delta) {
     if (previousState !== discovery.state && discovery.state === "targetable") {
       playAudioEvent("target_lock");
       playAudioEvent("target_orbit_passby");
-      setCompanionAimFeedback("OBJETIVO IDENTIFICADO · AUTOAIM DISPONIBLE");
+      const astronautTarget = target.userData.missionRole === "small";
+      setCompanionAimFeedback(
+        astronautTarget
+          ? "FRAGMENTO FIJADO · CLIC PARA DESPLEGAR EVA"
+          : "NÚCLEO FIJADO · DISPARO PESADO DISPONIBLE",
+      );
+      const phaseStory = `${mission01.currentStageIndex}:${target.userData.missionRole}`;
+      if (lastTargetPhaseStory !== phaseStory) {
+        lastTargetPhaseStory = phaseStory;
+        showStoryBeat(
+          astronautTarget ? "SEÑAL LOCALIZADA" : "AMENAZA LOCALIZADA",
+          astronautTarget ? "FRAGMENTO FIJADO" : "NÚCLEO INESTABLE",
+          astronautTarget
+            ? "Clickeá el objetivo: el astronauta se despliega, dispara y vuelve a la nave."
+            : "Acercate y clickeá el núcleo para usar el cañón pesado de la nave.",
+          { duration: 3200, accent: astronautTarget ? "#72eaff" : "#ff72df" },
+        );
+      }
     }
   }
   astronautVisualRig?.setScan(
@@ -8074,6 +8339,33 @@ function spawnGemPickupBurst(point) {
   activeImpacts.push(sprite);
 }
 
+function spawnFragmentTransfer(point) {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: visualPackTextures.gemCore,
+      color: 0x74eaff,
+      transparent: true,
+      opacity: 0.82,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    }),
+  );
+  sprite.position.set(point.x, point.y, 0.15);
+  sprite.scale.setScalar(0.070);
+  sprite.renderOrder = 38;
+  sprite.userData = {
+    time: 0,
+    duration: 0.76,
+    transfer: true,
+    start: point.clone(),
+    baseScale: 0.070,
+    baseOpacity: 0.82,
+  };
+  interactionFx.add(sprite);
+  activeImpacts.push(sprite);
+}
+
 function setMissionTargetsActive(targets, active) {
   for (const target of targets) {
     target.userData.active = active;
@@ -8095,6 +8387,12 @@ function completeSmallMissionTargets() {
   playAudioEvent("mission_zone_enter");
   playMissionAudio("large_spawn");
   syncRobotCompanion("large_obstacle");
+  showStoryBeat(
+    `ACTO ${mission01.currentStageIndex + 1} · CONTENCIÓN`,
+    "NÚCLEOS INESTABLES",
+    "Piloteo restaurado. Acercate y usá el disparo pesado de la nave.",
+    { duration: 3600, accent: "#ff72df" },
+  );
   for (const [index, obstacle] of mission01.largeObstacles.entries()) {
     obstacle.userData.active = true;
     obstacle.userData.spawnRevealTime = 0;
@@ -8135,12 +8433,18 @@ function revealMissionRelic(sourceTarget) {
   updateMissionHud("SEÑAL LIBERADA", "RELIQUIA ACTIVADA", config.subtitle);
   playAudioEvent("core_destroyed");
   syncRobotCompanion("relic");
+  showStoryBeat(
+    `ACTO ${mission01.currentStageIndex + 1} · RESONANCIA`,
+    "RELIQUIA LIBERADA",
+    "El núcleo ocultaba una gema de ruta. El astronauta debe recuperarla.",
+    { duration: 3600, accent: "#ff86e7" },
+  );
   window.setTimeout(() => {
     if (mission01.state !== "relic" || mission01.unlockStarted) return;
     playMissionAudio("relic_reveal");
     playMissionAudio("relic_burst");
     playMissionAudio("relic_idle");
-    enterAstronautMode();
+    enterAstronautMode("relic");
     mission01.relicState = "collectible";
     updateMissionHud("ACTIVÁ LA RELIQUIA", "TOCÁ LA SEÑAL", config.subtitle);
     syncRobotCompanion("relic");
@@ -8158,6 +8462,14 @@ function acquireStageGem() {
       ? new THREE.Vector2(relicGroup.position.x, relicGroup.position.y)
       : state.position.clone();
     spawnGemPickupBurst(burstPoint);
+    showStoryBeat(
+      `GEMA ${mission01.gems}/3 ACOPLADA`,
+      currentTurboUnlock().label,
+      mission01.gems >= 3
+        ? "Las tres resonancias están sincronizadas. La ruta final puede abrirse."
+        : "El sistema de propulsión mejoró. Mantené F durante el viaje al próximo gate.",
+      { duration: 4200, accent: "#ffb56f" },
+    );
   }
   updateGemHud();
   saveProgress();
@@ -8325,7 +8637,7 @@ function startFinalSequence(anchorPoint = null) {
   playAudioEvent("final_core_collapse");
   updateMissionHud("FINAL ZONE", "ACTIVÁ LA SEÑAL FINAL", "RUMBO FINAL / ZONA FINAL");
   syncRobotCompanion("final");
-  enterAstronautMode();
+  enterAstronautMode("relic");
   updateStageHud();
 }
 
@@ -8345,6 +8657,12 @@ function touchMissionRelic() {
   gemPickupState.hand.copy(astronautState.position).add(new THREE.Vector2(0.035, 0.025));
   gemPickupState.ship.set(shipGroup.position.x, shipGroup.position.y);
   updateMissionHud("RESONANCIA CAPTURADA", "ACOPLANDO GEMA A LA NAVE", currentMissionConfig().subtitle);
+  showStoryBeat(
+    `ACTO ${mission01.currentStageIndex + 1} · RECUPERACIÓN`,
+    "GEMA MAGNETIZADA",
+    "La resonancia pasa de la mano del astronauta al núcleo de la nave.",
+    { duration: 3200, accent: "#ff86e7" },
+  );
   robotCompanion.focus = "discovery";
   robotCompanion.focusTimer = 3.2;
   robotCompanion.message = "GEMA MAGNETIZADA · TRANSFERENCIA EN CURSO";
@@ -8390,6 +8708,12 @@ function completeMissionRelicCollection() {
       "ALCANZÁ EL GATE Y PRESIONÁ E",
       `NAVE STAGE ${state.stageIndex + 1} · CORREDOR A ${nextScenario.name}`,
     );
+    showStoryBeat(
+      `SECTOR ${mission01.currentStageIndex + 1} ESTABILIZADO`,
+      `GATE → ${nextScenario.name}`,
+      "Piloteá siguiendo la ruta magenta. El próximo stage inicia al cruzar el corredor.",
+      { duration: 4200, accent: nextScenario.accent },
+    );
     syncRobotCompanion("completed_region");
     updateStageHud();
     saveProgress();
@@ -8400,7 +8724,10 @@ function handleMissionTargetDestroyed(target, shooter) {
   if (!target?.userData.missionRole) return;
   const config = currentMissionConfig();
   if (target.userData.missionRole === "small") {
+    playMissionAudio("small_break");
     playAudioEvent("fragment_collected");
+    const capturePoint = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
+    spawnFragmentTransfer(capturePoint);
     mission01.smallDestroyed = Math.min(mission01.smallRequired, mission01.smallDestroyed + 1);
     updateMissionHud(
       "RECUPERANDO FRAGMENTOS",
@@ -8448,7 +8775,7 @@ function damageTarget(target, shooter) {
 
 function launchShotAtTarget(target, shooter = shooterForTarget(target), options = {}) {
   if (!target || state.transition) return;
-  if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
+  if (shooter === "astronaut" && astronautSprite) enterAstronautMode("combat");
   if (shooter === "ship") enterShipMode();
 
   const origin = shooter === "astronaut" ? astronautState.position.clone() : state.position.clone();
@@ -8463,7 +8790,7 @@ function launchShotAtTarget(target, shooter = shooterForTarget(target), options 
 
 function launchShotAtPoint(point, shooter = "ship", options = {}) {
   if (state.transition) return;
-  if (shooter === "astronaut" && astronautSprite) enterAstronautMode();
+  if (shooter === "astronaut" && astronautSprite) enterAstronautMode(options.relic ? "relic" : "combat");
   if (shooter === "ship") enterShipMode();
 
   const origin = shooter === "astronaut" ? astronautState.position.clone() : state.position.clone();
@@ -8579,6 +8906,26 @@ function updateInteractionFx(delta) {
     const impact = activeImpacts[i];
     impact.userData.time += delta;
     const t = impact.userData.time / impact.userData.duration;
+    if (impact.userData.transfer) {
+      const progress = THREE.MathUtils.clamp(t, 0, 1);
+      const eased = THREE.MathUtils.smoothstep(progress, 0, 1);
+      const target = new THREE.Vector2(shipGroup.position.x, shipGroup.position.y);
+      const arc = Math.sin(progress * Math.PI) * 0.15;
+      impact.position.set(
+        THREE.MathUtils.lerp(impact.userData.start.x, target.x, eased),
+        THREE.MathUtils.lerp(impact.userData.start.y, target.y, eased) + arc,
+        0.15,
+      );
+      const pulse = 0.82 + Math.sin(progress * Math.PI * 4) * 0.12;
+      impact.scale.setScalar(impact.userData.baseScale * pulse * (1 - progress * 0.36));
+      impact.material.opacity = impact.userData.baseOpacity * (1 - THREE.MathUtils.smoothstep(progress, 0.72, 1));
+      if (progress >= 1) {
+        interactionFx.remove(impact);
+        impact.material.dispose();
+        activeImpacts.splice(i, 1);
+      }
+      continue;
+    }
     if (impact.userData.stripFrames?.length) {
       const frameIndex = Math.min(
         impact.userData.stripFrames.length - 1,
@@ -8816,17 +9163,24 @@ function updateFinalSequence(delta, elapsed) {
   }
 }
 
-function enterAstronautMode() {
+function enterAstronautMode(reason = "manual") {
   if (!astronautSprite || state.transition) return;
   state.controlMode = "astronaut";
   astronautState.velocity.set(0, 0);
   astronautState.actionTime = 0;
   astronautState.returnPulse = 0;
   setAstronautViewFrame("front");
-  robotCompanion.focus = "turbo";
-  robotCompanion.focusTimer = 4.8;
-  robotCompanion.message = "MICROPROPULSOR EVA · MANTENÉ F CON WASD";
-  robotCompanion.pulse = 1;
+  if (reason === "manual") {
+    robotCompanion.focus = "turbo";
+    robotCompanion.focusTimer = 4.8;
+    robotCompanion.message = "MICROPROPULSOR EVA · MANTENÉ F CON WASD";
+    robotCompanion.pulse = 1;
+  } else if (reason === "relic") {
+    robotCompanion.focus = "discovery";
+    robotCompanion.focusTimer = 3.8;
+    robotCompanion.message = "EVA ACTIVO · ACERCATE Y TOCÁ LA RELIQUIA";
+    robotCompanion.pulse = 1;
+  }
   updateRobotPanel();
   updateStageHud();
 }
@@ -9058,6 +9412,12 @@ window.addEventListener("keydown", (event) => {
         robotCompanion.pulse = 1;
         updateRobotPanel();
         playAudioEvent("aim_stabilize");
+        showStoryBeat(
+          "SISTEMA DEFENSIVO",
+          "ESTABILIZADOR ACTIVO",
+          "Gravedad reducida al 24% durante 2.5s. Después entra en recarga.",
+          { duration: 2600, accent: "#72eaff" },
+        );
       } else {
         robotCompanion.focus = "stabilizer";
         robotCompanion.focusTimer = 2.4;
@@ -9288,7 +9648,9 @@ function updateShipFx(elapsed, shipVelocity) {
 }
 
 function animate() {
-  const rawDelta = Math.min(clock.getDelta(), 0.033);
+  // Keep navigation and mission timers close to wall-clock speed on slower
+  // laptops. A 33ms cap made the entire campaign run in slow motion below 30fps.
+  const rawDelta = Math.min(clock.getDelta(), 0.075);
   const elapsed = clock.elapsedTime;
   const hitStopped = aimAssist.hitStop > 0;
   if (hitStopped) aimAssist.hitStop = Math.max(0, aimAssist.hitStop - rawDelta);
@@ -9375,6 +9737,7 @@ function animate() {
   updateWorldCompositionAuthority(rawDelta);
   updateMissionZones(delta, elapsed);
   updateShipEngineAudio(travelVelocity, state.transition, rawDelta);
+  updateBiomeAmbientAudio(rawDelta);
   updateShipFx(elapsed, travelVelocity);
   const qaTransitionSpeed = qaRoute
     ? THREE.MathUtils.clamp(Number(params.get("qaTransitionSpeed") || 1), 1, 12)
@@ -9437,6 +9800,26 @@ if (qaRoute in qaWorldStages) {
     hideMenu();
   }, 350);
 }
+if (qaRoute === "stage1Edge") {
+  window.setTimeout(() => {
+    const scenario = scenarioForStage(0);
+    mission01.gems = 0;
+    setWorldStage(0);
+    applyStage(0);
+    setWorldOffset(scenario.center.x, scenario.center.y);
+    startMissionForStage(0);
+    const primary = primaryLandmarkEntryForStage(0);
+    if (primary) {
+      primary.activated = false;
+      primary.state = "unknown";
+      primary.scanProgress = 0;
+      primary.signalStrength = 0;
+    }
+    setWorldOffset(scenario.bounds.minX, scenario.bounds.minY);
+    enterShipMode();
+    hideMenu();
+  }, 350);
+}
 if (qaRoute === "map") {
   window.setTimeout(() => {
     mission01.started = true;
@@ -9490,7 +9873,7 @@ if (qaRoute === "landmark") {
     }
     startMissionForStage(0);
     const beacon = scenarioForStage(0).landmarks.find((landmark) => landmark.id === "fractured_beacon");
-    setWorldOffset(beacon.x - 4.6, beacon.y);
+    setWorldOffset(beacon.x - 2.45, beacon.y);
     enterAstronautMode();
     astronautState.position.set(0.155, 0.05);
     updateMissionHud("BALIZA FRACTURADA", "MANTENÉ E PARA ESCANEAR", "QA / ACTIVACIÓN DE LANDMARK");

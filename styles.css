@@ -154,6 +154,57 @@ body.debug-hud .hud {
   line-height: 1.2;
 }
 
+.story-beat {
+  --story-accent: #7eeaff;
+  position: fixed;
+  top: 104px;
+  left: 50%;
+  z-index: 16;
+  display: grid;
+  width: min(420px, calc(100vw - 48px));
+  gap: 3px;
+  border-top: 1px solid color-mix(in srgb, var(--story-accent) 72%, transparent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  padding: 9px 16px 10px;
+  background: linear-gradient(90deg, transparent, rgba(3, 7, 18, 0.92) 18%, rgba(3, 7, 18, 0.92) 82%, transparent);
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  transform: translate(-50%, -8px);
+  opacity: 0;
+  transition: opacity 220ms ease, transform 260ms ease;
+}
+
+.story-beat.is-visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+.story-beat[hidden] {
+  display: none;
+}
+
+.story-beat span {
+  color: var(--story-accent);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.story-beat strong {
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.story-beat small {
+  color: rgba(232, 240, 247, 0.72);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
 .robot-state-label {
   color: #c6d3df;
   font-size: 10px;
@@ -516,6 +567,84 @@ body.debug-hud .hud {
   line-height: 1.1;
 }
 
+.objective-guide {
+  --objective-angle: 0deg;
+  position: fixed;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  max-width: min(250px, calc(100vw - 40px));
+  border: 1px solid rgba(110, 232, 255, 0.34);
+  border-radius: 999px;
+  padding: 0 11px 0 6px;
+  background: rgba(3, 7, 17, 0.80);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.30);
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(10px);
+}
+
+.objective-guide[hidden] {
+  display: none;
+}
+
+.objective-guide-arrow {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  border-radius: 50%;
+  background: rgba(108, 232, 255, 0.13);
+  color: #86edff;
+  font-size: 16px;
+  font-weight: 900;
+  transform: rotate(var(--objective-angle));
+}
+
+.objective-guide-copy {
+  display: grid;
+  gap: 1px;
+}
+
+.objective-guide-copy strong {
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.objective-guide-copy small {
+  color: rgba(134, 237, 255, 0.78);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.objective-guide.is-landmark {
+  border-color: rgba(255, 119, 225, 0.46);
+}
+
+.objective-guide.is-landmark .objective-guide-arrow,
+.objective-guide.is-relic .objective-guide-arrow {
+  background: rgba(255, 103, 222, 0.14);
+  color: #ff88e4;
+}
+
+.mission-instruction {
+  border-left: 2px solid rgba(126, 234, 255, 0.62);
+  padding: 0 0 1px 8px;
+  color: rgba(237, 245, 250, 0.84);
+  font-size: 10px;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
 .gem-badge[hidden] {
   display: none;
 }
@@ -758,6 +887,11 @@ body.debug-hud .hud {
   .companion-directive {
     top: 50px;
     max-width: min(260px, calc(100vw - 130px));
+  }
+
+  .story-beat {
+    top: 92px;
+    width: min(330px, calc(100vw - 32px));
   }
 
   .ability-hud {
