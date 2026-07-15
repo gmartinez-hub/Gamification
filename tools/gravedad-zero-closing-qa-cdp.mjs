@@ -307,6 +307,18 @@ const testCases = [
     shots: [{ suffix: "full" }],
   },
   {
+    name: "00-astronaut-turbo",
+    query: "?qa=astronautTurbo",
+    delayMs: 1500,
+    shots: [{ suffix: "full" }],
+  },
+  {
+    name: "00-stabilizer-field",
+    query: "?qa=gravity&autoStabilizer=1",
+    delayMs: 1400,
+    shots: [{ suffix: "full" }],
+  },
+  {
     name: "00-holographic-map",
     query: "?autoMission=1",
     delayMs: 1400,
@@ -334,6 +346,12 @@ const testCases = [
     shots: [{ suffix: "full" }],
   },
   {
+    name: "00-gem-pickup",
+    query: "?qa=gemPickup",
+    delayMs: 1800,
+    shots: [{ suffix: "full" }],
+  },
+  {
     name: "00-oceanic-gem-evolution",
     query: "?qa=oceanicGem",
     delayMs: 2200,
@@ -354,7 +372,7 @@ const testCases = [
     keyPress: "e",
     postKeyDelayMs: 1200,
     waitForDebug: (debug) =>
-      debug?.transition?.duration === 30 &&
+      debug?.transition?.duration === 4.2 &&
       debug?.transition?.targetWorldStage === 1 &&
       debug?.gateGuide?.visible === true &&
       debug?.gateGuide?.label?.includes("CORREDOR"),

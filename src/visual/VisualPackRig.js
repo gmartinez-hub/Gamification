@@ -231,20 +231,54 @@ export class AstronautVisualRig extends THREE.Group {
   }
 }
 
+function cleanPlumeMaterial(color, profile = "plume") {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uOpacity: { value: 0 },
+      uProfile: { value: profile === "core" ? 1 : 0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uOpacity;
+      uniform float uProfile;
+      varying vec2 vUv;
+      void main() {
+        float nozzle = smoothstep(0.0, 0.12, vUv.x);
+        float tailFade = smoothstep(0.0, 0.36, vUv.x);
+        float halfWidth = mix(0.46, mix(0.13, 0.22, uProfile), vUv.x);
+        float edge = 1.0 - smoothstep(halfWidth * 0.52, halfWidth, abs(vUv.y - 0.5));
+        float lengthFade = mix(tailFade, pow(tailFade, 0.55), uProfile);
+        float hot = mix(0.72, 1.0, smoothstep(0.55, 1.0, vUv.x));
+        float alpha = uOpacity * nozzle * edge * lengthFade;
+        if (alpha < 0.002) discard;
+        gl_FragColor = vec4(uColor * hot, alpha);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+    side: THREE.DoubleSide,
+  });
+}
+
 export class DirectionalThrusterSystem extends THREE.Group {
-  constructor({ core, cone, wake, distortion }) {
+  constructor(options = {}) {
     super();
-    const make = (map, order) => {
-      const sprite = makeOverlay(order);
-      sprite.material.map = map;
-      return sprite;
-    };
-    this.wake = make(wake, 17);
-    this.cone = make(cone, 18);
-    this.core = make(core, 19);
-    this.distortion = make(distortion, 16);
-    this.distortion.material.blending = THREE.NormalBlending;
-    this.add(this.distortion, this.wake, this.cone, this.core);
+    this.sizeMultiplier = options.sizeMultiplier || 1;
+    this.plume = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cleanPlumeMaterial(options.plumeColor || 0x7c83ff));
+    this.core = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cleanPlumeMaterial(options.coreColor || 0x98f5ff, "core"));
+    this.plume.renderOrder = 17;
+    this.core.renderOrder = 18;
+    this.add(this.plume, this.core);
     this.visible = false;
   }
 
@@ -265,27 +299,65 @@ export class DirectionalThrusterSystem extends THREE.Group {
     };
     const angle = angleByDirection[direction] ?? Math.PI * 0.5;
     const intensity = VISUAL_PACK_TUNING.thruster[level];
-    const behind = new THREE.Vector2(-Math.cos(angle), -Math.sin(angle));
     const socketDistance = Math.max(width, height) * (0.34 + tier * 0.015);
-    this.position.set(behind.x * socketDistance, behind.y * socketDistance, 0.018);
+    const shipSize = Math.max(width, height);
+    const boost = level === "turbo" ? 1 : level === "warp" ? 1.28 : 0.54;
+    const plumeLength = shipSize * (0.44 + tier * 0.018) * boost * this.sizeMultiplier;
+    const coreLength = plumeLength * 0.58;
+    this.position.set(0, 0, 0.018);
+    this.rotation.z = angle;
     this.visible = true;
-    for (const sprite of [this.wake, this.cone, this.core, this.distortion]) {
-      sprite.material.rotation = angle;
-    }
-    this.core.material.opacity = intensity.core;
-    this.cone.material.opacity = intensity.cone;
-    // These source sheets contain opaque dark padding. Even at low opacity the
-    // padding reads as a rectangular trail, so the released rig uses only the
-    // alpha-clean core and cone layers for every propulsion tier.
-    this.wake.material.opacity = 0;
-    this.distortion.material.opacity = 0;
-    this.wake.visible = false;
-    this.distortion.visible = false;
-    const boost = level === "turbo" ? 1 : level === "warp" ? 1.22 : 0.66;
-    this.core.scale.set(width * 0.34 * boost, height * 0.16, 1);
-    this.cone.scale.set(width * 0.72 * boost, height * 0.26, 1);
-    this.wake.scale.set(width * 0.72 * boost, height * 0.22, 1);
-    this.distortion.scale.set(width * 0.62 * boost, height * 0.52, 1);
+    this.plume.material.uniforms.uOpacity.value = intensity.cone * (level === "normal" ? 0.68 : 0.86);
+    this.core.material.uniforms.uOpacity.value = intensity.core * 0.92;
+    this.plume.position.set(-socketDistance - plumeLength * 0.5, 0, 0);
+    this.core.position.set(-socketDistance - coreLength * 0.5, 0, 0.002);
+    this.plume.scale.set(plumeLength, Math.max(height * 0.16, shipSize * 0.055) * Math.sqrt(this.sizeMultiplier), 1);
+    this.core.scale.set(coreLength, Math.max(height * 0.065, shipSize * 0.022) * Math.sqrt(this.sizeMultiplier), 1);
+  }
+}
+
+export class StabilizerFieldFx extends THREE.Group {
+  constructor() {
+    super();
+    const ringMaterial = (color, opacity) => new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    });
+    this.outer = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.006, 8, 64), ringMaterial(0x7cecff, 0));
+    this.inner = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.004, 8, 56), ringMaterial(0xb678ff, 0));
+    this.field = new THREE.Mesh(new THREE.CircleGeometry(0.205, 64), ringMaterial(0x70dfff, 0));
+    this.vector = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.006), ringMaterial(0xe5fbff, 0));
+    this.vector.geometry.translate(0.09, 0, 0);
+    this.field.position.z = -0.004;
+    this.vector.position.z = 0.006;
+    this.add(this.field, this.outer, this.inner, this.vector);
+    this.visibility = 0;
+    this.visible = false;
+    this.renderOrder = 31;
+  }
+
+  update(delta, elapsed, status, gravitySample, actorPosition) {
+    const target = status?.active ? 1 : 0;
+    this.visibility = THREE.MathUtils.lerp(this.visibility, target, 1 - Math.pow(0.0008, delta));
+    this.visible = this.visibility > 0.01;
+    if (!this.visible) return;
+    this.position.set(actorPosition.x, actorPosition.y, 0.085);
+    const pulse = 1 + Math.sin(elapsed * 5.2) * 0.035;
+    this.scale.setScalar(pulse);
+    this.outer.rotation.z += delta * 0.72;
+    this.inner.rotation.z -= delta * 0.94;
+    this.outer.material.opacity = this.visibility * 0.44;
+    this.inner.material.opacity = this.visibility * 0.34;
+    this.field.material.opacity = this.visibility * 0.055;
+    const magnitude = THREE.MathUtils.clamp((gravitySample?.magnitude || 0) / 0.42, 0, 1);
+    this.vector.visible = magnitude > 0.04;
+    this.vector.material.opacity = this.visibility * (0.18 + magnitude * 0.34);
+    this.vector.rotation.z = Math.atan2(-(gravitySample?.y || 0), -(gravitySample?.x || 0));
+    this.vector.scale.x = 0.55 + magnitude * 0.85;
   }
 }
 

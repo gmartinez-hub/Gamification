@@ -36,6 +36,11 @@ export class GravityFieldSystem {
     return true;
   }
 
+  rechargeStabilizer(): void {
+    this.stabilizerRemaining = 0;
+    this.stabilizerCooldown = 0;
+  }
+
   get status() {
     return {
       active: this.stabilizerRemaining > 0,

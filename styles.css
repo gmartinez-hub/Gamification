@@ -92,9 +92,9 @@ body.debug-hud .hud {
   z-index: 12;
   width: min(278px, calc(100vw - 36px));
   padding: 13px 14px 13px;
-  border: 1px solid rgba(86, 230, 255, 0.32);
-  border-radius: 8px;
-  background: rgba(3, 5, 12, 0.82);
+  border: 1px solid rgba(198, 211, 225, 0.24);
+  border-radius: 10px;
+  background: rgba(4, 6, 12, 0.88);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
   color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
@@ -114,17 +114,17 @@ body.debug-hud .hud {
   z-index: 13;
   display: grid;
   justify-items: center;
-  max-width: min(360px, calc(100vw - 190px));
-  padding: 9px 12px;
-  border-bottom: 2px solid rgba(103, 231, 255, 0.72);
-  border-radius: 7px;
-  background: linear-gradient(180deg, rgba(3, 7, 18, 0.78), rgba(3, 7, 18, 0.22));
+  max-width: min(330px, calc(100vw - 190px));
+  padding: 7px 11px;
+  border: 1px solid rgba(198, 211, 225, 0.20);
+  border-radius: 999px;
+  background: rgba(3, 6, 14, 0.72);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
   color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
   text-align: center;
   pointer-events: none;
-  backdrop-filter: blur(9px);
+  backdrop-filter: blur(12px);
 }
 
 .companion-directive[hidden] {
@@ -132,29 +132,30 @@ body.debug-hud .hud {
 }
 
 .companion-directive span {
-  color: rgba(113, 234, 255, 0.78);
-  font-size: 9px;
+  display: none;
+  color: rgba(177, 194, 210, 0.72);
+  font-size: 8px;
   font-weight: 900;
   line-height: 1;
 }
 
 .companion-directive strong {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 0;
+  font-size: 11px;
   font-weight: 900;
   line-height: 1.15;
 }
 
 .companion-directive small {
-  margin-top: 3px;
+  margin-top: 2px;
   color: rgba(255, 255, 255, 0.68);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 750;
   line-height: 1.2;
 }
 
 .robot-state-label {
-  color: #7eeaff;
+  color: #c6d3df;
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -167,7 +168,7 @@ body.debug-hud .hud {
 }
 
 .robot-tutorial-block span {
-  color: rgba(126, 234, 255, 0.72);
+  color: rgba(188, 204, 218, 0.72);
   font-size: 10px;
   font-weight: 900;
   line-height: 1;
@@ -355,12 +356,12 @@ body.debug-hud .hud {
   z-index: 11;
   min-width: 74px;
   min-height: 28px;
-  border: 1px solid rgba(126, 234, 255, 0.26);
+  border: 1px solid rgba(190, 207, 222, 0.24);
   border-radius: 999px;
   padding: 0 10px;
   background: rgba(3, 6, 16, 0.44);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(235, 241, 247, 0.84);
   font: 900 11px/28px Arial, Helvetica, sans-serif;
   letter-spacing: 0;
   text-align: center;
@@ -478,11 +479,11 @@ body.debug-hud .hud {
   z-index: 8;
   display: grid;
   gap: 2px;
-  min-width: 148px;
-  padding: 8px 10px 8px 13px;
+  min-width: 132px;
+  padding: 7px 9px 7px 11px;
   border-left: 2px solid var(--landmark-accent);
   border-radius: 2px 8px 8px 2px;
-  background: linear-gradient(90deg, rgba(3, 8, 21, 0.86), rgba(3, 8, 21, 0.42));
+  background: linear-gradient(90deg, rgba(3, 7, 16, 0.88), rgba(3, 7, 16, 0.52));
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
   color: #fff;
   font-family: Arial, Helvetica, sans-serif;
@@ -503,14 +504,14 @@ body.debug-hud .hud {
 }
 
 .landmark-guide strong {
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1.15;
   letter-spacing: 0.025em;
 }
 
 .landmark-guide small {
   color: rgba(217, 235, 245, 0.68);
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 800;
   line-height: 1.1;
 }
@@ -644,6 +645,90 @@ body.debug-hud .hud {
   letter-spacing: 0;
 }
 
+.ability-hud {
+  position: fixed;
+  right: 18px;
+  bottom: 72px;
+  z-index: 12;
+  display: grid;
+  gap: 7px;
+  width: min(238px, calc(100vw - 36px));
+  color: #eef3f8;
+  font-family: Arial, Helvetica, sans-serif;
+  pointer-events: none;
+}
+
+.ability-hud[hidden] {
+  display: none;
+}
+
+.ability-chip {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  overflow: hidden;
+  border: 1px solid rgba(190, 207, 222, 0.20);
+  border-radius: 10px;
+  padding: 0 11px 0 7px;
+  background: rgba(3, 6, 14, 0.68);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(11px);
+}
+
+.ability-chip kbd {
+  display: grid;
+  place-items: center;
+  min-width: 25px;
+  height: 25px;
+  border: 1px solid rgba(217, 228, 238, 0.25);
+  border-radius: 6px;
+  padding: 0 5px;
+  background: rgba(220, 229, 238, 0.08);
+  color: #f5f7fa;
+  font: 900 9px/1 Arial, Helvetica, sans-serif;
+}
+
+.ability-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.ability-copy strong {
+  color: #f4f7fa;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.ability-copy small {
+  color: rgba(198, 211, 225, 0.64);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ability-meter {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--ability-level, 100%);
+  height: 2px;
+  background: linear-gradient(90deg, #6ce8ff, #b46cff);
+  box-shadow: 0 0 12px rgba(108, 232, 255, 0.50);
+  transition: width 100ms linear, opacity 160ms ease;
+}
+
+.ability-chip.is-active {
+  border-color: rgba(116, 235, 255, 0.55);
+  background: rgba(8, 21, 31, 0.78);
+}
+
+.ability-chip.is-cooldown {
+  opacity: 0.68;
+}
+
 @media (max-width: 720px) {
   .hud {
     right: 14px;
@@ -673,6 +758,12 @@ body.debug-hud .hud {
   .companion-directive {
     top: 50px;
     max-width: min(260px, calc(100vw - 130px));
+  }
+
+  .ability-hud {
+    right: 14px;
+    bottom: 66px;
+    width: min(216px, calc(100vw - 28px));
   }
 
   .game-menu {

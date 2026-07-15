@@ -40,12 +40,14 @@ assert(main.includes("const FIXED_AUTHORED_WORLD = true"), "Fixed authored world
 assert(main.includes('authoredStageGroup.name = "AUTHORED_FIXED_STAGE"'), "Missing the fixed authored stage group.");
 assert(main.includes("if (FIXED_AUTHORED_WORLD) {\n    ambientMeteorLayer.group.visible = false;"), "Ambient meteor writer is still active in fixed-world mode.");
 assert(main.includes("if (FIXED_AUTHORED_WORLD) {\n    orbitalWorld.group.visible = false;"), "Orbital procedural writer is still active in fixed-world mode.");
-assert(count(main, /state\.worldOffset\.set\(/g) === 1, "World position must have one set writer.");
+assert(count(main, /function setWorldOffset\(/g) === 1, "World teleport authority must be centralized.");
+assert(count(main, /function moveWorldOffset\(/g) === 1, "World movement authority must be centralized.");
+assert(count(main, /state\.worldOffset\.set\(/g) === 2, "World position writes escaped the two authoritative helpers.");
 assert(count(main, /state\.worldOffset\.x =/g) === 1, "World X movement must have one writer.");
 assert(count(main, /state\.worldOffset\.y =/g) === 1, "World Y movement must have one writer.");
 assert(worldTuning.includes("maxHeroVisible: 1"), "Expected one dominant hero planet.");
-assert(progressionRules.includes("FIRST_VISIT_CORRIDOR_SECONDS = 30"), "Forward corridor must last 30 seconds.");
-assert(progressionRules.includes("RETURN_CORRIDOR_SECONDS = 6.5"), "Return corridor must last 6.5 seconds.");
+assert(progressionRules.includes("FIRST_VISIT_CORRIDOR_SECONDS = 4.2"), "Forward corridor must last 4.2 seconds.");
+assert(progressionRules.includes("RETURN_CORRIDOR_SECONDS = 2.4"), "Return corridor must last 2.4 seconds.");
 assert(main.includes('qaRoute === "reset"'), "Missing ?qa=reset progress reset.");
 assert(main.includes('mission01.state = "completed_region"'), "Mission completion does not wait at the world gate.");
 
@@ -108,7 +110,7 @@ if (errors.length) {
 }
 
 console.log("FINAL SHOWABLE RECOVERY VERIFY PASS");
-console.log("- one authoritative runtime and animation loop");
+console.log("- one authoritative runtime, world movement API and animation loop");
 console.log("- one main camera plus one render-only background camera");
 console.log("- original ship, astronaut and companion asset anchors preserved");
 console.log("- four authored scenarios, discovery and gravity integrated");

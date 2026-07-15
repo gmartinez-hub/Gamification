@@ -38,10 +38,36 @@ function register(group, object, role, options = {}) {
   object.userData.landmarkRole = role;
   object.userData.baseOpacity = object.material?.opacity ?? 1;
   object.userData.baseScale = object.scale.clone();
+  object.userData.basePosition = object.position.clone();
   Object.assign(object.userData, options);
   group.userData.parts.push(object);
   group.add(object);
   return object;
+}
+
+function addEncounterNodes(group, accent, id) {
+  const layouts = {
+    fractured_beacon: [[-0.62, -0.30], [0.08, 0.50], [0.66, 0.30]],
+    orbital_ruins: [[-0.62, 0.22], [0.03, -0.42], [0.64, 0.18]],
+    broken_ring: [[-0.68, -0.34], [0.02, 0.72], [0.70, -0.30]],
+    scanner_array: [[-0.57, 0.62], [0, 0.37], [0.57, 0.62]],
+    synthetic_rift: [[-0.44, -0.58], [0.40, 0.02], [-0.38, 0.58]],
+    gravity_tower: [[-0.38, -0.54], [0.38, -0.06], [0, 0.74]],
+  };
+  const positions = layouts[id];
+  if (!positions) return;
+  positions.forEach(([x, y], index) => {
+    mesh(
+      group,
+      new THREE.SphereGeometry(0.075, 20, 12),
+      energy(accent, 0.12),
+      "encounter-node",
+      [x, y, 0.18],
+      [0, 0, 0],
+      [1, 1, 0.62],
+      { encounterNode: index, pulse: true },
+    );
+  });
 }
 
 function mesh(group, geometry, material, role, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], options = {}) {
@@ -98,13 +124,16 @@ function addFracturedBeacon(group, accent) {
 }
 
 function addOrbitalRuins(group, accent) {
-  arc(group, 0.73, 0.09, 0.20, 1.48, metal(accent), "structure", { z: 0.01, spin: 0.035 });
-  arc(group, 0.73, 0.09, 2.30, 1.08, darkMetal(accent), "structure", { z: 0.02, spin: 0.035 });
-  arc(group, 0.73, 0.09, 4.30, 1.22, metal(accent), "structure", { z: 0.03, spin: 0.035 });
-  mesh(group, new THREE.DodecahedronGeometry(0.25, 1), darkMetal(accent), "structure", [0.02, 0.02, 0.02], [0.4, 0.2, 0.1]);
-  mesh(group, new THREE.OctahedronGeometry(0.13, 1), energy(accent, 0.86), "core", [0.02, 0.02, 0.13], [0, 0, 0], [1, 1, 0.7], { spin: 0.42 });
-  arc(group, 0.42, 0.018, 0, Math.PI * 2, energy(accent, 0.34), "signal", { z: 0.10, spin: -0.18, scale: [1, 0.48, 1] });
-  addFloatingDebris(group, accent, 6, 1.02, 0.1);
+  // A recognizable derelict station rather than another abstract ring.
+  mesh(group, new THREE.BoxGeometry(0.82, 0.24, 0.20), darkMetal(accent), "structure", [0, 0, 0.01], [0.08, -0.10, -0.08]);
+  mesh(group, new THREE.CylinderGeometry(0.17, 0.21, 0.62, 12), metal(accent), "structure", [-0.46, 0.03, 0.02], [0, 0, Math.PI * 0.5]);
+  mesh(group, new THREE.CylinderGeometry(0.14, 0.18, 0.46, 12), metal(accent), "structure", [0.48, -0.12, 0.02], [0, 0, Math.PI * 0.5]);
+  mesh(group, new THREE.BoxGeometry(0.78, 0.075, 0.08), metal(accent), "structure", [0.02, 0.32, 0], [0, 0, -0.14]);
+  mesh(group, new THREE.BoxGeometry(0.50, 0.28, 0.05), darkMetal(accent), "structure", [-0.42, 0.50, -0.01], [0.04, 0.06, -0.20]);
+  mesh(group, new THREE.BoxGeometry(0.36, 0.24, 0.05), darkMetal(accent), "structure", [0.46, 0.46, -0.01], [-0.04, -0.06, 0.24]);
+  mesh(group, new THREE.OctahedronGeometry(0.13, 1), energy(accent, 0.62), "core", [0.03, 0.02, 0.15], [0, 0, 0], [1, 1, 0.7], { spin: 0.42 });
+  arc(group, 0.38, 0.012, 0.20, Math.PI * 1.45, energy(accent, 0.22), "signal", { z: 0.10, spin: -0.12, scale: [1, 0.46, 1] });
+  addFloatingDebris(group, accent, 7, 1.02, 0.1);
 }
 
 function addBrokenRing(group, accent) {
@@ -114,6 +143,16 @@ function addBrokenRing(group, accent) {
   arc(group, 0.58, 0.022, 0, Math.PI * 2, energy(accent, 0.62), "signal", { z: 0.08, spin: -0.22, scale: [1, 0.72, 1] });
   mesh(group, new THREE.IcosahedronGeometry(0.24, 2), darkMetal(accent), "structure", [0, 0, 0.03]);
   mesh(group, new THREE.OctahedronGeometry(0.15, 1), energy(accent, 0.96), "core", [0, 0, 0.14], [0, 0, 0], [1, 1.25, 0.7], { spin: 0.48 });
+  for (const angle of [-2.35, -0.72, 1.42]) {
+    mesh(
+      group,
+      new THREE.BoxGeometry(0.18, 0.42, 0.16),
+      darkMetal(accent),
+      "structure",
+      [Math.cos(angle) * 0.84, Math.sin(angle) * 0.84, 0.01],
+      [0, 0, angle - Math.PI * 0.5],
+    );
+  }
   addFloatingDebris(group, accent, 5, 1.04, 0.8);
 }
 
@@ -194,6 +233,8 @@ export function createAuthoredLandmarkVisual(id, accentInput, textures = {}) {
   else if (id === "relic_portal") addRelicPortal(group, accent, textures);
   else addGravityNode(group, accent);
 
+  addEncounterNodes(group, accent, id);
+
   return group;
 }
 
@@ -224,6 +265,14 @@ export function updateAuthoredLandmarkVisual(group, delta, elapsed, scanProgress
     if (data.pulse) {
       const pulse = 0.96 + Math.sin(elapsed * 2.5) * (0.025 + activation * 0.035);
       part.scale.copy(data.baseScale).multiplyScalar(pulse);
+    }
+    if (data.encounterNode !== undefined) {
+      const threshold = (data.encounterNode + 1) / 3;
+      const nodeCharge = THREE.MathUtils.smoothstep(scanProgress || activation, threshold - 0.30, threshold);
+      part.material.opacity = 0.10 + nodeCharge * 0.82;
+      part.scale.copy(data.baseScale).multiplyScalar(0.88 + nodeCharge * 0.30);
+      part.rotation.z += delta * (0.25 + nodeCharge * 1.15);
+      continue;
     }
     if (part.material && data.baseOpacity !== undefined) {
       const roleBoost = data.landmarkRole === "signal" || data.landmarkRole === "core" ? 0.34 * activation : 0;
