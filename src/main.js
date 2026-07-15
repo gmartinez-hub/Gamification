@@ -47,6 +47,9 @@ const gateGuide = document.querySelector("#gateGuide");
 const gateGuideArrow = document.querySelector("#gateGuideArrow");
 const gateGuideLabel = document.querySelector("#gateGuideLabel");
 const gateGuideDistance = document.querySelector("#gateGuideDistance");
+const landmarkGuide = document.querySelector("#landmarkGuide");
+const landmarkGuideName = document.querySelector("#landmarkGuideName");
+const landmarkGuideState = document.querySelector("#landmarkGuideState");
 const regionHud = document.querySelector("#regionHud");
 const robotPanel = document.querySelector("#robotPanel");
 const robotStateLabel = document.querySelector("#robotStateLabel");
@@ -1808,9 +1811,12 @@ function largeObjectiveNoun(count) {
 
 function missionObjectiveCopy(config) {
   if (config === missionStageConfigs[0]) {
-    return `ESCANEÁ LA BALIZA / RECUPERÁ ${config.smallRequired} FRAGMENTOS / ${largeObjectiveLabel(config.largeRequired)}`;
+    return `ESCANEÁ LA BALIZA / RECUPERÁ ${config.smallRequired} FRAGMENTOS A LA DERIVA / ${largeObjectiveLabel(config.largeRequired)}`;
   }
-  return `RECUPERÁ ${config.smallRequired} FRAGMENTOS DE SEÑAL / ${largeObjectiveLabel(config.largeRequired)}`;
+  if (config === missionStageConfigs[1]) {
+    return `PERSEGUÍ ${config.smallRequired} FRAGMENTOS MÓVILES / ${largeObjectiveLabel(config.largeRequired)}`;
+  }
+  return `ESTABILIZÁ LA GRAVEDAD / CAZÁ ${config.smallRequired} FRAGMENTOS VOLÁTILES / ${largeObjectiveLabel(config.largeRequired)}`;
 }
 
 const TARGET_MOTION_PROFILES = [
@@ -3153,76 +3159,120 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
   const texture = authoredLandmarkTextures[landmark.texture];
   for (const child of body.children) child.visible = false;
   const accent = new THREE.Color(scenario.accent);
-  const radius = landmark.id === "relic_portal" ? 0.62 : landmark.role === "primary" ? 0.32 : 0.27;
+  const isFinalNode = landmark.id.startsWith("gravity_node_");
+  const radius = landmark.id === "relic_portal"
+    ? 0.72
+    : isFinalNode
+      ? 0.34
+      : landmark.role === "primary"
+        ? 0.52
+        : 0.43;
   const visual = new THREE.Group();
   visual.name = `AUTHORED_LANDMARK_${landmark.id}`;
-  const structural = () => new THREE.MeshStandardMaterial({
-    color: 0xd8e8f2,
+  const structural = (opacity = 0.78) => new THREE.MeshStandardMaterial({
+    color: stageIndex === 2 ? 0x9bb4c8 : 0xd8e8f2,
     emissive: accent,
-    emissiveIntensity: 0.18,
-    metalness: 0.64,
-    roughness: 0.34,
+    emissiveIntensity: 0.24,
+    metalness: 0.72,
+    roughness: 0.28,
     transparent: true,
-    opacity: 0.30,
+    opacity,
   });
-  const energy = (opacity = 0.82) => new THREE.MeshBasicMaterial({
-    color: accent,
+  const energy = (opacity = 0.82, color = accent) => new THREE.MeshBasicMaterial({
+    color,
     transparent: true,
-    opacity: opacity * 0.38,
+    opacity,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
-  const addMesh = (geometry, material, position = [0, 0, 0], scale = [1, 1, 1], rotation = [0, 0, 0]) => {
+  const addMesh = (
+    geometry,
+    material,
+    position = [0, 0, 0],
+    scale = [1, 1, 1],
+    rotation = [0, 0, 0],
+    motion = null,
+  ) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(...position);
     mesh.scale.set(...scale);
     mesh.rotation.set(...rotation);
     mesh.userData.baseOpacity = material.opacity ?? 1;
+    if (motion) Object.assign(mesh.userData, motion);
     visual.add(mesh);
     return mesh;
   };
 
+  // Every landmark gets a physical footprint. The supplied PNG is preserved
+  // below as its luminous identity plate instead of being the entire object.
+  addMesh(
+    new THREE.CircleGeometry(radius * 0.78, 48),
+    energy(0.075),
+    [0, -radius * 0.18, -0.045],
+    [1, 0.48, 1],
+  );
+  addMesh(
+    new THREE.TorusGeometry(radius * 0.62, radius * 0.025, 8, 64),
+    energy(0.34),
+    [0, -radius * 0.20, -0.025],
+    [1, 0.42, 1],
+    [0, 0, seedOffset * 0.17],
+    { landmarkSpin: 0.12 + stageIndex * 0.025, landmarkPhase: seedOffset * 0.17 },
+  );
+
   if (landmark.id === "fractured_beacon") {
-    addMesh(new THREE.CylinderGeometry(0.055, 0.082, 0.40, 8), structural());
-    addMesh(new THREE.BoxGeometry(0.09, 0.16, 0.08), energy(0.88), [0, 0.03, 0.055]);
-    addMesh(new THREE.ConeGeometry(0.075, 0.14, 8), structural(), [0, 0.27, 0]);
-    addMesh(new THREE.TorusGeometry(0.18, 0.016, 8, 40), energy(0.58), [0, -0.19, 0]);
-    addMesh(new THREE.TorusGeometry(0.25, 0.008, 6, 40), energy(0.30), [0, -0.19, -0.01], [1, 0.42, 1]);
+    addMesh(new THREE.CylinderGeometry(radius * 0.12, radius * 0.19, radius * 0.92, 10), structural(), [0, 0.03, 0]);
+    addMesh(new THREE.BoxGeometry(radius * 0.30, radius * 0.34, radius * 0.15), structural(0.88), [0, radius * 0.08, 0.03]);
+    addMesh(new THREE.BoxGeometry(radius * 0.15, radius * 0.28, radius * 0.18), energy(0.92), [0, radius * 0.08, 0.10]);
+    addMesh(new THREE.ConeGeometry(radius * 0.17, radius * 0.32, 10), structural(), [0, radius * 0.62, 0]);
+    [-1, 1].forEach((side) => {
+      addMesh(new THREE.BoxGeometry(radius * 0.10, radius * 0.58, radius * 0.10), structural(0.68), [side * radius * 0.30, radius * 0.02, -0.01], [1, 1, 1], [0, 0, side * -0.15]);
+    });
+    addMesh(new THREE.TorusGeometry(radius * 0.45, radius * 0.025, 8, 48), energy(0.58), [0, -radius * 0.43, 0], [1, 0.34, 1], [0, 0, 0], { landmarkSpin: -0.34, landmarkPhase: 0.2 });
   } else if (landmark.id === "orbital_ruins" || landmark.id === "broken_ring") {
-    const ringRadius = landmark.id === "broken_ring" ? 0.25 : 0.22;
+    const ringRadius = radius * 0.68;
     [0.12, 2.28, 4.45].forEach((start, index) => {
       addMesh(
-        new THREE.TorusGeometry(ringRadius, 0.026, 8, 32, index === 1 ? 1.15 : 1.32),
-        index === 1 ? energy(0.74) : structural(),
+        new THREE.TorusGeometry(ringRadius, radius * 0.065, 8, 40, index === 1 ? 1.08 : 1.30),
+        index === 1 ? energy(0.78) : structural(0.82),
         [0, 0, index * 0.012],
         [1, 1, 1],
         [0, 0, start],
+        { landmarkSpin: (index === 1 ? -0.16 : 0.09) * (landmark.id === "broken_ring" ? 1.5 : 1), landmarkPhase: start },
       );
     });
-    [-0.20, 0.20].forEach((x) => addMesh(new THREE.BoxGeometry(0.075, 0.11, 0.08), structural(), [x, x * 0.22, 0.02]));
-    addMesh(new THREE.TorusGeometry(ringRadius * 0.50, 0.009, 6, 32), energy(0.34));
+    [-1, 1].forEach((side) => addMesh(new THREE.BoxGeometry(radius * 0.22, radius * 0.32, radius * 0.13), structural(0.92), [side * radius * 0.54, side * radius * 0.10, 0.04], [1, 1, 1], [0, 0, side * 0.32]));
+    addMesh(new THREE.OctahedronGeometry(radius * 0.16, 1), energy(0.88), [0, 0, 0.07], [1, 1, 0.55], [0, 0, 0], { landmarkSpin: 0.42, landmarkPhase: 0 });
+    addMesh(new THREE.TorusGeometry(ringRadius * 0.48, radius * 0.018, 6, 40), energy(0.46), [0, 0, 0.06], [1, 0.72, 1], [0, 0, 0], { landmarkSpin: -0.28, landmarkPhase: 0.8 });
   } else if (landmark.id === "scanner_array") {
-    addMesh(new THREE.CylinderGeometry(0.045, 0.075, 0.40, 8), structural());
-    [-0.13, 0, 0.13].forEach((y, index) => {
-      addMesh(new THREE.TorusGeometry(0.19 - index * 0.018, 0.012, 6, 32), energy(0.42 + index * 0.12), [0, y, 0], [1, 0.38, 1]);
+    addMesh(new THREE.CylinderGeometry(radius * 0.10, radius * 0.18, radius * 0.92, 10), structural(0.86), [0, -radius * 0.02, 0]);
+    addMesh(new THREE.BoxGeometry(radius * 0.56, radius * 0.10, radius * 0.12), structural(0.82), [0, radius * 0.34, 0.01]);
+    [-0.28, 0, 0.28].forEach((y, index) => {
+      addMesh(new THREE.TorusGeometry(radius * (0.54 - index * 0.05), radius * 0.025, 6, 40), energy(0.42 + index * 0.16), [0, radius * y, 0.03], [1, 0.34, 1], [0, 0, 0], { landmarkSpin: index % 2 ? -0.30 : 0.22, landmarkPhase: index * 0.6 });
     });
-    addMesh(new THREE.SphereGeometry(0.055, 16, 12), energy(0.88), [0, 0.19, 0.04]);
+    addMesh(new THREE.SphereGeometry(radius * 0.15, 18, 14), energy(0.94), [0, radius * 0.52, 0.08]);
+    addMesh(new THREE.ConeGeometry(radius * 0.22, radius * 0.30, 24, 1, true), energy(0.16), [0, radius * 0.78, -0.01], [1, 1.8, 1], [0, 0, Math.PI]);
   } else if (landmark.id === "synthetic_rift") {
-    addMesh(new THREE.TorusGeometry(0.24, 0.024, 8, 48), energy(0.62), [0, 0, 0.01], [1, 0.62, 1], [0, 0, 0.34]);
-    addMesh(new THREE.TorusGeometry(0.17, 0.014, 6, 40), structural(), [0, 0, 0.03], [1, 0.74, 1], [0, 0, -0.48]);
-    addMesh(new THREE.OctahedronGeometry(0.09, 1), energy(0.90), [0, 0, 0.07]);
+    addMesh(new THREE.TorusGeometry(radius * 0.67, radius * 0.07, 10, 64), energy(0.76), [0, 0, 0.01], [1, 0.58, 1], [0, 0, 0.34], { landmarkSpin: 0.20, landmarkPhase: 0.34 });
+    addMesh(new THREE.TorusGeometry(radius * 0.52, radius * 0.035, 8, 56), structural(0.76), [0, 0, 0.03], [1, 0.74, 1], [0, 0, -0.48], { landmarkSpin: -0.30, landmarkPhase: -0.48 });
+    addMesh(new THREE.TorusGeometry(radius * 0.34, radius * 0.025, 6, 48), energy(0.68), [0, 0, 0.05], [0.62, 1, 1], [0, 0, 0.18], { landmarkSpin: 0.44, landmarkPhase: 0.18 });
+    addMesh(new THREE.OctahedronGeometry(radius * 0.22, 1), energy(0.96), [0, 0, 0.10], [1, 1.4, 0.72], [0, 0, 0], { landmarkSpin: -0.62, landmarkPhase: 0 });
   } else if (landmark.id === "gravity_tower") {
-    addMesh(new THREE.CylinderGeometry(0.045, 0.09, 0.42, 8), structural());
-    addMesh(new THREE.OctahedronGeometry(0.075, 1), energy(0.88), [0, 0.18, 0.04]);
-    [-0.15, 0.05].forEach((y, index) => addMesh(new THREE.TorusGeometry(0.16 - index * 0.025, 0.012, 6, 32), energy(0.46), [0, y, 0], [1, 0.44, 1]));
+    addMesh(new THREE.CylinderGeometry(radius * 0.11, radius * 0.22, radius * 1.12, 10), structural(0.86));
+    addMesh(new THREE.BoxGeometry(radius * 0.54, radius * 0.09, radius * 0.11), structural(0.74), [0, -radius * 0.32, 0.01]);
+    addMesh(new THREE.OctahedronGeometry(radius * 0.20, 1), energy(0.94), [0, radius * 0.54, 0.08], [1, 1.3, 0.78], [0, 0, 0], { landmarkSpin: -0.38, landmarkPhase: 0 });
+    [-0.30, 0.08].forEach((y, index) => addMesh(new THREE.TorusGeometry(radius * (0.48 - index * 0.07), radius * 0.028, 6, 40), energy(0.54), [0, radius * y, 0.03], [1, 0.38, 1], [0, 0, 0], { landmarkSpin: index ? 0.34 : -0.22, landmarkPhase: index }));
   } else if (landmark.id === "relic_portal") {
-    addMesh(new THREE.TorusGeometry(0.47, 0.038, 10, 72), structural());
-    addMesh(new THREE.TorusGeometry(0.36, 0.018, 8, 64), energy(0.66));
-    addMesh(new THREE.CircleGeometry(0.31, 48), energy(0.16), [0, 0, -0.015]);
+    addMesh(new THREE.TorusGeometry(radius * 0.82, radius * 0.075, 12, 80), structural(0.92), [0, 0, 0], [1, 1, 1], [0, 0, 0], { landmarkSpin: 0.10, landmarkPhase: 0 });
+    addMesh(new THREE.TorusGeometry(radius * 0.66, radius * 0.034, 8, 72), energy(0.84), [0, 0, 0.04], [1, 1, 1], [0, 0, 0.4], { landmarkSpin: -0.24, landmarkPhase: 0.4 });
+    addMesh(new THREE.TorusGeometry(radius * 0.49, radius * 0.020, 8, 64), energy(0.62, new THREE.Color(0xff72e6)), [0, 0, 0.06], [1, 0.82, 1], [0, 0, -0.2], { landmarkSpin: 0.32, landmarkPhase: -0.2 });
+    addMesh(new THREE.CircleGeometry(radius * 0.54, 64), energy(0.22), [0, 0, -0.015]);
+    [-1, 1].forEach((side) => addMesh(new THREE.BoxGeometry(radius * 0.12, radius * 0.58, radius * 0.14), structural(0.82), [side * radius * 0.70, 0, 0.01], [1, 1, 1], [0, 0, side * 0.08]));
   } else {
-    addMesh(new THREE.SphereGeometry(0.105, 24, 18), structural());
-    addMesh(new THREE.TorusGeometry(0.18, 0.012, 6, 40), energy(0.56), [0, 0, 0.01], [1, 0.52, 1]);
-    addMesh(new THREE.TorusGeometry(0.15, 0.008, 6, 36), energy(0.34), [0, 0, 0.02], [0.58, 1, 1], [0, 0, 0.56]);
+    addMesh(new THREE.SphereGeometry(radius * 0.29, 28, 20), structural(0.88));
+    addMesh(new THREE.OctahedronGeometry(radius * 0.17, 1), energy(0.94), [0, 0, 0.09], [1, 1, 0.72], [0, 0, 0], { landmarkSpin: 0.52, landmarkPhase: seedOffset });
+    addMesh(new THREE.TorusGeometry(radius * 0.58, radius * 0.034, 8, 48), energy(0.66), [0, 0, 0.02], [1, 0.48, 1], [0, 0, 0], { landmarkSpin: 0.32, landmarkPhase: seedOffset * 0.4 });
+    addMesh(new THREE.TorusGeometry(radius * 0.48, radius * 0.022, 6, 44), energy(0.48, new THREE.Color(0xff75df)), [0, 0, 0.04], [0.58, 1, 1], [0, 0, 0.56], { landmarkSpin: -0.40, landmarkPhase: 0.56 });
   }
 
   if (texture) {
@@ -3230,14 +3280,15 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
       map: texture,
       color: 0xffffff,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.96,
       depthWrite: false,
       alphaTest: 0.012,
     }));
-    indicator.position.z = 0.10;
-    indicator.scale.setScalar(radius * 1.92);
-    indicator.userData.baseOpacity = 0.82;
+    indicator.position.z = 0.14;
+    indicator.scale.setScalar(radius * (landmark.id === "relic_portal" ? 1.02 : 1.18));
+    indicator.userData.baseOpacity = 0.96;
     indicator.userData.authoredTexture = landmark.texture;
+    indicator.userData.landmarkIdentityPlate = true;
     visual.add(indicator);
   }
   body.add(visual);
@@ -3255,7 +3306,7 @@ function createAuthoredScenarioLandmark(scenario, landmark, seedOffset) {
   body.userData.scenarioId = scenario.id;
   body.userData.landmarkId = landmark.id;
   body.userData.landmarkRole = landmark.role;
-  body.userData.finalNode = landmark.id.startsWith("gravity_node_");
+  body.userData.finalNode = isFinalNode;
   body.userData.finalNodeActive = false;
   body.userData.finalPortal = landmark.id === "relic_portal";
   body.userData.reveal = 1;
@@ -3378,44 +3429,60 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   const body = createProceduralBody("broken_gate", 0, 0, rand, seedOffset, STAGE_WORLD_PROFILES[scenario.stageIndex], region);
   for (const child of body.children) child.visible = false;
   const gateColor = new THREE.Color(scenario.accent);
-  const frame = new THREE.Mesh(
-    new THREE.TorusGeometry(0.31, 0.032, 10, 96),
-    new THREE.MeshBasicMaterial({
-      color: gateColor,
+  const gateMaterial = (color, opacity) => new THREE.MeshBasicMaterial({
+      color,
       transparent: true,
-      opacity: 0.92,
+      opacity,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-    }),
-  );
-  frame.userData.baseOpacity = 0.92;
-  frame.userData.defaultBaseOpacity = 0.92;
-  body.add(frame);
-  const innerFrame = new THREE.Mesh(
-    new THREE.TorusGeometry(0.235, 0.010, 8, 72),
-    new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.68,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
-  innerFrame.userData.baseOpacity = 0.68;
-  innerFrame.userData.defaultBaseOpacity = 0.68;
-  body.add(innerFrame);
+    });
+  const addGatePart = (geometry, material, z = 0, scale = [1, 1, 1], phase = 0, speed = 0) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.z = z;
+    mesh.scale.set(...scale);
+    mesh.rotation.z = phase;
+    mesh.userData.baseOpacity = material.opacity ?? 1;
+    mesh.userData.defaultBaseOpacity = material.opacity ?? 1;
+    mesh.userData.landmarkSpin = speed;
+    mesh.userData.landmarkPhase = phase;
+    body.add(mesh);
+    return mesh;
+  };
+  addGatePart(new THREE.CircleGeometry(0.43, 64), gateMaterial(gateColor, 0.12), -0.04);
+  addGatePart(new THREE.TorusGeometry(0.47, 0.045, 12, 96), gateMaterial(gateColor, 0.94), 0, [1, 1, 1], 0, 0.16);
+  addGatePart(new THREE.TorusGeometry(0.365, 0.018, 8, 80), gateMaterial(0xffffff, 0.78), 0.025, [1, 1, 1], 0.3, -0.28);
+  addGatePart(new THREE.TorusGeometry(0.275, 0.012, 8, 72), gateMaterial(gateColor, 0.62), 0.04, [1, 0.82, 1], -0.2, 0.36);
+  for (let index = 0; index < 6; index += 1) {
+    const spoke = addGatePart(
+      new THREE.BoxGeometry(0.055, 0.22, 0.08),
+      new THREE.MeshStandardMaterial({
+        color: 0xdcebf5,
+        emissive: gateColor,
+        emissiveIntensity: 0.34,
+        metalness: 0.72,
+        roughness: 0.26,
+        transparent: true,
+        opacity: 0.82,
+      }),
+      0.01,
+    );
+    const angle = (index / 6) * Math.PI * 2;
+    spoke.position.set(Math.sin(angle) * 0.47, Math.cos(angle) * 0.47, 0.01);
+    spoke.rotation.z = -angle;
+  }
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
     map: authoredGateTexture,
     transparent: true,
-    opacity: 0.68,
+    opacity: 0.92,
     depthWrite: false,
     alphaTest: 0.015,
     blending: THREE.AdditiveBlending,
   }));
-  sprite.position.z = 0.08;
-  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 0.70);
-  sprite.userData.baseOpacity = 0.68;
-  sprite.userData.defaultBaseOpacity = 0.68;
+  sprite.position.z = 0.10;
+  sprite.scale.setScalar(AUTHORED_GATE_SCALE * AUTHORED_SPRITE_SCALE * 0.82);
+  sprite.userData.baseOpacity = 0.92;
+  sprite.userData.defaultBaseOpacity = 0.92;
+  sprite.userData.landmarkIdentityPlate = true;
   body.add(sprite);
   body.userData.base.set(gate.x, gate.y, -2.2);
   body.userData.profileStage = scenario.stageIndex;
@@ -3430,7 +3497,7 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   body.userData.gate = gate;
   body.userData.reveal = 1;
   body.userData.discovered = true;
-  body.userData.radius = 0.34;
+  body.userData.radius = 0.54;
   body.userData.visualScale = 1;
   body.userData.spin = 0;
   body.userData.drift.set(0, 0);
@@ -3763,6 +3830,10 @@ function updateChunkObjects(delta, elapsed, travelVelocity) {
     object.rotation.x += delta * object.userData.spin * 0.65;
     object.rotation.y += delta * object.userData.spin;
     object.rotation.z += delta * object.userData.spin * 0.42;
+    object.traverse((child) => {
+      if (child.userData.landmarkSpin === undefined) return;
+      child.rotation.z = (child.userData.landmarkPhase || 0) + elapsed * child.userData.landmarkSpin;
+    });
 
     const finalBoost = mission01.finalStarted ? 0.22 : 0;
     const stageAffinity = object.userData.stageAffinity;
@@ -4418,6 +4489,7 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
     currentStageIndex: mission01.currentStageIndex,
     gems: mission01.gems,
     finalStarted: mission01.finalStarted,
+    finalTime: Number((mission01.finalTime || 0).toFixed(3)),
     finalComplete: mission01.finalComplete,
     finalNodesActivated: mission01.finalNodesActivated,
     finalPortalReady: mission01.finalPortalReady,
@@ -5298,11 +5370,18 @@ function robotTutorialContent(missionState = mission01.state) {
 
   if (missionState === "small_asteroids") {
     const config = currentMissionConfig();
+    const stageAction = mission01.currentStageIndex === 0
+      ? "Escaneá la baliza y usá el astronauta para recuperar fragmentos a la deriva."
+      : mission01.currentStageIndex === 1
+        ? "Perseguí los fragmentos móviles; dispará cuando su núcleo quede vulnerable."
+        : "Usá ESPACIO para estabilizar la gravedad y anticipá los fragmentos volátiles.";
     return {
       label: `${config.mission} · ${config.name}`,
       goal: `Localizá ${mission01.smallRequired} fragmentos de señal y neutralizá el núcleo principal.`,
-      action: "Usá el astronauta para fragmentos pequeños.",
-      tip: "Clickeá cerca del fragmento: el autoaim corrige orientación y trayectoria.",
+      action: stageAction,
+      tip: mission01.currentStageIndex === 2
+        ? "El estabilizador reduce la gravedad durante una ventana corta; después entra en recarga."
+        : "Clickeá cerca del fragmento: el autoaim corrige orientación y trayectoria.",
     };
   }
 
@@ -5627,7 +5706,10 @@ function aimRangeForTarget(target, shooter) {
 
 function aimSuccessForDistance(distance, maxRange, target, shooter) {
   const rangeT = THREE.MathUtils.clamp(distance / Math.max(0.01, maxRange), 0, 1);
-  const base = shooter === "ship" ? 0.86 : 0.80;
+  // Close, well-scanned shots should feel dependable. Later sectors retain
+  // difficulty through velocity, chase and gravity penalties instead of
+  // making the opening mission randomly waste the player's time.
+  const base = shooter === "ship" ? 0.90 : 0.90;
   const largePenalty = target?.userData?.missionRole === "large" ? 0.08 : 0;
   const velocity = target?.userData?.screenVelocity2D || target?.userData?.velocity2D || new THREE.Vector2();
   const velocityPenalty = THREE.MathUtils.clamp(velocity.length() * 0.22, 0, 0.28);
@@ -6452,7 +6534,8 @@ function updateGateGuide() {
   const safeDistance = Math.max(0.001, distance);
   const nx = dx / safeDistance;
   const ny = dy / safeDistance;
-  const left = THREE.MathUtils.clamp(50 + (point.x / Math.max(0.001, viewport.aspect)) * 50, 10, 90);
+  const baseLeft = 50 + (point.x / Math.max(0.001, viewport.aspect)) * 50;
+  const left = THREE.MathUtils.clamp(baseLeft + (distance <= 0.58 ? 16 : 0), 10, 90);
   const top = THREE.MathUtils.clamp(50 - point.y * 50, 12, 86);
   const destination = scenarioForStage(target.gate.to);
   const near = distance <= 0.58;
@@ -6463,6 +6546,48 @@ function updateGateGuide() {
   gateGuide.style.setProperty("--gate-angle", `${Math.atan2(nx, ny) * 180 / Math.PI}deg`);
   gateGuideLabel.textContent = near ? `ENTRÁ / E · ${destination.name}` : `GATE → ${destination.name}`;
   gateGuideDistance.textContent = near ? "CRUCE AUTOMÁTICO ACTIVO" : `${Math.ceil(worldDistance)}u · SEGUÍ LA RUTA MAGENTA`;
+}
+
+function updateLandmarkGuide() {
+  if (!landmarkGuide || !landmarkGuideName || !landmarkGuideState || state.transition || mission01.finalStarted) {
+    if (landmarkGuide) landmarkGuide.hidden = true;
+    return;
+  }
+  const stageIndex = currentWorldProfileIndex();
+  const candidates = authoredScenarioLandmarks
+    .filter((object) => object.userData.profileStage === stageIndex && object.visible)
+    .filter((object) => !object.userData.finalPortal || mission01.finalPortalReady || mission01.finalStarted || mission01.finalComplete)
+    .map((object) => {
+      const definition = scenarioDiscoveryTargets.get(object.userData.landmarkId);
+      const point = backgroundObjectScreenPoint(object, new THREE.Vector2());
+      const centerDistance = Math.hypot(point.x / Math.max(1, viewport.aspect), point.y);
+      const priority = object.userData.landmarkRole === "primary" ? -1 : 0;
+      return { object, definition, point, score: priority + centerDistance * 0.18 };
+    })
+    .filter(({ point }) => Math.abs(point.x) <= viewport.aspect * 0.92 && Math.abs(point.y) <= 0.90)
+    .sort((a, b) => a.score - b.score);
+  const active = candidates[0];
+  if (!active?.definition) {
+    landmarkGuide.hidden = true;
+    return;
+  }
+  const { object, definition, point } = active;
+  const left = (point.x / Math.max(0.01, viewport.aspect) * 0.5 + 0.5) * viewport.width;
+  const top = (0.5 - point.y * 0.5) * viewport.height;
+  const offsetX = point.x < 0 ? -108 : 108;
+  const offsetY = point.y > 0.60 ? 52 : -54;
+  landmarkGuide.style.left = `${THREE.MathUtils.clamp(left + offsetX, 92, viewport.width - 92)}px`;
+  landmarkGuide.style.top = `${THREE.MathUtils.clamp(top + offsetY, 48, viewport.height - 48)}px`;
+  landmarkGuide.style.setProperty("--landmark-accent", scenarioForStage(stageIndex).accent);
+  landmarkGuideName.textContent = definition.landmark.name;
+  landmarkGuideState.textContent = object.userData.finalNode
+    ? object.userData.finalNodeActive ? "NODO SINCRONIZADO" : "ACERCATE PARA SINCRONIZAR"
+    : object.userData.finalPortal
+      ? mission01.finalPortalReady ? "PORTAL ESTABILIZADO" : "SEÑAL BLOQUEADA"
+      : definition.state === "targetable"
+        ? "ESTRUCTURA IDENTIFICADA"
+        : "MANTENÉ E PARA ESCANEAR";
+  landmarkGuide.hidden = false;
 }
 
 function tryScenarioGateTravel() {
@@ -6987,11 +7112,11 @@ function worldCompositionCandidate(object, index) {
       object.userData.finalNode === true ||
       (object.userData.finalPortal === true && mission01.finalPortalReady),
     maxScreenDiameter: object.userData.landmarkId === "relic_portal"
-      ? 0.16
+      ? 0.19
       : object.userData.authoredLandmark
-        ? 0.07
+        ? 0.14
         : object.userData.authoredGate
-          ? 0.08
+          ? 0.14
           : object.userData.authoredHero
             ? 0.42
             : object.userData.authoredSecondary
@@ -8061,7 +8186,7 @@ function updateInteractionFx(delta) {
 }
 
 function updateTether(elapsed) {
-  if (!astronautSprite) {
+  if (!astronautSprite || state.transition) {
     tetherLine.visible = false;
     return;
   }
@@ -8375,8 +8500,18 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
 
   astronautGroup.position.set(astronautState.position.x, astronautState.position.y, 0.04);
   astronautSprite.position.set(0, 0, 0.02);
+  // Aim owns rotation only while active. Reset the additive recoil every
+  // frame so it cannot accumulate into an arbitrary astronaut orientation.
+  astronautSprite.rotation.z = 0;
+  if (!aimAssist.active) {
+    astronautGroup.rotation.z = THREE.MathUtils.lerp(
+      astronautGroup.rotation.z,
+      0,
+      1 - Math.pow(0.002, delta),
+    );
+  }
   astronautVisualRig.rotation.z = Math.sin(elapsed * (0.72 + speedState.turboPulse * 0.42)) * 0.012;
-  astronautVisualRig.setOpacity(state.transition ? 0.24 : isControlled ? 0.98 : 0.84);
+  astronautVisualRig.setOpacity(state.transition ? 0 : isControlled ? 0.98 : 0.84);
   astronautVisualRig.update(delta, elapsed);
 }
 
@@ -8758,6 +8893,7 @@ function animate() {
     : 1;
   updateTransition(delta * qaTransitionSpeed, elapsed);
   updateGateGuide();
+  updateLandmarkGuide();
   updateGateInteraction(rawDelta);
   updateAstronaut(delta, elapsed, input.velocity);
   updateInteractionFx(rawDelta);
