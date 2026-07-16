@@ -237,6 +237,7 @@ function cleanPlumeMaterial(color, profile = "plume") {
       uColor: { value: new THREE.Color(color) },
       uOpacity: { value: 0 },
       uProfile: { value: profile === "core" ? 1 : 0 },
+      uTime: { value: 0 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -249,15 +250,23 @@ function cleanPlumeMaterial(color, profile = "plume") {
       uniform vec3 uColor;
       uniform float uOpacity;
       uniform float uProfile;
+      uniform float uTime;
       varying vec2 vUv;
       void main() {
-        float nozzle = smoothstep(0.0, 0.12, vUv.x);
-        float tailFade = smoothstep(0.0, 0.36, vUv.x);
-        float halfWidth = mix(0.46, mix(0.13, 0.22, uProfile), vUv.x);
-        float edge = 1.0 - smoothstep(halfWidth * 0.52, halfWidth, abs(vUv.y - 0.5));
-        float lengthFade = mix(tailFade, pow(tailFade, 0.55), uProfile);
-        float hot = mix(0.72, 1.0, smoothstep(0.55, 1.0, vUv.x));
-        float alpha = uOpacity * nozzle * edge * lengthFade;
+        float x = vUv.x;
+        float centerDistance = abs(vUv.y - 0.5);
+        float bulb = pow(max(0.0, sin(x * 3.14159265)), 0.72);
+        float turbulence =
+          sin(x * 24.0 - uTime * 13.0) * 0.012 +
+          sin(x * 51.0 + uTime * 8.0) * 0.006;
+        float plumeWidth = 0.035 + bulb * 0.205 + x * 0.032 + turbulence * (1.0 - x);
+        float coreWidth = 0.018 + bulb * 0.072 + x * 0.020;
+        float halfWidth = mix(plumeWidth, coreWidth, uProfile);
+        float edge = 1.0 - smoothstep(halfWidth * 0.56, halfWidth, centerDistance);
+        float tailFade = smoothstep(0.0, mix(0.18, 0.10, uProfile), x);
+        float filaments = 0.84 + 0.16 * sin(x * 38.0 - uTime * 11.0 + centerDistance * 17.0);
+        float hot = mix(0.70, 1.18, smoothstep(0.46, 1.0, x));
+        float alpha = uOpacity * tailFade * edge * mix(filaments, 1.0, uProfile);
         if (alpha < 0.002) discard;
         gl_FragColor = vec4(uColor * hot, alpha);
       }
@@ -274,8 +283,8 @@ export class DirectionalThrusterSystem extends THREE.Group {
   constructor(options = {}) {
     super();
     this.sizeMultiplier = options.sizeMultiplier || 1;
-    this.plume = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cleanPlumeMaterial(options.plumeColor || 0x7c83ff));
-    this.core = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cleanPlumeMaterial(options.coreColor || 0x98f5ff, "core"));
+    this.plume = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cleanPlumeMaterial(options.plumeColor || 0x57dcff));
+    this.core = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cleanPlumeMaterial(options.coreColor || 0xe9ffff, "core"));
     this.plume.renderOrder = 17;
     this.core.renderOrder = 18;
     this.add(this.plume, this.core);
@@ -307,11 +316,14 @@ export class DirectionalThrusterSystem extends THREE.Group {
     this.position.set(0, 0, 0.018);
     this.rotation.z = angle;
     this.visible = true;
-    this.plume.material.uniforms.uOpacity.value = intensity.cone * (level === "normal" ? 0.68 : 0.86);
-    this.core.material.uniforms.uOpacity.value = intensity.core * 0.92;
+    const time = typeof performance !== "undefined" ? performance.now() * 0.001 : 0;
+    this.plume.material.uniforms.uTime.value = time;
+    this.core.material.uniforms.uTime.value = time;
+    this.plume.material.uniforms.uOpacity.value = intensity.cone * (level === "normal" ? 0.58 : 1.05);
+    this.core.material.uniforms.uOpacity.value = intensity.core;
     this.plume.position.set(-socketDistance - plumeLength * 0.5, 0, 0);
     this.core.position.set(-socketDistance - coreLength * 0.5, 0, 0.002);
-    this.plume.scale.set(plumeLength, Math.max(height * 0.16, shipSize * 0.055) * Math.sqrt(this.sizeMultiplier), 1);
+    this.plume.scale.set(plumeLength, Math.max(height * 0.22, shipSize * 0.072) * Math.sqrt(this.sizeMultiplier), 1);
     this.core.scale.set(coreLength, Math.max(height * 0.065, shipSize * 0.022) * Math.sqrt(this.sizeMultiplier), 1);
   }
 }
@@ -341,7 +353,9 @@ export class StabilizerFieldFx extends THREE.Group {
   }
 
   update(delta, elapsed, status, gravitySample, actorPosition) {
-    const target = status?.active ? 1 : 0;
+    const magnitude = THREE.MathUtils.clamp((gravitySample?.magnitude || 0) / 0.42, 0, 1);
+    const active = Boolean(status?.active);
+    const target = active ? 1 : magnitude > 0.035 ? 0.16 + magnitude * 0.18 : 0;
     this.visibility = THREE.MathUtils.lerp(this.visibility, target, 1 - Math.pow(0.0008, delta));
     this.visible = this.visibility > 0.01;
     if (!this.visible) return;
@@ -350,12 +364,11 @@ export class StabilizerFieldFx extends THREE.Group {
     this.scale.setScalar(pulse);
     this.outer.rotation.z += delta * 0.72;
     this.inner.rotation.z -= delta * 0.94;
-    this.outer.material.opacity = this.visibility * 0.44;
-    this.inner.material.opacity = this.visibility * 0.34;
-    this.field.material.opacity = this.visibility * 0.055;
-    const magnitude = THREE.MathUtils.clamp((gravitySample?.magnitude || 0) / 0.42, 0, 1);
+    this.outer.material.opacity = this.visibility * (active ? 0.44 : 0.12);
+    this.inner.material.opacity = this.visibility * (active ? 0.34 : 0.07);
+    this.field.material.opacity = this.visibility * (active ? 0.055 : 0.018);
     this.vector.visible = magnitude > 0.04;
-    this.vector.material.opacity = this.visibility * (0.18 + magnitude * 0.34);
+    this.vector.material.opacity = (active ? 0.22 : 0.10) + magnitude * (active ? 0.34 : 0.18);
     this.vector.rotation.z = Math.atan2(-(gravitySample?.y || 0), -(gravitySample?.x || 0));
     this.vector.scale.x = 0.55 + magnitude * 0.85;
   }

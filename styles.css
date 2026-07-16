@@ -914,3 +914,913 @@ body.debug-hud .hud {
     flex-direction: column;
   }
 }
+
+/* Final HUD composition: one persistent status lane, one contextual lane and
+   one optional drawer. The live playfield remains the dominant surface. */
+:root {
+  --gz-hud-bg: rgba(3, 7, 17, 0.74);
+  --gz-hud-bg-strong: rgba(3, 7, 17, 0.91);
+  --gz-hud-line: rgba(150, 221, 239, 0.20);
+  --gz-hud-copy: rgba(236, 246, 252, 0.92);
+  --gz-hud-muted: rgba(185, 207, 220, 0.66);
+  --gz-cyan: #78eaff;
+  --gz-violet: #b776ff;
+  --gz-magenta: #ff79d9;
+  --gz-edge: 18px;
+}
+
+.gem-badge,
+.companion-directive,
+.story-beat,
+.robot-panel,
+.ability-hud,
+.gate-guide,
+.landmark-guide,
+.objective-guide,
+.region-hud,
+.shield-hud {
+  transition: opacity 160ms ease, visibility 160ms ease, transform 220ms ease;
+}
+
+.gem-badge {
+  top: var(--gz-edge);
+  left: var(--gz-edge);
+  min-width: 68px;
+  min-height: 26px;
+  border-color: rgba(143, 217, 235, 0.20);
+  padding: 0 9px;
+  background: rgba(3, 7, 17, 0.52);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.20);
+  color: rgba(236, 247, 252, 0.82);
+  font-size: 10px;
+  line-height: 26px;
+  letter-spacing: 0.08em;
+}
+
+.companion-directive {
+  top: var(--gz-edge);
+  max-width: min(390px, calc(100vw - 300px));
+  min-height: 28px;
+  padding: 5px 13px 6px;
+  border-color: rgba(143, 217, 235, 0.17);
+  background:
+    linear-gradient(90deg, rgba(120, 234, 255, 0.045), transparent 28%, transparent 72%, rgba(183, 118, 255, 0.05)),
+    var(--gz-hud-bg);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.companion-directive strong {
+  color: var(--gz-hud-copy);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.companion-directive small {
+  margin-top: 3px;
+  color: var(--gz-hud-muted);
+  font-size: 8px;
+  letter-spacing: 0.02em;
+}
+
+.story-beat {
+  top: 72px;
+  width: min(430px, calc(100vw - 300px));
+  min-height: 58px;
+  gap: 4px;
+  padding: 9px 20px 10px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(3, 7, 17, 0.92) 12%,
+    rgba(3, 7, 17, 0.92) 88%,
+    transparent
+  );
+}
+
+.story-beat span {
+  font-size: 8px;
+}
+
+.story-beat strong {
+  font-size: 14px;
+  letter-spacing: 0.015em;
+}
+
+.story-beat small {
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.robot-panel {
+  top: clamp(144px, 22vh, 184px);
+  right: var(--gz-edge);
+  width: min(254px, calc(100vw - 36px));
+  max-height: min(48vh, 350px);
+  padding: 12px 13px;
+  border-color: rgba(154, 208, 224, 0.18);
+  border-right-color: rgba(120, 234, 255, 0.38);
+  border-radius: 9px 2px 2px 9px;
+  background:
+    linear-gradient(145deg, rgba(120, 234, 255, 0.035), transparent 42%),
+    var(--gz-hud-bg-strong);
+  box-shadow: -18px 18px 46px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+}
+
+.robot-tutorial-block {
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.robot-tutorial-block span {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.robot-tutorial-block strong {
+  font-size: 11px;
+  line-height: 1.24;
+}
+
+.robot-tip {
+  margin-top: 8px;
+  padding-left: 8px;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.robot-message {
+  margin-top: 7px;
+  font-size: 9px;
+}
+
+.robot-counters {
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.robot-counters div {
+  min-height: 19px;
+  padding-top: 5px;
+}
+
+.robot-counters span,
+.robot-counters strong {
+  font-size: 9px;
+}
+
+.ability-hud {
+  right: var(--gz-edge);
+  bottom: var(--gz-edge);
+  width: min(222px, calc(100vw - 36px));
+  gap: 5px;
+}
+
+.ability-chip {
+  min-height: 36px;
+  gap: 8px;
+  border-color: rgba(154, 208, 224, 0.16);
+  border-radius: 8px;
+  padding: 0 10px 0 6px;
+  background: var(--gz-hud-bg);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.ability-chip kbd {
+  min-width: 23px;
+  height: 23px;
+  border-color: rgba(217, 235, 244, 0.22);
+  border-radius: 5px;
+  font-size: 8px;
+}
+
+.ability-copy strong {
+  font-size: 9px;
+  letter-spacing: 0.035em;
+}
+
+.ability-copy small {
+  color: rgba(198, 219, 229, 0.62);
+  font-size: 7px;
+  letter-spacing: 0.02em;
+}
+
+.region-hud,
+.shield-hud {
+  left: calc(var(--gz-edge) + 2px);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.region-hud {
+  bottom: 34px;
+}
+
+.shield-hud {
+  bottom: var(--gz-edge);
+}
+
+.gate-guide {
+  min-height: 34px;
+  max-width: min(280px, calc(100vw - 36px));
+  gap: 7px;
+  padding: 0 11px 0 6px;
+  border-color: rgba(105, 232, 255, 0.44);
+  background: var(--gz-hud-bg-strong);
+}
+
+.gate-guide-arrow {
+  width: 25px;
+  height: 25px;
+  flex-basis: 25px;
+  font-size: 16px;
+}
+
+.landmark-guide {
+  min-width: 118px;
+  padding: 6px 8px 6px 10px;
+  background: linear-gradient(90deg, rgba(3, 7, 17, 0.88), rgba(3, 7, 17, 0.42));
+}
+
+.objective-guide {
+  min-height: 31px;
+  max-width: min(230px, calc(100vw - 36px));
+  background: var(--gz-hud-bg);
+}
+
+/* Transient narrative owns the contextual lane. Opening the companion drawer
+   also suspends world-space callouts, so text surfaces never stack. */
+body:has(.story-beat.is-visible) .companion-directive,
+body:has(.story-beat.is-visible) .gate-guide:not(.is-transition),
+body:has(.story-beat.is-visible) .landmark-guide,
+body:has(.story-beat.is-visible) .objective-guide,
+body:has(.robot-panel:not([hidden])) .companion-directive,
+body:has(.robot-panel:not([hidden])) .gate-guide:not(.is-transition),
+body:has(.robot-panel:not([hidden])) .landmark-guide,
+body:has(.robot-panel:not([hidden])) .objective-guide {
+  visibility: hidden;
+  opacity: 0;
+}
+
+body:has(.game-menu:not([hidden])) .gz-map-trigger,
+body:has(.game-menu:not([hidden])) .gem-badge,
+body:has(.game-menu:not([hidden])) .companion-directive,
+body:has(.game-menu:not([hidden])) .story-beat,
+body:has(.game-menu:not([hidden])) .robot-panel,
+body:has(.game-menu:not([hidden])) .ability-hud,
+body:has(.game-menu:not([hidden])) .gate-guide,
+body:has(.game-menu:not([hidden])) .landmark-guide,
+body:has(.game-menu:not([hidden])) .objective-guide,
+body:has(.game-menu:not([hidden])) .region-hud,
+body:has(.game-menu:not([hidden])) .shield-hud {
+  visibility: hidden;
+  opacity: 0;
+}
+
+body.gz-map-open .gem-badge,
+body.gz-map-open .companion-directive,
+body.gz-map-open .story-beat,
+body.gz-map-open .robot-panel,
+body.gz-map-open .ability-hud,
+body.gz-map-open .gate-guide,
+body.gz-map-open .landmark-guide,
+body.gz-map-open .objective-guide,
+body.gz-map-open .region-hud,
+body.gz-map-open .shield-hud {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* Informative map. It deliberately has no canvas hit targets or travel CTA. */
+#gzFinalMap,
+#gzFinalMap * {
+  box-sizing: border-box;
+}
+
+#gzFinalMap {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 3vh, 30px) clamp(10px, 2.6vw, 40px);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(44, 86, 133, 0.16), transparent 48%),
+    rgba(1, 3, 9, 0.91);
+  color: #edf8ff;
+  font-family: Arial, Helvetica, sans-serif;
+  backdrop-filter: blur(14px) saturate(0.72);
+}
+
+#gzFinalMap[hidden] {
+  display: none !important;
+}
+
+.gz-map-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(1460px, 100%);
+  height: min(940px, 94vh);
+  min-height: 460px;
+  overflow: hidden;
+  border: 1px solid rgba(126, 226, 251, 0.28);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(98, 237, 255, 0.035), transparent 28%, transparent 70%, rgba(183, 118, 255, 0.035)),
+    rgba(3, 7, 17, 0.96);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.025) inset,
+    0 28px 100px rgba(0, 0, 0, 0.62),
+    0 0 80px rgba(90, 164, 255, 0.09);
+  outline: none;
+}
+
+.gz-map-shell::before {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.012) 0,
+    rgba(255, 255, 255, 0.012) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.gz-map-head {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 74px;
+  border-bottom: 1px solid rgba(149, 218, 237, 0.14);
+  padding: 12px 16px 12px 22px;
+  background: rgba(3, 7, 17, 0.68);
+}
+
+.gz-map-identity {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.gz-map-kicker {
+  overflow: hidden;
+  color: rgba(126, 234, 255, 0.70);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gz-map-title-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.gz-map-title-row strong {
+  overflow: hidden;
+  color: #f4fbff;
+  font-size: clamp(15px, 1.7vw, 21px);
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gz-map-sector-tag {
+  flex: 0 0 auto;
+  border-left: 1px solid rgba(126, 234, 255, 0.28);
+  padding-left: 10px;
+  color: rgba(196, 218, 230, 0.66);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.gz-map-modes {
+  display: inline-grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 3px;
+  border: 1px solid rgba(153, 212, 230, 0.15);
+  border-radius: 8px;
+  padding: 3px;
+  background: rgba(0, 2, 8, 0.52);
+}
+
+.gz-map-modes button,
+.gz-map-close,
+.gz-map-trigger {
+  appearance: none;
+  border: 0;
+  color: rgba(220, 237, 246, 0.68);
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.gz-map-modes button {
+  min-width: 70px;
+  min-height: 30px;
+  border-radius: 5px;
+  padding: 0 12px;
+  background: transparent;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.gz-map-modes button:hover,
+.gz-map-modes button:focus-visible {
+  color: #f5fcff;
+  outline: 1px solid rgba(126, 234, 255, 0.36);
+  outline-offset: -1px;
+}
+
+.gz-map-modes button[aria-pressed="true"] {
+  background: linear-gradient(135deg, rgba(91, 225, 255, 0.17), rgba(163, 104, 255, 0.13));
+  box-shadow: 0 0 16px rgba(102, 225, 255, 0.06) inset;
+  color: #eefbff;
+}
+
+.gz-map-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid rgba(153, 212, 230, 0.18);
+  border-radius: 7px;
+  padding: 0 8px 0 12px;
+  background: rgba(0, 2, 8, 0.46);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+
+.gz-map-close:hover,
+.gz-map-close:focus-visible {
+  border-color: rgba(126, 234, 255, 0.46);
+  color: #ffffff;
+  outline: none;
+}
+
+.gz-map-close kbd,
+.gz-map-trigger kbd {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border: 1px solid rgba(214, 235, 244, 0.20);
+  border-radius: 5px;
+  background: rgba(220, 239, 247, 0.07);
+  color: rgba(239, 250, 255, 0.86);
+  font: 900 8px/1 Arial, Helvetica, sans-serif;
+}
+
+.gz-map-viewport {
+  position: relative;
+  z-index: 2;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(145, 217, 237, 0.12);
+  border-radius: 7px;
+  margin: 10px 12px;
+  background: #030712;
+}
+
+#gzMapCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gz-map-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(126, 234, 255, 0.42);
+  pointer-events: none;
+}
+
+.gz-map-corner-nw {
+  top: 8px;
+  left: 8px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.gz-map-corner-ne {
+  top: 8px;
+  right: 8px;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+
+.gz-map-corner-sw {
+  bottom: 8px;
+  left: 8px;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}
+
+.gz-map-corner-se {
+  right: 8px;
+  bottom: 8px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.gz-map-axis {
+  position: absolute;
+  background: rgba(126, 234, 255, 0.10);
+  pointer-events: none;
+}
+
+.gz-map-axis-x {
+  top: 50%;
+  left: 8px;
+  width: 12px;
+  height: 1px;
+}
+
+.gz-map-axis-y {
+  top: 8px;
+  left: 50%;
+  width: 1px;
+  height: 12px;
+}
+
+.gz-map-footer {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 62px;
+  border-top: 1px solid rgba(149, 218, 237, 0.14);
+  padding: 10px 22px;
+  background: rgba(3, 7, 17, 0.70);
+}
+
+.gz-map-legend {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: clamp(10px, 2vw, 24px);
+}
+
+.gz-map-legend > span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+
+.gz-map-legend i {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border: 1px solid rgba(126, 234, 255, 0.72);
+  transform: rotate(45deg);
+}
+
+.gz-map-legend i.is-player {
+  border-radius: 50% 50% 50% 0;
+  background: #f4fbff;
+}
+
+.gz-map-legend i.is-landmark {
+  border-color: rgba(201, 121, 255, 0.74);
+  background: rgba(201, 121, 255, 0.22);
+}
+
+.gz-map-legend i.is-gravity {
+  border-style: dashed;
+  border-radius: 50%;
+  transform: none;
+}
+
+.gz-map-legend i.is-gate {
+  border-color: rgba(228, 242, 250, 0.52);
+  background: transparent;
+}
+
+.gz-map-legend b {
+  overflow: hidden;
+  color: rgba(192, 213, 224, 0.62);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gz-map-readout {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  text-align: right;
+}
+
+.gz-map-readout span {
+  color: rgba(224, 239, 246, 0.78);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.gz-map-readout strong {
+  color: rgba(126, 234, 255, 0.72);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.gz-map-trigger {
+  position: fixed;
+  top: var(--gz-edge);
+  right: var(--gz-edge);
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  border: 1px solid rgba(143, 217, 235, 0.20);
+  border-radius: 7px;
+  padding: 2px 8px 2px 3px;
+  background: rgba(3, 7, 17, 0.56);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.20);
+  color: rgba(228, 242, 249, 0.72);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(10px);
+}
+
+.gz-map-trigger:hover,
+.gz-map-trigger:focus-visible {
+  border-color: rgba(126, 234, 255, 0.48);
+  color: #ffffff;
+  outline: none;
+}
+
+.gz-map-trigger[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .story-beat {
+    width: min(380px, calc(100vw - 280px));
+  }
+
+  .robot-panel {
+    width: min(232px, calc(100vw - 36px));
+  }
+
+  .gz-map-head {
+    gap: 10px;
+  }
+
+  .gz-map-sector-tag {
+    display: none;
+  }
+
+  .gz-map-footer {
+    gap: 10px;
+  }
+
+  .gz-map-legend {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --gz-edge: 12px;
+  }
+
+  .gem-badge {
+    left: var(--gz-edge);
+    top: var(--gz-edge);
+  }
+
+  .companion-directive {
+    top: 50px;
+    width: min(360px, calc(100vw - 28px));
+    max-width: calc(100vw - 28px);
+  }
+
+  .story-beat {
+    top: 91px;
+    width: min(390px, calc(100vw - 28px));
+    min-height: 54px;
+  }
+
+  .robot-panel {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
+    max-height: min(44vh, 290px);
+    border-right-color: rgba(120, 234, 255, 0.30);
+    border-radius: 9px;
+  }
+
+  body:has(.robot-panel:not([hidden])) .ability-hud,
+  body:has(.robot-panel:not([hidden])) .region-hud,
+  body:has(.robot-panel:not([hidden])) .shield-hud {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .ability-hud {
+    right: 12px;
+    bottom: 52px;
+    width: min(204px, calc(100vw - 24px));
+  }
+
+  .region-hud,
+  .shield-hud {
+    left: 14px;
+  }
+
+  .region-hud {
+    bottom: 29px;
+  }
+
+  .shield-hud {
+    bottom: 13px;
+  }
+
+  .gate-guide.is-transition {
+    bottom: 5% !important;
+  }
+
+  #gzFinalMap {
+    padding: 0;
+    backdrop-filter: blur(10px) saturate(0.72);
+  }
+
+  .gz-map-shell {
+    width: 100%;
+    height: 100dvh;
+    min-height: 420px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .gz-map-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    min-height: 96px;
+    padding: 10px 10px 8px 14px;
+  }
+
+  .gz-map-kicker {
+    font-size: 7px;
+    letter-spacing: 0.12em;
+  }
+
+  .gz-map-title-row strong {
+    font-size: 15px;
+  }
+
+  .gz-map-modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+
+  .gz-map-modes button {
+    width: 100%;
+    min-height: 28px;
+  }
+
+  .gz-map-close {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 34px;
+  }
+
+  .gz-map-close span {
+    display: none;
+  }
+
+  .gz-map-viewport {
+    margin: 7px 8px;
+  }
+
+  .gz-map-footer {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    min-height: 92px;
+    padding: 9px 14px 10px;
+  }
+
+  .gz-map-legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 12px;
+  }
+
+  .gz-map-readout {
+    justify-items: start;
+    border-top: 1px solid rgba(149, 218, 237, 0.10);
+    padding-top: 7px;
+    text-align: left;
+  }
+
+  .gz-map-readout span,
+  .gz-map-readout strong {
+    line-height: 1.25;
+  }
+
+  .gz-map-trigger {
+    top: var(--gz-edge);
+    right: var(--gz-edge);
+  }
+}
+
+@media (max-width: 420px) {
+  .companion-directive {
+    top: 48px;
+  }
+
+  .story-beat {
+    top: 88px;
+  }
+
+  .ability-hud {
+    width: 190px;
+  }
+
+  .ability-chip {
+    min-height: 34px;
+  }
+
+  .ability-copy small {
+    font-size: 6.5px;
+  }
+
+  .gz-map-kicker {
+    max-width: 210px;
+  }
+}
+
+@media (max-height: 590px) and (min-width: 721px) {
+  .story-beat {
+    top: 58px;
+    min-height: 50px;
+    padding-block: 7px;
+  }
+
+  .robot-panel {
+    top: 118px;
+    max-height: calc(100vh - 238px);
+  }
+
+  .ability-hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 410px;
+  }
+
+  .gz-map-shell {
+    height: calc(100vh - 16px);
+  }
+
+  .gz-map-head {
+    min-height: 58px;
+    padding-block: 8px;
+  }
+
+  .gz-map-footer {
+    min-height: 52px;
+    padding-block: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gem-badge,
+  .companion-directive,
+  .story-beat,
+  .robot-panel,
+  .ability-hud,
+  .gate-guide,
+  .landmark-guide,
+  .objective-guide,
+  .region-hud,
+  .shield-hud,
+  .gz-map-trigger {
+    transition: none;
+  }
+}

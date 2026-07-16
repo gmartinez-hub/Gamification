@@ -7,6 +7,10 @@ import {
   evolvedShipStageForGems,
   planGateTravel,
 } from "./missions/ProgressionRules.ts";
+import {
+  reachableRelicPoint,
+  selectScanTarget,
+} from "./missions/EncounterRules.ts";
 import { assertComposition } from "./qa/ReleaseAssertions.ts";
 import {
   AUTHORED_GATE_SCALE,
@@ -141,19 +145,26 @@ function updateGameplayCamera(delta) {
   camera.zoom = THREE.MathUtils.lerp(camera.zoom, targetZoom, 1 - Math.pow(0.002, delta));
   camera.updateProjectionMatrix();
   backgroundCamera.fov = THREE.MathUtils.lerp(backgroundCamera.fov, 42 / camera.zoom, 1 - Math.pow(0.002, delta));
-  backgroundCamera.rotation.z = THREE.MathUtils.lerp(backgroundCamera.rotation.z, cameraRig.roll, 1 - Math.pow(0.01, delta));
+  const gravityRoll = THREE.MathUtils.clamp(-(scenarioGravitySample?.x || 0) * 0.055, -0.018, 0.018);
+  backgroundCamera.rotation.z = THREE.MathUtils.lerp(
+    backgroundCamera.rotation.z,
+    cameraRig.roll + gravityRoll,
+    1 - Math.pow(0.01, delta),
+  );
   backgroundCamera.updateProjectionMatrix();
 }
 
 const loader = new THREE.TextureLoader();
 const clock = new THREE.Clock();
+let simulationElapsed = 0;
 const viewport = { width: 1, height: 1, aspect: 1 };
 const params = new URLSearchParams(window.location.search);
 const PROGRESS_KEY = "gravedad-zero-full-progress-v1";
 const qaRoute = params.get("qa");
+const qaAssistEnabled = params.get("qaAssist") === "1";
 const qaPersistenceEnabled = params.get("qaPersist") === "1";
 const FIXED_AUTHORED_WORLD = true;
-if (qaRoute === "reset") {
+if (qaAssistEnabled && qaRoute === "reset") {
   try {
     localStorage.removeItem(PROGRESS_KEY);
     for (const scenario of SCENARIOS) {
@@ -376,11 +387,18 @@ function makeStripFrameAssets(texture, frameCount = 4, aspect = 1) {
 
 function makeAsset(entry) {
   return {
-    texture: loadTexture(entry.path),
+    texture: null,
+    path: entry.path,
     aspect: entry.aspect,
     width: entry.width,
     height: entry.height,
   };
+}
+
+function ensureAsset(asset) {
+  if (!asset) return asset;
+  if (!asset.texture && asset.path) asset.texture = loadTexture(asset.path);
+  return asset;
 }
 
 const stageAssets = Object.fromEntries(
@@ -534,6 +552,7 @@ function derivedVisualTexture(stem, kind, color = false) {
 }
 
 function derivedVisualMaps(stem, asset) {
+  ensureAsset(asset);
   return {
     albedo: asset.texture,
     normal: derivedVisualTexture(stem, "normal"),
@@ -715,6 +734,34 @@ const missionAudioItems = {
     path: "assets/runtime/final-showable/audio/interstage_exit.wav",
     volume: 0.15,
   },
+  map_open: {
+    path: "assets/runtime/final-showable/audio/map_open.wav",
+    volume: 0.18,
+  },
+  map_close: {
+    path: "assets/runtime/final-showable/audio/map_close.wav",
+    volume: 0.16,
+  },
+  map_mode: {
+    path: "assets/runtime/v2/audio/ui_hover_sonar_02.wav",
+    volume: 0.12,
+  },
+  gravity_attract: {
+    path: "assets/runtime/final-showable/audio/gravity_attract.wav",
+    volume: 0.13,
+  },
+  gravity_repel: {
+    path: "assets/runtime/final-showable/audio/gravity_repel.wav",
+    volume: 0.13,
+  },
+  gravity_pulse: {
+    path: "assets/runtime/final-showable/audio/gravity_pulse.wav",
+    volume: 0.14,
+  },
+  gravity_unstable: {
+    path: "assets/runtime/final-showable/audio/gravity_unstable.wav",
+    volume: 0.14,
+  },
   interstage_enter: {
     path: "assets/runtime/final-showable/audio/interstage_enter.wav",
     volume: 0.18,
@@ -768,6 +815,13 @@ const audioEventMap = {
   speed_whoosh: "ship_speed_whoosh",
   long_travel_low_rumble: "long_travel_low_rumble",
   route_detected_ping: "route_detected_ping",
+  map_open: "map_open",
+  map_close: "map_close",
+  map_mode: "map_mode",
+  gravity_attract: "gravity_attract",
+  gravity_repel: "gravity_repel",
+  gravity_pulse: "gravity_pulse",
+  gravity_unstable: "gravity_unstable",
   mission_zone_enter: "mission_zone_enter",
   fragment_collected: "fragment_capture",
   core_hit: "large_hit",
@@ -804,6 +858,11 @@ const missionAudio = {
   loops: {},
   ready: false,
   loading: false,
+};
+
+const gravityAudioState = {
+  fieldId: null,
+  cooldown: 0,
 };
 
 class ShipEngineAudio {
@@ -909,6 +968,7 @@ function fadeMissionLoop(id, targetVolume, delta) {
   const loop = missionAudio.loops[id];
   if (!loop) return;
   loop.volume = THREE.MathUtils.lerp(loop.volume, THREE.MathUtils.clamp(targetVolume, 0, 0.12), 1 - Math.pow(0.001, delta));
+  if (loop.paused && loop.volume > 0.002) loop.play().catch(() => {});
 }
 
 function currentAudioIntensity() {
@@ -941,7 +1001,23 @@ function updateBiomeAmbientAudio(delta) {
     }
     if (!missionAudio.loops[id]) return;
     fadeMissionLoop(id, index === activeIndex ? missionAudioItems[id].volume : 0, delta * 0.34);
+    const loop = missionAudio.loops[id];
+    if (index !== activeIndex && loop && loop.volume < 0.0015) {
+      stopMissionAudio(id);
+      delete missionAudio.loops[id];
+    }
   });
+}
+
+function setSimulationAudioPaused(paused) {
+  for (const loop of Object.values(missionAudio.loops)) {
+    if (paused) loop.pause();
+  }
+  for (const loop of Object.values(shipEngineAudio.loops)) {
+    if (paused) loop.pause();
+  }
+  if (paused) missionAudio.context?.suspend?.().catch(() => {});
+  else if (missionAudio.ready) ensureMissionAudio();
 }
 
 function playMissionAudio(id) {
@@ -1001,6 +1077,27 @@ function playAudioEvent(id, options = {}) {
   return playMissionAudio(mapped);
 }
 
+function updateGravityFieldAudio(delta, sample) {
+  gravityAudioState.cooldown = Math.max(0, gravityAudioState.cooldown - delta);
+  const activeField = sample?.fieldId && sample.magnitude > 0.025 ? sample.fieldId : null;
+  if (!activeField) {
+    gravityAudioState.fieldId = null;
+    return;
+  }
+  if (activeField === gravityAudioState.fieldId || gravityAudioState.cooldown > 0) return;
+  gravityAudioState.fieldId = activeField;
+  gravityAudioState.cooldown = 3.2;
+  const event = {
+    attract: "gravity_attract",
+    current: "gravity_attract",
+    tangential: "gravity_attract",
+    repel: "gravity_repel",
+    pulse: "gravity_pulse",
+    unstable: "gravity_unstable",
+  }[sample.fieldType] || "gravity_pulse";
+  playAudioEvent(event);
+}
+
 function stopMissionAudio(id) {
   const loop = missionAudio.loops[id];
   if (!loop) return;
@@ -1010,19 +1107,55 @@ function stopMissionAudio(id) {
 
 let missionHudInstruction = "";
 let storyBeatHideTimer = null;
+let activeMenuScreen = "title_menu";
+const simulationTasks = new Set();
+
+function scheduleSimulationTask(callback, delayMs) {
+  const task = {
+    callback,
+    remaining: Math.max(0, delayMs) / 1000,
+    cancelled: false,
+  };
+  simulationTasks.add(task);
+  return task;
+}
+
+function cancelSimulationTask(task) {
+  if (!task) return;
+  task.cancelled = true;
+  simulationTasks.delete(task);
+}
+
+function updateSimulationTasks(rawDelta) {
+  const ready = [];
+  for (const task of simulationTasks) {
+    if (task.cancelled) {
+      simulationTasks.delete(task);
+      continue;
+    }
+    task.remaining -= rawDelta;
+    if (task.remaining <= 0) {
+      simulationTasks.delete(task);
+      ready.push(task);
+    }
+  }
+  for (const task of ready) {
+    if (!task.cancelled) task.callback();
+  }
+}
 
 function showStoryBeat(kicker, title, body, { duration = 3400, accent = "#7eeaff" } = {}) {
   if (!storyBeat || !storyBeatKicker || !storyBeatTitle || !storyBeatBody) return;
-  if (storyBeatHideTimer) window.clearTimeout(storyBeatHideTimer);
+  cancelSimulationTask(storyBeatHideTimer);
   storyBeatKicker.textContent = kicker;
   storyBeatTitle.textContent = title;
   storyBeatBody.textContent = body;
   storyBeat.style.setProperty("--story-accent", accent);
   storyBeat.hidden = false;
   window.requestAnimationFrame(() => storyBeat.classList.add("is-visible"));
-  storyBeatHideTimer = window.setTimeout(() => {
+  storyBeatHideTimer = scheduleSimulationTask(() => {
     storyBeat.classList.remove("is-visible");
-    storyBeatHideTimer = window.setTimeout(() => {
+    storyBeatHideTimer = scheduleSimulationTask(() => {
       storyBeat.hidden = true;
       storyBeatHideTimer = null;
     }, 280);
@@ -1056,10 +1189,17 @@ function renderMissionProgress(progress = "") {
 
   if (mission01.finalSignalAcquired || mission01.finalComplete) {
     missionProgress.classList.add("mission-progress-stack", "mission-progress-final");
-    missionProgress.append(
+    const rows = [
       makeHudCounterRow("RUTA", "ESTABILIZADA"),
-      makeHudCounterRow("ESTADO", mission01.finalComplete ? "MISSION COMPLETE" : "SEÑAL FINAL")
-    );
+      makeHudCounterRow("ESTADO", mission01.finalComplete ? "MISSION COMPLETE" : "SEÑAL FINAL"),
+    ];
+    if (mission01.finalComplete) {
+      rows.push(
+        makeHudCounterRow("TOTAL", mission01.finalScore.toLocaleString("es-AR")),
+        makeHudCounterRow("BONUS", `+${mission01.finalBonus.toLocaleString("es-AR")}`),
+      );
+    }
+    missionProgress.append(...rows);
     return;
   }
 
@@ -1119,8 +1259,15 @@ function renderMenu(screenName) {
   menuEyebrow.textContent = screen.eyebrow;
   menuTitle.textContent = screen.title;
   menuSubtitle.textContent = screen.subtitle;
+  const bodyItems = screenName === "mission_complete"
+    ? [
+        "SEÑAL FINAL ADQUIRIDA · GEMAS 3/3",
+        `TOTAL ${mission01.finalScore.toLocaleString("es-AR")}`,
+        `BONUS +${mission01.finalBonus.toLocaleString("es-AR")} · ESCUDO ${Math.round(v2Runtime.shield.value)}%`,
+      ]
+    : screen.body;
   menuBody.replaceChildren(
-    ...screen.body.map((item) => {
+    ...bodyItems.map((item) => {
       const row = document.createElement("div");
       row.textContent = item;
       return row;
@@ -1142,18 +1289,27 @@ function renderMenu(screenName) {
 }
 
 function showMenu(screenName = "title_menu") {
+  activeMenuScreen = screenName;
   renderMenu(screenName);
   if (gameMenu) gameMenu.hidden = false;
+  input.keys.clear();
+  input.velocity.set(0, 0);
+  if (mission01.started) setSimulationAudioPaused(true);
 }
 
 function hideMenu() {
   if (gameMenu) gameMenu.hidden = true;
+  if (mission01.started) setSimulationAudioPaused(false);
+}
+
+function isSimulationPaused() {
+  return Boolean(mission01.started && gameMenu && !gameMenu.hidden);
 }
 
 function handleMenuAction(action) {
   ensureMissionAudio();
   if (action === "start") {
-    try { localStorage.removeItem(PROGRESS_KEY); } catch { /* Storage is optional. */ }
+    resetCampaignProgress();
     hideMenu();
     startMission01();
     return;
@@ -1183,6 +1339,7 @@ const stageDisplayName = {
 };
 
 function makeSprite(asset, options = {}) {
+  ensureAsset(asset);
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: asset.texture,
@@ -2020,6 +2177,12 @@ const mission01 = {
   finalOrientation: 0,
   finalAngularVelocity: 0,
   finalFired: false,
+  finalImpact: false,
+  finalImpactTime: 0,
+  finalSignalTime: 0,
+  finalScore: 0,
+  finalBonus: 0,
+  finalResultsShown: false,
   finalNodesActivated: 0,
   finalSyncTime: 0,
   finalPortalReady: false,
@@ -2442,8 +2605,8 @@ function activateStageTargets(stageIndex) {
       scanProgress: !landmarkPending && index === 0 ? 0.08 : 0,
     };
     if (landmarkPending) {
-      target.visible = false;
-      setGroupOpacity(target, 0);
+      target.visible = true;
+      setGroupOpacity(target, 0.18);
     }
   }
 }
@@ -2477,7 +2640,7 @@ function startMissionForStage(stageIndex) {
     primary && !primary.activated
       ? primaryEncounter?.requiresStabilizer
         ? "Piloteá hasta la señal. Activá ESPACIO y mantené E durante la ventana estable."
-        : "Piloteá la nave hasta la señal y mantené E para escanearla."
+        : "Piloteá hasta la señal. MANTENÉ E · ESCANEÁ SUS TRES NODOS."
       : "Seguí la ruta cyan. El astronauta se despliega al fijar un fragmento.",
     { duration: 4200, accent },
   );
@@ -3487,12 +3650,14 @@ function createAuthoredScenarioLandmark(scenario, landmark) {
     relicCore: missionFxTextures.relicCore,
   });
   const visualScale = landmark.id === "relic_portal"
-    ? 0.92
+    ? 0.58
     : isFinalNode
-      ? 0.54
+      ? 0.25
+      : landmark.id === "orbital_ruins"
+        ? 0.48
       : landmark.role === "primary"
-        ? 0.78
-        : 0.66;
+        ? 0.34
+        : 0.28;
   visual.scale.setScalar(visualScale);
   body.add(visual);
   body.name = `AUTHORED_LANDMARK_${landmark.id}`;
@@ -3716,7 +3881,7 @@ function createAuthoredScenarioGate(scenario, gate, seedOffset) {
   body.userData.reveal = 1;
   body.userData.discovered = true;
   body.userData.radius = 0.54;
-  body.userData.visualScale = 1;
+  body.userData.visualScale = 0.64;
   body.userData.spin = 0;
   body.userData.drift.set(0, 0);
   proceduralWorld.objects.push(body);
@@ -3762,6 +3927,75 @@ const scenarioDiscoveryTargets = new Map(
   })),
 );
 
+function resetCampaignProgress() {
+  try {
+    localStorage.removeItem(PROGRESS_KEY);
+    for (const scenario of SCENARIOS) {
+      for (const landmark of scenario.landmarks) localStorage.removeItem(`gz-discovery-${landmark.id}`);
+    }
+  } catch {
+    // Storage is optional; the in-memory reset still starts a clean campaign.
+  }
+
+  for (const target of scenarioDiscoveryTargets.values()) {
+    target.state = "unknown";
+    target.signalStrength = 0;
+    target.scanProgress = 0;
+    target.activated = false;
+    if (target.object) {
+      target.object.userData.encounterComplete = false;
+      target.object.userData.scanProgress = 0;
+      setAuthoredLandmarkActive(target.object.userData.premiumLandmarkVisual, false);
+    }
+  }
+
+  simulationTasks.clear();
+  storyBeatHideTimer = null;
+  storyBeat?.classList.remove("is-visible");
+  if (storyBeat) storyBeat.hidden = true;
+  clearPreviousStageTargets();
+  mission01.started = false;
+  mission01.state = "boot";
+  mission01.currentStageIndex = 0;
+  mission01.zoneIndex = 0;
+  mission01.gems = 0;
+  mission01.smallDestroyed = 0;
+  mission01.largeDestroyed = 0;
+  mission01.relicTouched = false;
+  mission01.unlockStarted = false;
+  mission01.relicState = "hidden";
+  mission01.finalSignalAcquired = false;
+  mission01.finalStarted = false;
+  mission01.finalComplete = false;
+  mission01.finalTime = 0;
+  mission01.finalFired = false;
+  mission01.finalImpact = false;
+  mission01.finalImpactTime = 0;
+  mission01.finalSignalTime = 0;
+  mission01.finalScore = 0;
+  mission01.finalBonus = 0;
+  mission01.finalResultsShown = false;
+  gravityAudioState.fieldId = null;
+  gravityAudioState.cooldown = 0;
+  mission01.finalNodesActivated = 0;
+  mission01.finalPortalReady = false;
+  for (const node of authoredScenarioLandmarks.filter((object) => object.userData.finalNode)) {
+    node.userData.finalNodeActive = false;
+  }
+  if (mission01.relicGroup) mission01.relicGroup.visible = false;
+  stopMissionAudio("relic_idle");
+  const firstScenario = scenarioForStage(0);
+  setWorldStage(0);
+  setWorldOffset(firstScenario.center.x, firstScenario.center.y);
+  state.position.set(0, -0.03);
+  input.velocity.set(0, 0);
+  v2Runtime.shield.value = 100;
+  applyStage(0);
+  enterShipMode();
+  updateGemHud();
+  updateStageHud();
+}
+
 function primaryLandmarkEntryForStage(stageIndex = currentWorldProfileIndex()) {
   return [...scenarioDiscoveryTargets.values()].find(
     (entry) => entry.stageIndex === stageIndex && entry.landmark.role === "primary",
@@ -3776,7 +4010,7 @@ function missionPrimaryLandmarkPending(stageIndex = mission01.currentStageIndex)
 }
 
 let lastScenarioDiscoveryMessage = "";
-const scenarioScannerState = { active: false, progress: 0 };
+const scenarioScannerState = { active: false, progress: 0, blockedReason: "" };
 let scenarioScanTargetId = null;
 let scenarioScanWasHeld = false;
 
@@ -3809,7 +4043,6 @@ function activateScenarioLandmark(entry) {
   const point = backgroundObjectScreenPoint(entry.object, new THREE.Vector2());
   spawnImpact(point, entry.landmark.role === "primary");
   playAudioEvent(entry.landmark.id === "fractured_beacon" ? "sector_beacon" : "target_lock");
-  playAudioEvent("route_detected_ping");
 
   const activeTargets = [...mission01.smallAsteroids, ...mission01.largeObstacles]
     .filter((target) => target.userData.active && !target.userData.destroyed && target.userData.discovery);
@@ -3872,8 +4105,7 @@ const holographicMap = new HolographicMap({
       .filter((target) => target.state === "identified" || target.state === "targetable")
       .map((target) => target.id),
   }),
-  onAudio: () => playAudioEvent("route_detected_ping"),
-  onTravel: (stageIndex) => requestWorldTravel(stageIndex),
+  onAudio: (id) => playAudioEvent(id),
 });
 
 function directionVector(direction) {
@@ -3910,14 +4142,21 @@ function updateScenarioDiscovery(rawDelta) {
           encounter: encounterForLandmark(entry.landmark.id),
         };
       });
-    if (scanHeld && !scenarioScanWasHeld) {
-      const available = candidates.filter(({ entry }) => entry.state !== "targetable");
-      scenarioScanTargetId = [...(available.length ? available : candidates)]
-        .sort((a, b) => {
-          const missionPriority = Number(b.entry.landmark.role === "primary") - Number(a.entry.landmark.role === "primary");
-          return a.distance - b.distance || missionPriority;
-        })[0]?.id || null;
-    } else if (!scanHeld) {
+    if (scanHeld) {
+      const preferredPrimaryId = candidates.find(({ entry }) =>
+        entry.landmark.role === "primary" && !entry.activated
+      )?.id || null;
+      scenarioScanTargetId = selectScanTarget(
+        candidates.map(({ id, entry, distance, encounter }) => ({
+          id,
+          distance,
+          range: encounter.range,
+          primary: entry.landmark.role === "primary",
+          completed: entry.activated,
+        })),
+        preferredPrimaryId,
+      );
+    } else {
       scenarioScanTargetId = null;
     }
     const selected = candidates.find(({ id }) => id === scenarioScanTargetId) || null;
@@ -3936,7 +4175,7 @@ function updateScenarioDiscovery(rawDelta) {
       const scannerFacing = scansThisTarget ? { x: dx / distance, y: dy / distance } : facing;
       const next = v2Runtime.discovery.update(
         { ...entry, position: { x: visualPosition.x, y: visualPosition.y } },
-        { player, facing: scannerFacing, scanHeld: scansThisTarget, delta: rawDelta * 0.46 },
+        { player, facing: scannerFacing, scanHeld: scansThisTarget, delta: rawDelta * 0.62 },
       );
       Object.assign(entry, next);
       if (isSelected) {
@@ -3966,14 +4205,15 @@ function updateScenarioDiscovery(rawDelta) {
         lastScenarioDiscoveryMessage = messageKey;
         localStorage.setItem(`gz-discovery-${id}`, entry.state);
         setCompanionAimFeedback(`${entry.landmark.name} · ${entry.state === "targetable" ? "IDENTIFICADA" : "SEÑAL PARCIAL"}`);
-        playAudioEvent("route_detected_ping");
         if (entry.state === "targetable") activateScenarioLandmark(entry);
+        else playAudioEvent("route_detected_ping");
       }
     }
   }
 
   scenarioScannerState.active = scanHeld && activeTarget !== null && !scanBlockedReason;
   scenarioScannerState.progress = strongestProgress;
+  scenarioScannerState.blockedReason = scanBlockedReason;
   scenarioScanWasHeld = scanHeld;
   if (scanHeld && activeTarget && scanBlockedReason) {
     robotCompanion.focus = encounterForLandmark(activeTarget.landmark.id).requiresStabilizer ? "stabilizer" : "discovery";
@@ -4700,6 +4940,7 @@ scene.add(shipGroup);
 const currentStage = () => STAGES[state.stageIndex];
 const currentAsset = () => stageAssets[currentStage()][state.direction];
 
+ensureAsset(currentAsset());
 const shipVisualRig = new ShipVisualRig(currentAsset().texture);
 const shipSprite = shipVisualRig.surface;
 shipVisualRig.setMaps(derivedVisualMaps(`${currentStage()}/directions/${state.direction}`, currentAsset()));
@@ -4735,6 +4976,7 @@ scene.add(astronautGroup);
 
 const astronautInitialAsset =
   astronautViews.front_right || astronautAnimations.idle_hover?.frames[0]?.right || astronautAsset;
+ensureAsset(astronautInitialAsset);
 const astronautState = {
   position: new THREE.Vector2(-0.42, 0.12),
   anchor: new THREE.Vector2(-0.52, 0.20),
@@ -4763,7 +5005,7 @@ if (astronautVisualRig && astronautInitialAsset) {
   astronautGroup.add(astronautVisualRig);
 }
 const astronautThrusters = new DirectionalThrusterSystem({
-  sizeMultiplier: 2.1,
+  sizeMultiplier: 0.72,
   plumeColor: 0x53d9ff,
   coreColor: 0xe1fbff,
 });
@@ -4867,8 +5109,37 @@ function debugMissionTargetSummary() {
     });
 }
 
-if (params.has("qaCdp") || params.get("debugAim") === "1") {
-  window.__gzDebug = () => ({
+if (params.get("qaDebug") === "1" || params.get("debugAim") === "1") {
+  window.__gzQaDebug = () => {
+    const relicAnchor = currentAstronautAnchor().clone();
+    const relicDistance = relicGroup.visible
+      ? relicAnchor.distanceTo(new THREE.Vector2(relicGroup.position.x, relicGroup.position.y))
+      : 0;
+    const activeBiomeLoop = BIOME_AMBIENT_IDS.find((id) => {
+      const loop = missionAudio.loops[id];
+      return loop && !loop.paused && loop.volume > 0.0015;
+    }) || null;
+    return ({
+    paused: isSimulationPaused(),
+    scan: {
+      targetId: scenarioScanTargetId,
+      held: input.keys.has("e") || input.keys.has("E"),
+      blockedReason: scenarioScannerState.blockedReason,
+    },
+    relicReachability: {
+      distance: Number(relicDistance.toFixed(3)),
+      maxReach: 0.58,
+      reachable: !relicGroup.visible || relicDistance <= 0.58001,
+    },
+    audio: {
+      ready: missionAudio.ready,
+      activeBiomeLoop,
+    },
+    simulationTasks: {
+      pending: simulationTasks.size,
+      storyRemaining: Number(Math.max(0, storyBeatHideTimer?.remaining || 0).toFixed(3)),
+      elapsed: Number(simulationElapsed.toFixed(3)),
+    },
     aimActive: aimAssist.active,
     aimMode: aimAssist.mode,
     aimPhase: aimAssist.phase,
@@ -4895,7 +5166,12 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
     gems: mission01.gems,
     finalStarted: mission01.finalStarted,
     finalTime: Number((mission01.finalTime || 0).toFixed(3)),
+    finalFired: mission01.finalFired,
+    finalImpact: mission01.finalImpact,
+    finalSignalAcquired: mission01.finalSignalAcquired,
     finalComplete: mission01.finalComplete,
+    finalScore: mission01.finalScore,
+    finalBonus: mission01.finalBonus,
     finalNodesActivated: mission01.finalNodesActivated,
     finalPortalReady: mission01.finalPortalReady,
     cameraCue: cameraRig.cue,
@@ -5004,6 +5280,8 @@ if (params.has("qaCdp") || params.get("debugAim") === "1") {
       lastImpact: qaTelemetry.lastImpact ? { ...qaTelemetry.lastImpact } : null,
     },
   });
+  };
+  window.__gzDebug = window.__gzQaDebug;
 }
 const activeImpacts = [];
 
@@ -5347,19 +5625,19 @@ class PremiumMissionRelicVisual extends THREE.Group {
   constructor() {
     super();
     this.glow = makeMissionSprite(missionFxTextures.relicGlow, { opacity: 0, renderOrder: 35 });
-    this.glow.scale.set(0.20, 0.20, 1);
+    this.glow.scale.set(0.13, 0.13, 1);
     this.ringA = makeMissionSprite(missionFxTextures.relicRingA, { opacity: 0, renderOrder: 36 });
-    this.ringA.scale.set(0.17, 0.17, 1);
+    this.ringA.scale.set(0.105, 0.105, 1);
     this.ringB = makeMissionSprite(missionFxTextures.relicRingB, { opacity: 0, renderOrder: 36 });
-    this.ringB.scale.set(0.19, 0.19, 1);
+    this.ringB.scale.set(0.12, 0.12, 1);
     this.scanlines = makeMissionSprite(missionFxTextures.relicScanlines, { opacity: 0, renderOrder: 37 });
-    this.scanlines.scale.set(0.15, 0.15, 1);
+    this.scanlines.scale.set(0.10, 0.10, 1);
     this.core = makeMissionSprite(missionFxTextures.relicCore, {
       opacity: 0,
       renderOrder: 38,
       blending: THREE.NormalBlending,
     });
-    this.core.scale.set(0.13, 0.13, 1);
+    this.core.scale.set(0.085, 0.085, 1);
     this.add(this.glow, this.ringA, this.ringB, this.scanlines, this.core);
   }
 
@@ -5371,8 +5649,8 @@ class PremiumMissionRelicVisual extends THREE.Group {
     this.ringA.material.opacity = visible * 0.44;
     this.ringB.material.opacity = visible * 0.34;
     this.glow.material.opacity = visible * (0.26 + Math.sin(elapsed * 3.1) * 0.04);
-    this.core.scale.setScalar(0.13 * pulse);
-    this.glow.scale.setScalar(0.20 * (1.02 + Math.sin(elapsed * 2.1) * 0.04));
+    this.core.scale.setScalar(0.085 * pulse);
+    this.glow.scale.setScalar(0.13 * (1.02 + Math.sin(elapsed * 2.1) * 0.04));
   }
 
   update(delta) {
@@ -5560,14 +5838,14 @@ const robotModelParts = {
 
 const robotBodyMaterial = makeRobotMaterial({
   color: 0xc8ced6,
-  emissive: 0x10131a,
-  emissiveIntensity: 0.018,
+  emissive: 0x66717c,
+  emissiveIntensity: 0.12,
   roughness: 0.68,
 });
 const robotFaceMaterial = makeRobotMaterial({
   color: 0xd9dde3,
-  emissive: 0x171521,
-  emissiveIntensity: 0.025,
+  emissive: 0x727983,
+  emissiveIntensity: 0.12,
   roughness: 0.54,
 });
 const robotAccentMaterial = makeRobotMaterial({
@@ -5720,7 +5998,7 @@ for (const side of [-1, 1]) {
   robotHudModel.add(tip);
 }
 
-const robotHudLight = new THREE.PointLight(0xb58cff, 0.16, 0.32);
+const robotHudLight = new THREE.PointLight(0xe8f2ff, 0.16, 0.32);
 robotHudLight.position.set(0, 0.02, 0.10);
 robotHudModel.add(robotHudLight);
 
@@ -5752,6 +6030,7 @@ robotFaceEmissiveMaterial.opacity = 0.012;
 robotHudLight.intensity = 0.035;
 
 function setSpriteAsset(sprite, asset) {
+  ensureAsset(asset);
   sprite.material.map = asset.texture;
   sprite.userData.aspect = asset.aspect;
   if (textureHasImageData(asset.texture)) sprite.material.needsUpdate = true;
@@ -5949,7 +6228,8 @@ function robotTutorialContent(missionState = mission01.state) {
 
 function updateCompanionDirective() {
   if (!companionDirective || !companionDirectiveKicker || !companionDirectiveTitle || !companionDirectiveAction) return;
-  if (!mission01.started || (gameMenu && !gameMenu.hidden)) {
+  const storyIsVisible = Boolean(storyBeat && !storyBeat.hidden && storyBeat.classList.contains("is-visible"));
+  if (!mission01.started || (gameMenu && !gameMenu.hidden) || storyIsVisible) {
     companionDirective.hidden = true;
     return;
   }
@@ -6011,10 +6291,9 @@ function updateCompanionDirective() {
     return;
   }
   if (["completed_region", "unlocked"].includes(mission01.state)) {
-    const scenario = scenarioForStage(currentWorldProfileIndex());
-    const destination = scenarioForStage(scenario.gate?.to ?? currentWorldProfileIndex());
-    companionDirectiveTitle.textContent = `GATE → ${destination.name}`;
-    companionDirectiveAction.textContent = "Seguí la ruta magenta y entrá al anillo";
+    // The dedicated gate guide already owns this instruction. Showing the same
+    // route twice made the HUD look like two competing objectives.
+    companionDirective.hidden = true;
     return;
   }
   companionDirectiveTitle.textContent = `GEMAS ${mission01.gems}/3`;
@@ -6094,7 +6373,9 @@ function setRobotCompanionState(stateName, message) {
     part.material.emissive?.setHex(accent);
   }
   robotGlowMaterial.color.setHex(glow);
-  robotHudLight.color.setHex(glow);
+  // Keep the companion shell neutral grey in every biome. State color belongs
+  // to its lenses/accents, not to the whole character.
+  robotHudLight.color.setHex(0xe8f2ff);
   robotReferenceMaterial.map = robotFxTextures[nextState] || robotFxTextures.idle;
   if (textureHasImageData(robotReferenceMaterial.map)) robotReferenceMaterial.needsUpdate = true;
   setCompanionFaceTexture(companionFaceForState(nextState));
@@ -6657,27 +6938,28 @@ function stageWidth(stage, direction) {
 function targetShipDiagonal(stage) {
   if (viewport.aspect < 0.75) {
     return {
-      stage1: 0.42,
-      stage2: 0.49,
-      stage3: 0.56,
+      stage1: 0.155,
+      stage2: 0.165,
+      stage3: 0.175,
     }[stage];
   }
   return {
-    stage1: 0.48,
-    stage2: 0.57,
-    stage3: 0.66,
+    stage1: 0.165,
+    stage2: 0.175,
+    stage3: 0.185,
   }[stage];
 }
 
 function resizeShip() {
   const stage = currentStage();
   const asset = currentAsset();
-  // Directional renders have very different aspect ratios. Keeping height
-  // constant made side views look enormous and top views tiny. A fixed screen
-  // diagonal preserves perceived mass across all eight authored views.
-  const diagonal = targetShipDiagonal(stage);
+  ensureAsset(asset);
+  // Normalize the on-screen diagonal instead of raw asset height. Wide side
+  // renders and tall front renders now keep the same perceived mass.
   const aspect = Math.max(0.12, asset.aspect || 1);
-  const height = diagonal / Math.sqrt(aspect * aspect + 1);
+  const screenAspect = aspect / Math.max(0.1, viewport.aspect);
+  const screenHeight = targetShipDiagonal(stage) / Math.sqrt(screenAspect * screenAspect + 1);
+  const height = screenHeight * 2;
   const width = height * aspect;
   shipVisualRig.setSize(width, asset.aspect);
   shipShieldFx.setBaseScale(width * 0.68, height * 0.72, Math.min(width, height) * 0.60);
@@ -6694,9 +6976,11 @@ function resizeAstronaut() {
 }
 
 function currentAstronautAnchor() {
+  const horizontalClearance = Math.max(0.24, shipSprite.scale.x * 0.55 + astronautWidth() * 0.42);
+  const verticalClearance = Math.max(0.10, shipSprite.scale.y * 0.24);
   astronautState.anchor.set(
-    THREE.MathUtils.clamp(state.position.x - 0.28, -viewport.aspect + 0.12, viewport.aspect - 0.12),
-    THREE.MathUtils.clamp(state.position.y + 0.11, -0.82, 0.82),
+    THREE.MathUtils.clamp(state.position.x - horizontalClearance, -viewport.aspect + 0.12, viewport.aspect - 0.12),
+    THREE.MathUtils.clamp(state.position.y + verticalClearance, -0.82, 0.82),
   );
   return astronautState.anchor;
 }
@@ -6792,7 +7076,7 @@ function updateAbilityHud() {
   if (turboAbilityLabel) turboAbilityLabel.textContent = astronautMode ? "MICROPROPULSOR" : turbo.label;
   if (turboAbilityState) {
     turboAbilityState.textContent = speedState.turboActive
-      ? astronautMode ? "IMPULSO EVA ACTIVO" : "IMPULSO ACTIVO"
+      ? astronautMode ? "IMPULSO EVA ACTIVO · MANTENÉ F" : "IMPULSO ACTIVO · MANTENÉ F"
       : astronautMode ? "MANTENÉ · TETHER LIMITADO" : "MANTENÉ PARA IMPULSAR";
   }
   turboAbility?.classList.toggle("is-active", speedState.turboActive);
@@ -6804,11 +7088,21 @@ function updateAbilityHud() {
   stabilizerAbility?.classList.toggle("is-active", stabilizer.active);
   stabilizerAbility?.classList.toggle("is-cooldown", !stabilizer.active && stabilizer.cooldown > 0);
   if (stabilizerAbilityState) {
+    const fieldLabel = {
+      attract: "ATRACCIÓN",
+      repel: "REPULSIÓN",
+      current: "CORRIENTE",
+      tangential: "ÓRBITA",
+      pulse: "PULSO",
+      unstable: "CAMPO INESTABLE",
+    }[scenarioGravitySample.fieldType] || "GRAVEDAD";
     stabilizerAbilityState.textContent = stabilizer.active
-      ? `ACTIVO ${stabilizer.remaining.toFixed(1)}s · GRAVEDAD 24%`
+      ? `CAMPO AL 24% · ${stabilizer.remaining.toFixed(1)}s`
       : stabilizer.cooldown > 0
         ? `RECARGA ${Math.ceil(stabilizer.cooldown)}s`
-        : "LISTO · REDUCE GRAVEDAD";
+        : scenarioGravitySample.magnitude > 0.025
+          ? `ESPACIO · ANULAR ${fieldLabel}`
+          : "ESPACIO · VENTANA 2.5s";
   }
   stabilizerAbilityMeter?.style.setProperty(
     "--ability-level",
@@ -6836,7 +7130,6 @@ function cycleSpeedMode() {
   updateSpeedButton();
   updateRobotPanel();
   playAudioEvent("speed_whoosh");
-  playAudioEvent("route_detected_ping");
 }
 
 function updateSpeedState(delta) {
@@ -6861,9 +7154,7 @@ function updateSpeedState(delta) {
     robotCompanion.focus = "turbo";
     robotCompanion.focusTimer = 3.2;
     robotCompanion.pulse = 1;
-    playAudioEvent("speed_whoosh");
-    playAudioEvent("micro_thruster_burst");
-    playAudioEvent("turbo_ramp");
+    playAudioEvent(state.controlMode === "astronaut" ? "micro_thruster_burst" : "turbo_ramp");
   }
   const targetMultiplier = mode.multiplier * (turboRequested ? turbo.multiplier : 1);
   speedState.currentMultiplier = THREE.MathUtils.lerp(
@@ -6946,6 +7237,7 @@ function finishStageTransition() {
   const scenario = scenarioForStage(targetWorldStage);
   setWorldStage(targetWorldStage);
   setWorldOffset(scenario.center.x, scenario.center.y);
+  playAudioEvent("navigation_whoosh");
   updateStageHud();
   if (completed?.gateTravel) requestWorldTravel(targetWorldStage);
   else beginStageNavigation(targetWorldStage);
@@ -7053,6 +7345,8 @@ function saveProgress() {
     worldStage,
     resumeStage: mission01.state === "completed_region" ? worldStage : THREE.MathUtils.clamp(mission01.gems, 0, 3),
     finalComplete: mission01.finalComplete,
+    finalScore: mission01.finalScore,
+    finalBonus: mission01.finalBonus,
     discoveredLandmarks,
     completedSecondaries: discoveredLandmarks.filter((id) =>
       SCENARIOS.some((scenario) => scenario.landmarks.some((landmark) => landmark.id === id && landmark.role === "secondary")),
@@ -7288,10 +7582,23 @@ function restoreProgress() {
     if (!target) continue;
     target.state = "targetable";
     target.scanProgress = 1;
+    target.signalStrength = 1;
+    target.activated = true;
+    if (target.object) {
+      target.object.userData.encounterComplete = true;
+      setAuthoredLandmarkActive(target.object.userData.premiumLandmarkVisual, true);
+    }
   }
   if (snapshot.finalComplete) {
     mission01.finalComplete = true;
     mission01.finalSignalAcquired = true;
+    mission01.finalFired = true;
+    mission01.finalImpact = true;
+    mission01.finalNodesActivated = 3;
+    mission01.finalPortalReady = true;
+    mission01.finalScore = Math.max(0, Math.trunc(snapshot.finalScore || 0));
+    mission01.finalBonus = Math.max(0, Math.trunc(snapshot.finalBonus || 0));
+    if (!mission01.finalScore) calculateFinalResults();
     mission01.state = "complete";
     const finalScenario = scenarioForStage(3);
     setWorldStage(3);
@@ -7719,11 +8026,11 @@ function worldCompositionCandidate(object, index) {
       object.userData.finalNode === true ||
       (object.userData.finalPortal === true && mission01.finalPortalReady),
     maxScreenDiameter: object.userData.landmarkId === "relic_portal"
-      ? 0.21
+      ? 0.16
       : object.userData.authoredLandmark
-        ? 0.24
+        ? 0.095
         : object.userData.authoredGate
-          ? 0.18
+          ? 0.08
           : object.userData.authoredHero
             ? 0.42
             : object.userData.authoredSecondary
@@ -7771,11 +8078,10 @@ function updateWorldCompositionAuthority(rawDelta) {
     const revealed = object.userData.reveal === undefined || object.userData.reveal > 0.12;
     const objectiveAvailable =
       (!object.userData.authoredGate ||
+        object.userData.gate.to < object.userData.profileStage ||
         (object.userData.gate.to > object.userData.profileStage && object.userData.gate.to <= mission01.gems)) &&
       (!object.userData.finalPortal ||
-        mission01.finalPortalReady ||
-        mission01.finalStarted ||
-        mission01.finalComplete);
+        (mission01.finalPortalReady && !mission01.finalStarted && !mission01.finalComplete));
     if (stageAllowed && authoredStageAllowed && revealed && objectiveAvailable) {
       const candidate = worldCompositionCandidate(object, index);
       if (candidate) candidates.push(candidate);
@@ -8002,8 +8308,8 @@ function updateTargetDiscovery(delta) {
     if (!target.userData.active || target.userData.destroyed || !target.userData.discovery) continue;
     if (landmarkPending && target.userData.missionRole === "small") {
       target.userData.targetable = false;
-      target.visible = false;
-      setGroupOpacity(target, 0);
+      target.visible = true;
+      setGroupOpacity(target, 0.18);
       continue;
     }
     const point = backgroundObjectScreenPoint(target, new THREE.Vector2());
@@ -8014,7 +8320,7 @@ function updateTargetDiscovery(delta) {
       input.keys.has("e") ||
       input.keys.has("E") ||
       distance < (target.userData.missionRole === "large" ? 0.94 : 0.78) ||
-      params.has("qaCdp");
+      qaAssistEnabled;
     const previousState = target.userData.discovery.state;
     target.userData.discovery = v2Runtime.discovery.update(
       { ...target.userData.discovery, position: { x: point.x, y: point.y } },
@@ -8141,7 +8447,7 @@ function currentProjectileTargetPoint(shot) {
   return shot.userData.targetPoint.clone();
 }
 
-function createProjectileShot(origin, targetPoint, shooter, { target = null, miss = false, mode = "normal", relic = false } = {}) {
+function createProjectileShot(origin, targetPoint, shooter, { target = null, miss = false, mode = "normal", relic = false, final = false } = {}) {
   const group = new THREE.Group();
   const isMajor = mode === "major";
   const coreTexture =
@@ -8165,6 +8471,7 @@ function createProjectileShot(origin, targetPoint, shooter, { target = null, mis
     origin: origin.clone(),
     miss,
     relic,
+    final,
     mode,
     time: 0,
     duration: aimTimingSchedule(mode).projectileTravel,
@@ -8422,11 +8729,15 @@ function revealMissionRelic(sourceTarget) {
   mission01.relicState = "revealing";
   mission01.revealTime = 0;
   const point = sourceTarget?.userData.screenPoint || new THREE.Vector2(0.2, 0.2);
-  relicGroup.position.set(
-    THREE.MathUtils.clamp(point.x, -viewport.aspect + 0.20, viewport.aspect - 0.20),
-    THREE.MathUtils.clamp(point.y, -0.70, 0.72),
-    0.12
+  const evaAnchor = currentAstronautAnchor().clone();
+  const reachable = reachableRelicPoint(
+    point,
+    evaAnchor,
+    0.30,
+    Math.max(0.30, viewport.aspect - 0.20),
+    0.70,
   );
+  relicGroup.position.set(reachable.x, reachable.y, 0.12);
   relicGroup.scale.setScalar(1);
   relicGroup.visible = true;
   relicVisual.setReveal(0, 1, 0);
@@ -8439,7 +8750,7 @@ function revealMissionRelic(sourceTarget) {
     "El núcleo ocultaba una gema de ruta. El astronauta debe recuperarla.",
     { duration: 3600, accent: "#ff86e7" },
   );
-  window.setTimeout(() => {
+  scheduleSimulationTask(() => {
     if (mission01.state !== "relic" || mission01.unlockStarted) return;
     playMissionAudio("relic_reveal");
     playMissionAudio("relic_burst");
@@ -8491,12 +8802,19 @@ function beginFinalNodeSequence() {
   mission01.finalStarted = false;
   mission01.finalComplete = false;
   mission01.finalSignalAcquired = false;
+  mission01.finalFired = false;
+  mission01.finalImpact = false;
+  mission01.finalImpactTime = 0;
+  mission01.finalSignalTime = 0;
+  mission01.finalScore = 0;
+  mission01.finalBonus = 0;
+  mission01.finalResultsShown = false;
   mission01.finalNodesActivated = 0;
   mission01.finalSyncTime = 0;
   mission01.finalPortalReady = false;
   for (const node of finalNodeObjects()) node.userData.finalNodeActive = false;
   enterShipMode();
-  updateMissionHud("RELIC CORE", "ACTIVÁ LOS 3 NODOS GRAVITACIONALES", "ATRACT · REPEL · PULSE");
+  updateMissionHud("RELIC CORE", "ACTIVÁ LOS 3 NODOS GRAVITACIONALES", "ATRACCIÓN · REPULSIÓN · PULSO");
   syncRobotCompanion("final");
   updateGemHud();
   updateStageHud();
@@ -8614,11 +8932,27 @@ function startFinalSequence(anchorPoint = null) {
   mission01.finalOrientation = astronautGroup.rotation.z;
   mission01.finalAngularVelocity = 0;
   mission01.finalFired = false;
+  mission01.finalImpact = false;
+  mission01.finalImpactTime = 0;
+  mission01.finalSignalTime = 0;
+  mission01.finalScore = 0;
+  mission01.finalBonus = 0;
+  mission01.finalResultsShown = false;
   mission01.state = "final";
   mission01.finalSignalAcquired = false;
   finalFxGroup.visible = true;
   finalFxGroup.position.set(0, 0, 0.18);
-  const finalPoint = anchorPoint || new THREE.Vector2(relicGroup.position.x || 0, relicGroup.position.y || 0.1);
+  const portalPoint = anchorPoint || new THREE.Vector2(relicGroup.position.x || 0, relicGroup.position.y || 0.1);
+  // Reframe the relic above and away from the ship. The authored portal is the
+  // entrance; this core is the cinematic target and must read as a new beat.
+  const finalPoint = new THREE.Vector2(
+    THREE.MathUtils.clamp(
+      shipGroup.position.x + Math.max(0.20, Math.min(0.44, viewport.aspect * 0.26)) * (portalPoint.x < shipGroup.position.x ? -1 : 1),
+      -viewport.aspect + 0.20,
+      viewport.aspect - 0.20,
+    ),
+    THREE.MathUtils.clamp(shipGroup.position.y + 0.34, -0.42, 0.56),
+  );
   finalCore.position.set(finalPoint.x, finalPoint.y, 0.2);
   finalCore.scale.setScalar(0.34);
   finalCore.material.opacity = 0.82;
@@ -8634,7 +8968,6 @@ function startFinalSequence(anchorPoint = null) {
     beam.material.opacity = 0;
   });
   playAudioEvent("final_relic_touch");
-  playAudioEvent("final_core_collapse");
   updateMissionHud("FINAL ZONE", "ACTIVÁ LA SEÑAL FINAL", "RUMBO FINAL / ZONA FINAL");
   syncRobotCompanion("final");
   enterAstronautMode("relic");
@@ -8692,7 +9025,7 @@ function completeMissionRelicCollection() {
   unlockFlash.scale.setScalar(0.34);
   unlockFlash.material.opacity = 0.34;
 
-  window.setTimeout(() => {
+  scheduleSimulationTask(() => {
     playAudioEvent("stage_route_unlocked");
     const evolvedStage = evolvedShipStageForGems(mission01.gems, STAGES.length - 1);
     if (state.stageIndex < evolvedStage) {
@@ -8725,7 +9058,6 @@ function handleMissionTargetDestroyed(target, shooter) {
   const config = currentMissionConfig();
   if (target.userData.missionRole === "small") {
     playMissionAudio("small_break");
-    playAudioEvent("fragment_collected");
     const capturePoint = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
     spawnFragmentTransfer(capturePoint);
     mission01.smallDestroyed = Math.min(mission01.smallRequired, mission01.smallDestroyed + 1);
@@ -8734,10 +9066,9 @@ function handleMissionTargetDestroyed(target, shooter) {
       `${mission01.smallDestroyed}/${mission01.smallRequired} FRAGMENTOS DE SEÑAL`,
       config.subtitle
     );
-    playMissionAudio("robot_item_update");
     syncRobotCompanion("small_asteroids");
     if (mission01.smallDestroyed >= mission01.smallRequired) {
-      window.setTimeout(completeSmallMissionTargets, 420);
+      scheduleSimulationTask(completeSmallMissionTargets, 420);
     }
   }
   if (target.userData.missionRole === "large") {
@@ -8748,19 +9079,18 @@ function handleMissionTargetDestroyed(target, shooter) {
       `${mission01.largeDestroyed}/${mission01.largeRequired} ${largeObjectiveNoun(mission01.largeRequired)}`,
       config.subtitle
     );
-    playMissionAudio("robot_item_update");
     syncRobotCompanion("large_obstacle");
     if (mission01.largeDestroyed >= mission01.largeRequired) {
-      window.setTimeout(() => revealMissionRelic(target), 380);
+      scheduleSimulationTask(() => revealMissionRelic(target), 380);
     }
   }
 }
 
 function damageTarget(target, shooter) {
   if (!target || target.userData.destroyed) return;
-  if (target.userData.missionRole === "small") playMissionAudio("small_hit");
-  if (target.userData.missionRole === "large") playAudioEvent("core_hit");
   target.userData.hp -= shooter === "ship" ? 2 : 1;
+  if (target.userData.hp > 0 && target.userData.missionRole === "small") playMissionAudio("small_hit");
+  if (target.userData.hp > 0 && target.userData.missionRole === "large") playAudioEvent("core_hit");
   target.userData.hitPulse = 1;
   const impactPoint = target.userData.screenPoint || backgroundObjectScreenPoint(target, new THREE.Vector2()).clone();
   spawnImpact(impactPoint, target.userData.hp <= 0);
@@ -8798,6 +9128,7 @@ function launchShotAtPoint(point, shooter = "ship", options = {}) {
     miss: options.miss ?? true,
     mode: options.mode || "normal",
     relic: options.relic || false,
+    final: options.final || false,
   });
   spawnMuzzle(origin, shooter);
   interactionFx.add(shot);
@@ -8864,7 +9195,23 @@ function updateInteractionFx(delta) {
     if (t >= 1) {
       if (!shot.userData.damageApplied) {
         shot.userData.damageApplied = true;
-        if (shot.userData.relic) {
+        if (shot.userData.final) {
+          mission01.finalImpact = true;
+          mission01.finalImpactTime = mission01.finalTime;
+          qaTelemetry.lastImpact = {
+            hit: true,
+            miss: false,
+            final: true,
+            shooter: shot.userData.shooter,
+            mode: shot.userData.mode,
+          };
+          spawnImpact(targetPoint, true);
+          aimAssist.hitStop = Math.max(aimAssist.hitStop, 0.18);
+          playAudioEvent("impact_hit_stop");
+          playAudioEvent("final_core_collapse");
+          playAudioEvent("final_shockwave");
+          setCompanionAimFeedback("IMPACTO CONFIRMADO · SEÑAL EN TRANSFERENCIA");
+        } else if (shot.userData.relic) {
           touchMissionRelic();
         } else if (shot.userData.target && !shot.userData.miss) {
           qaTelemetry.lastImpact = {
@@ -8971,7 +9318,10 @@ function updateTether(elapsed) {
     return;
   }
   tetherLine.visible = true;
-  const from = new THREE.Vector2(shipGroup.position.x - shipSprite.scale.x * 0.10, shipGroup.position.y + shipSprite.scale.y * 0.10);
+  const from = new THREE.Vector2(
+    shipGroup.position.x - shipSprite.scale.x * 0.42,
+    shipGroup.position.y + shipSprite.scale.y * 0.10,
+  );
   const to = astronautState.position;
   const distance = from.distanceTo(to);
   const side = new THREE.Vector2(-(to.y - from.y), to.x - from.x).normalize();
@@ -9049,6 +9399,23 @@ function updateMission01(delta, elapsed) {
   }
 }
 
+function calculateFinalResults() {
+  const secondaryScans = [...scenarioDiscoveryTargets.values()].filter((target) =>
+    target.landmark.role === "secondary" &&
+    !target.id.startsWith("gravity_node_") &&
+    target.activated
+  ).length;
+  const shield = Math.round(THREE.MathUtils.clamp(v2Runtime.shield.value, 0, 100));
+  const shieldBonus = shield * 20;
+  const explorationBonus = secondaryScans * 750;
+  mission01.finalBonus = shieldBonus + explorationBonus;
+  mission01.finalScore =
+    10000 +
+    mission01.gems * 1500 +
+    mission01.finalNodesActivated * 750 +
+    mission01.finalBonus;
+}
+
 function updateFinalSequence(delta, elapsed) {
   if (!mission01.finalStarted) {
     finalFxGroup.visible = false;
@@ -9060,9 +9427,11 @@ function updateFinalSequence(delta, elapsed) {
   finalFxGroup.visible = true;
   const corePoint = new THREE.Vector2(finalCore.position.x, finalCore.position.y);
   const shipPoint = new THREE.Vector2(shipGroup.position.x, shipGroup.position.y);
-  const collapse = THREE.MathUtils.smoothstep(t, 3.25, 4.55);
-  const release = THREE.MathUtils.smoothstep(t, 3.80, 5.45);
-  const resolve = THREE.MathUtils.smoothstep(t, 6.15, 7.80);
+  const impactAge = mission01.finalImpact ? Math.max(0, t - mission01.finalImpactTime) : 0;
+  const signalAge = mission01.finalSignalAcquired ? Math.max(0, t - mission01.finalSignalTime) : 0;
+  const collapse = mission01.finalImpact ? THREE.MathUtils.smoothstep(impactAge, 0.05, 1.15) : 0;
+  const release = mission01.finalImpact ? THREE.MathUtils.smoothstep(impactAge, 0.22, 1.70) : 0;
+  const resolve = mission01.finalSignalAcquired ? THREE.MathUtils.smoothstep(signalAge, 0.45, 2.50) : 0;
 
   const finalAimVector = corePoint.clone().sub(astronautState.position);
   const finalAimAngle = Math.atan2(finalAimVector.y, finalAimVector.x);
@@ -9083,16 +9452,26 @@ function updateFinalSequence(delta, elapsed) {
   mission01.finalOrientation = finalRotation.angle;
   mission01.finalAngularVelocity = finalRotation.angularVelocity;
   if (t < 6.1) astronautGroup.rotation.z = finalRotation.angle;
-  if (!mission01.finalFired && t >= 3.75 && finalRotation.alignmentError < 0.075) {
+  if (
+    !mission01.finalFired &&
+    t >= 3.75 &&
+    (finalRotation.alignmentError < 0.075 || t >= 4.80)
+  ) {
     mission01.finalFired = true;
     playAudioEvent("zero_g_rotate_whoosh");
     playAudioEvent("fire_release");
-    spawnOrientationBurst(astronautState.position, finalAimVector.normalize(), "astronaut");
+    const firingDirection = finalAimVector.lengthSq() > 0.0001
+      ? finalAimVector.clone().normalize()
+      : new THREE.Vector2(0, 1);
+    spawnOrientationBurst(astronautState.position, firingDirection, "astronaut");
+    launchShotAtPoint(corePoint, "astronaut", { mode: "major", miss: false, final: true });
   }
 
   finalCore.rotation.z = elapsed * (1.2 + collapse * 1.8);
   finalCore.scale.setScalar(THREE.MathUtils.lerp(0.34, 0.07, collapse) + Math.sin(elapsed * 16) * 0.006);
-  finalCore.material.opacity = Math.max(0, 0.86 * (1 - THREE.MathUtils.smoothstep(t, 0.86, 1.42)));
+  finalCore.material.opacity = mission01.finalImpact
+    ? Math.max(0, 0.86 * (1 - THREE.MathUtils.smoothstep(impactAge, 0.18, 1.10)))
+    : 0.82 + Math.sin(elapsed * 5.4) * 0.06;
 
   finalFlash.position.copy(finalCore.position);
   finalFlash.scale.setScalar(0.22 + release * 1.15);
@@ -9139,18 +9518,26 @@ function updateFinalSequence(delta, elapsed) {
     unlockFlash.material.opacity = Math.max(unlockFlash.material.opacity, 0.18 + release * 0.32);
   }
 
-  if (!mission01.finalSignalAcquired && t >= 5.25) {
+  if (!mission01.finalSignalAcquired && mission01.finalImpact && impactAge >= 1.35) {
     mission01.finalSignalAcquired = true;
+    mission01.finalSignalTime = t;
     mission01.gems = 3;
-    playAudioEvent("final_shockwave");
     playAudioEvent("final_energy_beam");
     playAudioEvent("final_signal_acquired");
     updateMissionHud("SEÑAL FINAL ADQUIRIDA", "RUTA ESTABILIZADA", "RUMBO FINAL / ZONA FINAL");
     syncRobotCompanion("final");
   }
 
-  if (!mission01.finalComplete && t >= 7.45) {
+  if (
+    !mission01.finalComplete &&
+    mission01.finalFired &&
+    mission01.finalImpact &&
+    mission01.finalSignalAcquired &&
+    signalAge >= 2.15
+  ) {
+    calculateFinalResults();
     mission01.finalComplete = true;
+    mission01.state = "complete";
     playAudioEvent("mission_complete_resolve");
     updateMissionHud("MISSION COMPLETE", "SEÑAL FINAL ADQUIRIDA / RUTA ESTABILIZADA", "GRAVEDAD ZERO");
     syncRobotCompanion("final");
@@ -9160,6 +9547,11 @@ function updateFinalSequence(delta, elapsed) {
 
   if (mission01.finalComplete && resolve >= 0.98) {
     finalFxGroup.visible = false;
+  }
+  if (mission01.finalComplete && !mission01.finalResultsShown && signalAge >= 2.80) {
+    mission01.finalResultsShown = true;
+    finalFxGroup.visible = false;
+    showMenu("mission_complete");
   }
 }
 
@@ -9353,6 +9745,28 @@ function updateAstronaut(delta, elapsed, controlVelocity) {
 
 window.addEventListener("keydown", (event) => {
   ensureMissionAudio();
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (holographicMap.open) {
+      holographicMap.toggle(false);
+    } else if (gameMenu && !gameMenu.hidden) {
+      if (activeMenuScreen === "pause") hideMenu();
+      else if (activeMenuScreen === "controls") showMenu("title_menu");
+    } else if (mission01.started) {
+      showMenu("pause");
+    }
+    return;
+  }
+  if (gameMenu && !gameMenu.hidden) {
+    event.preventDefault();
+    if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+      const action = ["pause", "stage_unlocked", "mission_complete"].includes(activeMenuScreen)
+        ? "resume"
+        : "start";
+      handleMenuAction(action);
+    }
+    return;
+  }
   if (event.key === "m" || event.key === "M") {
     event.preventDefault();
     holographicMap.toggle();
@@ -9363,11 +9777,6 @@ window.addEventListener("keydown", (event) => {
     holographicMap.toggleMode();
     return;
   }
-  if (event.key === "Escape" && holographicMap.open) {
-    event.preventDefault();
-    holographicMap.toggle(false);
-    return;
-  }
   if (holographicMap.open) {
     event.preventDefault();
     return;
@@ -9376,7 +9785,11 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     return;
   }
-  if ((event.key === "e" || event.key === "E") && tryScenarioGateTravel()) {
+  if (
+    (event.key === "e" || event.key === "E") &&
+    ["navigation", "completed_region", "unlocked"].includes(mission01.state) &&
+    tryScenarioGateTravel()
+  ) {
     event.preventDefault();
     return;
   }
@@ -9386,23 +9799,13 @@ window.addEventListener("keydown", (event) => {
     cycleSpeedMode();
     return;
   }
-  if (event.key === "Escape") {
-    event.preventDefault();
-    if (gameMenu && !gameMenu.hidden) hideMenu();
-    else showMenu("pause");
-    return;
-  }
   if (event.key === " " || event.key === "Enter") {
     event.preventDefault();
-    if (gameMenu && !gameMenu.hidden) {
-      handleMenuAction("start");
-      return;
-    }
     if (!mission01.started) {
       startMission01();
       return;
     }
-    if (event.key === " ") {
+    if (event.key === " " && !event.repeat) {
       if (scenarioGravity.activateStabilizer()) {
         if (state.controlMode === "astronaut") astronautVisualRig?.shield.trigger(1);
         else shipShieldFx.trigger(1);
@@ -9647,11 +10050,21 @@ function updateShipFx(elapsed, shipVelocity) {
   );
 }
 
+function renderGameFrame() {
+  renderer.clear();
+  renderer.render(backgroundScene, backgroundCamera);
+  renderer.clearDepth();
+  renderer.render(scene, camera);
+}
+
 function animate() {
   // Keep navigation and mission timers close to wall-clock speed on slower
   // laptops. A 33ms cap made the entire campaign run in slow motion below 30fps.
   const rawDelta = Math.min(clock.getDelta(), 0.075);
-  const elapsed = clock.elapsedTime;
+  if (!isSimulationPaused()) {
+  simulationElapsed += rawDelta;
+  const elapsed = simulationElapsed;
+  updateSimulationTasks(rawDelta);
   const hitStopped = aimAssist.hitStop > 0;
   if (hitStopped) aimAssist.hitStop = Math.max(0, aimAssist.hitStop - rawDelta);
   const finalSlow = mission01.finalStarted && !mission01.finalComplete && mission01.finalTime < 2.4;
@@ -9675,6 +10088,7 @@ function animate() {
     rawDelta,
     state.controlMode === "astronaut" ? 1.35 : 1,
   );
+  updateGravityFieldAudio(rawDelta, scenarioGravitySample);
   if (input.velocity.length() > 1.15) input.velocity.setLength(1.15);
   updateScenarioDiscovery(rawDelta);
 
@@ -9739,7 +10153,7 @@ function animate() {
   updateShipEngineAudio(travelVelocity, state.transition, rawDelta);
   updateBiomeAmbientAudio(rawDelta);
   updateShipFx(elapsed, travelVelocity);
-  const qaTransitionSpeed = qaRoute
+  const qaTransitionSpeed = qaAssistEnabled && qaRoute
     ? THREE.MathUtils.clamp(Number(params.get("qaTransitionSpeed") || 1), 1, 12)
     : 1;
   updateTransition(delta * qaTransitionSpeed, elapsed);
@@ -9767,11 +10181,9 @@ function animate() {
   updateTether(elapsed);
   holographicMap.draw();
   updateGameplayCamera(rawDelta);
+  }
 
-  renderer.clear();
-  renderer.render(backgroundScene, backgroundCamera);
-  renderer.clearDepth();
-  renderer.render(scene, camera);
+  renderGameFrame();
   requestAnimationFrame(animate);
 }
 
@@ -9786,6 +10198,7 @@ if (params.get("robotPanel") === "1") {
 window.addEventListener("resize", resize);
 resize();
 showMenu("title_menu");
+if (qaAssistEnabled) {
 const qaWorldStages = { stage1: 0, stage2: 1, stage3: 2, final: 3 };
 if (qaRoute in qaWorldStages) {
   window.setTimeout(() => {
@@ -9835,7 +10248,7 @@ if (qaRoute === "gravity") {
     mission01.state = "navigation";
     mission01.gems = 0;
     const field = scenarioForStage(0).gravityFields[0];
-    setWorldOffset(field.x, field.y);
+    setWorldOffset(field.x - field.radius * 0.36, field.y);
     updateMissionHud("CAMPO GRAVITACIONAL", "PROBÁ EL ESTABILIZADOR CON ESPACIO", "OCEANIC FRONTIER");
     hideMenu();
   }, 350);
@@ -9957,6 +10370,29 @@ if (qaRoute === "oceanicGate" || qaRoute === "oceanicCorridor") {
     );
     hideMenu();
     if (qaRoute === "oceanicCorridor") startGateTransition(1);
+  }, 350);
+}
+if (qaRoute === "mechanicalGate" || qaRoute === "darkGate") {
+  window.setTimeout(() => {
+    const originStage = qaRoute === "mechanicalGate" ? 1 : 2;
+    const targetStage = originStage + 1;
+    const origin = scenarioForStage(originStage);
+    mission01.started = true;
+    mission01.state = "completed_region";
+    mission01.gems = targetStage;
+    mission01.currentStageIndex = originStage;
+    mission01.zoneIndex = originStage;
+    applyStage(evolvedShipStageForGems(targetStage, STAGES.length - 1));
+    setWorldStage(originStage);
+    setWorldOffset(origin.gate.x, origin.gate.y);
+    enterShipMode();
+    updateGemHud();
+    updateMissionHud(
+      `${origin.name} ESTABILIZADO`,
+      "PRESIONÁ E PARA ENTRAR AL GATE",
+      `CORREDOR A ${scenarioForStage(targetStage).name}`,
+    );
+    hideMenu();
   }, 350);
 }
 const qaTransitionStages = { transition12: 1, transition23: 2, transition3final: 3 };
@@ -10115,5 +10551,6 @@ if (params.get("autoAim")) {
       return activeMissionTargetByIndex(mission01.smallAsteroids, qaTargetIndex, astronautState.position);
     });
   }, 1150);
+}
 }
 animate();

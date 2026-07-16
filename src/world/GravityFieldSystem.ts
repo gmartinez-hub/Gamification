@@ -23,6 +23,11 @@ interface ScenarioWithGravity {
   gravityFields: readonly GravityFieldDefinition[];
 }
 
+const GRAVITY_VELOCITY_RESPONSE = 5.2;
+const STABILIZER_ACTIVE_SECONDS = 2.5;
+const STABILIZER_COOLDOWN_SECONDS = 8;
+const STABILIZER_GRAVITY_SCALE = 0.24;
+
 export class GravityFieldSystem {
   private stabilizerRemaining = 0;
   private stabilizerCooldown = 0;
@@ -31,8 +36,8 @@ export class GravityFieldSystem {
 
   activateStabilizer(): boolean {
     if (this.stabilizerRemaining > 0 || this.stabilizerCooldown > 0) return false;
-    this.stabilizerRemaining = 2.5;
-    this.stabilizerCooldown = 8;
+    this.stabilizerRemaining = STABILIZER_ACTIVE_SECONDS;
+    this.stabilizerCooldown = STABILIZER_COOLDOWN_SECONDS;
     return true;
   }
 
@@ -73,7 +78,8 @@ export class GravityFieldSystem {
         direction = { x: current.x / length, y: current.y / length };
       }
       if (field.type === "pulse") {
-        const pulse = 0.35 + Math.max(0, Math.sin((elapsed / (field.period || 5)) * Math.PI * 2)) * 0.95;
+        const phase = (elapsed / (field.period || 5)) * Math.PI * 2;
+        const pulse = 0.65 + (Math.sin(phase) + 1) * 0.45;
         direction = { x: -radial.x * pulse, y: -radial.y * pulse };
       }
       if (field.type === "unstable") {
@@ -105,12 +111,13 @@ export class GravityFieldSystem {
   }
 
   apply(stageIndex: number, position: Vec2, velocity: Vec2, elapsed: number, rawDelta: number, actorScale = 1): GravitySample {
+    const activeSeconds = Math.min(this.stabilizerRemaining, rawDelta);
+    const gravityDelta = activeSeconds * STABILIZER_GRAVITY_SCALE + (rawDelta - activeSeconds);
     this.stabilizerRemaining = Math.max(0, this.stabilizerRemaining - rawDelta);
-    this.stabilizerCooldown = Math.max(0, this.stabilizerCooldown - rawDelta);
+    this.stabilizerCooldown = Math.max(0, this.stabilizerCooldown - (rawDelta - activeSeconds));
     const sample = this.sample(stageIndex, position, elapsed);
-    const stabilizerScale = this.stabilizerRemaining > 0 ? 0.24 : 1;
-    velocity.x += sample.x * rawDelta * 2.2 * actorScale * stabilizerScale;
-    velocity.y += sample.y * rawDelta * 2.2 * actorScale * stabilizerScale;
+    velocity.x += sample.x * gravityDelta * GRAVITY_VELOCITY_RESPONSE * actorScale;
+    velocity.y += sample.y * gravityDelta * GRAVITY_VELOCITY_RESPONSE * actorScale;
     return sample;
   }
 }

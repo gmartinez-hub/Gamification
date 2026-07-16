@@ -47,7 +47,7 @@ function register(group, object, role, options = {}) {
 
 function addEncounterNodes(group, accent, id) {
   const layouts = {
-    fractured_beacon: [[-0.62, -0.30], [0.08, 0.50], [0.66, 0.30]],
+    fractured_beacon: [[-0.34, -0.52], [0.02, 0.08], [0.36, 0.66]],
     orbital_ruins: [[-0.62, 0.22], [0.03, -0.42], [0.64, 0.18]],
     broken_ring: [[-0.68, -0.34], [0.02, 0.72], [0.70, -0.30]],
     scanner_array: [[-0.57, 0.62], [0, 0.37], [0.57, 0.62]],
@@ -109,31 +109,51 @@ function addFloatingDebris(group, accent, count, radius, phase = 0) {
 }
 
 function addFracturedBeacon(group, accent) {
-  // A broken orbital transponder: compact hub, asymmetric antenna arms and
-  // separated solar vanes. Its silhouette must never read as a navigation arrow.
-  mesh(group, new THREE.DodecahedronGeometry(0.30, 1), darkMetal(accent), "structure", [-0.06, 0, 0.02], [0.28, 0.18, -0.12], [1.16, 0.86, 0.72]);
-  mesh(group, new THREE.CylinderGeometry(0.075, 0.075, 0.72, 10), metal(accent), "structure", [0.30, 0.12, 0.01], [0, 0, -1.14]);
-  mesh(group, new THREE.CylinderGeometry(0.055, 0.055, 0.50, 10), metal(accent), "structure", [-0.34, 0.25, 0], [0, 0, 0.74]);
-  mesh(group, new THREE.BoxGeometry(0.52, 0.25, 0.08), darkMetal(accent), "structure", [0.61, 0.38, -0.01], [0.08, -0.10, -0.20]);
-  mesh(group, new THREE.BoxGeometry(0.38, 0.22, 0.08), darkMetal(accent), "structure", [-0.57, 0.46, -0.01], [-0.06, 0.12, 0.26]);
-  mesh(group, new THREE.ConeGeometry(0.28, 0.16, 32, 1, true), metal(accent), "dish", [-0.55, -0.28, 0.04], [Math.PI / 2, 0, -0.72], [1, 1, 0.58], { scanSweep: -1 });
-  mesh(group, new THREE.OctahedronGeometry(0.17, 1), energy(accent, 0.92), "core", [-0.04, 0.01, 0.15], [0, 0, 0], [1, 1.18, 0.68], { spin: -0.38 });
-  arc(group, 0.54, 0.020, -0.58, Math.PI * 1.18, energy(accent, 0.42), "signal", { z: 0.07, spin: 0.18, scale: [1.12, 0.70, 1] });
-  arc(group, 0.78, 0.013, 0.84, Math.PI * 0.88, energy(accent, 0.22), "signal", { z: 0.03, spin: -0.12, scale: [1.08, 0.66, 1] });
-  addFloatingDebris(group, accent, 5, 0.92, 0.4);
+  // Derelict communications station: wide solar wings, armored central body
+  // and one fractured panel. Its silhouette reads as a physical landmark even
+  // before the scanner wakes the signal rings.
+  mesh(group, new THREE.CylinderGeometry(0.23, 0.30, 0.94, 12), metal(accent), "structure", [0, -0.04, 0.02]);
+  mesh(group, new THREE.CylinderGeometry(0.34, 0.40, 0.20, 12), darkMetal(accent), "structure", [0, -0.56, 0.01]);
+  mesh(group, new THREE.CylinderGeometry(0.060, 0.075, 1.52, 10), metal(accent), "structure", [0, -0.05, 0], [0, 0, Math.PI * 0.5]);
+
+  mesh(group, new THREE.BoxGeometry(0.70, 0.40, 0.08), darkMetal(accent), "structure", [-0.78, -0.03, -0.01], [0.04, 0.10, -0.04]);
+  mesh(group, new THREE.BoxGeometry(0.58, 0.34, 0.08), darkMetal(accent), "structure", [0.72, 0.08, -0.01], [-0.05, -0.12, 0.18]);
+  mesh(group, new THREE.BoxGeometry(0.50, 0.035, 0.09), energy(accent, 0.34), "signal", [-0.78, -0.03, 0.06], [0, 0, -0.04]);
+  mesh(group, new THREE.BoxGeometry(0.40, 0.030, 0.09), energy(accent, 0.30), "signal", [0.70, 0.08, 0.06], [0, 0, 0.18]);
+
+  mesh(group, new THREE.CylinderGeometry(0.045, 0.060, 0.48, 10), metal(accent), "structure", [-0.04, 0.63, 0.02], [0, 0, -0.06]);
+  mesh(group, new THREE.ConeGeometry(0.30, 0.17, 32, 1, true), metal(accent), "dish", [0.30, 0.52, 0.05], [Math.PI / 2, 0, -0.72], [1, 1, 0.58], { scanSweep: 1 });
+  mesh(group, new THREE.OctahedronGeometry(0.18, 1), energy(accent, 0.92), "core", [0, 0.02, 0.16], [0, 0, 0], [1, 1.18, 0.68], { spin: -0.38 });
+
+  const signalInner = arc(group, 0.43, 0.018, 0.10, Math.PI * 1.62, energy(accent, 0.22), "signal", { z: 0.08, spin: 0.14, scale: [1, 0.74, 1] });
+  signalInner.position.y = 0.04;
+  const signalOuter = arc(group, 0.64, 0.012, 2.34, Math.PI * 1.18, energy(accent, 0.12), "signal", { z: 0.04, spin: -0.08, scale: [1, 0.68, 1] });
+  signalOuter.position.y = 0.04;
+  addFloatingDebris(group, accent, 2, 1.08, 0.45);
 }
 
 function addOrbitalRuins(group, accent) {
-  // A recognizable derelict station rather than another abstract ring.
-  mesh(group, new THREE.BoxGeometry(0.82, 0.24, 0.20), darkMetal(accent), "structure", [0, 0, 0.01], [0.08, -0.10, -0.08]);
-  mesh(group, new THREE.CylinderGeometry(0.17, 0.21, 0.62, 12), metal(accent), "structure", [-0.46, 0.03, 0.02], [0, 0, Math.PI * 0.5]);
-  mesh(group, new THREE.CylinderGeometry(0.14, 0.18, 0.46, 12), metal(accent), "structure", [0.48, -0.12, 0.02], [0, 0, Math.PI * 0.5]);
-  mesh(group, new THREE.BoxGeometry(0.78, 0.075, 0.08), metal(accent), "structure", [0.02, 0.32, 0], [0, 0, -0.14]);
-  mesh(group, new THREE.BoxGeometry(0.50, 0.28, 0.05), darkMetal(accent), "structure", [-0.42, 0.50, -0.01], [0.04, 0.06, -0.20]);
-  mesh(group, new THREE.BoxGeometry(0.36, 0.24, 0.05), darkMetal(accent), "structure", [0.46, 0.46, -0.01], [-0.04, -0.06, 0.24]);
-  mesh(group, new THREE.OctahedronGeometry(0.13, 1), energy(accent, 0.62), "core", [0.03, 0.02, 0.15], [0, 0, 0], [1, 1, 0.7], { spin: 0.42 });
-  arc(group, 0.38, 0.012, 0.20, Math.PI * 1.45, energy(accent, 0.22), "signal", { z: 0.10, spin: -0.12, scale: [1, 0.46, 1] });
-  addFloatingDebris(group, accent, 7, 1.02, 0.1);
+  // A collapsed habitation ring with missing sections, exposed docking arms
+  // and stranded habitat pods. Its silhouette is deliberately architectural
+  // and asymmetric so it cannot read as a small satellite or HUD marker.
+  const ringA = arc(group, 0.72, 0.13, 0.12, Math.PI * 1.18, metal(accent), "structure", { z: 0.02, spin: 0.026, scale: [0.88, 1, 1] });
+  ringA.position.x = -0.16;
+  const ringB = arc(group, 0.72, 0.13, 2.42, Math.PI * 0.72, darkMetal(accent), "structure", { z: 0.03, spin: 0.026, scale: [0.88, 1, 1] });
+  ringB.position.x = -0.16;
+  const ringC = arc(group, 0.72, 0.13, 4.28, Math.PI * 0.54, metal(accent), "structure", { z: 0.01, spin: 0.026, scale: [0.88, 1, 1] });
+  ringC.position.x = -0.16;
+
+  mesh(group, new THREE.CylinderGeometry(0.23, 0.28, 0.46, 12), darkMetal(accent), "structure", [-0.16, 0, 0.03], [0, 0, Math.PI * 0.5]);
+  mesh(group, new THREE.OctahedronGeometry(0.15, 1), energy(accent, 0.64), "core", [-0.16, 0, 0.17], [0, 0, 0], [1, 1, 0.72], { spin: 0.34 });
+
+  mesh(group, new THREE.BoxGeometry(1.02, 0.15, 0.14), metal(accent), "structure", [0.56, -0.27, 0], [0, 0, -0.24]);
+  mesh(group, new THREE.BoxGeometry(0.42, 0.32, 0.20), darkMetal(accent), "structure", [0.98, -0.48, 0.01], [0, 0, -0.18]);
+  mesh(group, new THREE.BoxGeometry(0.46, 0.30, 0.18), metal(accent), "structure", [0.30, 0.56, 0.02], [0, 0, 0.48]);
+  mesh(group, new THREE.BoxGeometry(0.38, 0.27, 0.17), darkMetal(accent), "structure", [-0.76, -0.43, 0.01], [0, 0, -0.34]);
+
+  const signal = arc(group, 0.53, 0.017, 0.18, Math.PI * 1.72, energy(accent, 0.24), "signal", { z: 0.12, spin: -0.10, scale: [0.88, 1, 1] });
+  signal.position.x = -0.16;
+  addFloatingDebris(group, accent, 4, 1.28, 0.26);
 }
 
 function addBrokenRing(group, accent) {

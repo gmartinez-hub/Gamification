@@ -1,5 +1,5 @@
-export const FIRST_VISIT_CORRIDOR_SECONDS = 4.2;
-export const RETURN_CORRIDOR_SECONDS = 2.4;
+export const FIRST_VISIT_CORRIDOR_SECONDS = 30;
+export const RETURN_CORRIDOR_SECONDS = 6.5;
 
 export interface GateTravelPlan {
   allowed: boolean;

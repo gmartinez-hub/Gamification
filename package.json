@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "qa:headless": "node tools/gravedad-zero-closing-qa-cdp.mjs",
+    "qa:check": "node --check tools/gravedad-zero-closing-qa-cdp.mjs",
+    "qa:headless": "npm run qa:check && node tools/gravedad-zero-closing-qa-cdp.mjs",
     "qa:release": "npm run typecheck && npm run test && npm run build && npm run qa:headless",
     "qa:final-showable": "node scripts/verify-final-showable.mjs && npm run typecheck && npm run test && npm run build"
   },

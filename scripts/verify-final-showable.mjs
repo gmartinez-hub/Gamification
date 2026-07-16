@@ -46,8 +46,8 @@ assert(count(main, /state\.worldOffset\.set\(/g) === 2, "World position writes e
 assert(count(main, /state\.worldOffset\.x =/g) === 1, "World X movement must have one writer.");
 assert(count(main, /state\.worldOffset\.y =/g) === 1, "World Y movement must have one writer.");
 assert(worldTuning.includes("maxHeroVisible: 1"), "Expected one dominant hero planet.");
-assert(progressionRules.includes("FIRST_VISIT_CORRIDOR_SECONDS = 4.2"), "Forward corridor must last 4.2 seconds.");
-assert(progressionRules.includes("RETURN_CORRIDOR_SECONDS = 2.4"), "Return corridor must last 2.4 seconds.");
+assert(progressionRules.includes("FIRST_VISIT_CORRIDOR_SECONDS = 30"), "Forward corridor must last 30 seconds.");
+assert(progressionRules.includes("RETURN_CORRIDOR_SECONDS = 6.5"), "Return corridor must last 6.5 seconds.");
 assert(main.includes('qaRoute === "reset"'), "Missing ?qa=reset progress reset.");
 assert(main.includes('mission01.state = "completed_region"'), "Mission completion does not wait at the world gate.");
 
