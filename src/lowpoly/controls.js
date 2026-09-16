@@ -65,6 +65,17 @@ export function createControls(canvas, handlers = {}) {
     }
   }
 
+  function reconcileEndedTouches(event) {
+    // Native touch cancellation can outlive the PointerEvent stream on mobile.
+    // Compare original targets: Touch.identifier and pointerId are unrelated.
+    const activeTargets = Array.from(event.touches, touch => touch.target);
+    const stillTouched = element => activeTargets.some(target => element.contains(target));
+    for (const [id, touch] of [...touches]) {
+      if (touch.pointerType === 'touch' && !stillTouched(touch.button)) stopPointer({ pointerId: id });
+    }
+    if (drag?.pointerType === 'touch' && !stillTouched(canvas)) stopPointer({ pointerId: drag.id });
+  }
+
   function clear() {
     keys.clear();
     lookX = 0;
@@ -101,14 +112,17 @@ export function createControls(canvas, handlers = {}) {
     if (MOVEMENT_KEYS[event.code] && !isTyping(event.target) && !document.querySelector('dialog[open]')) event.preventDefault();
   });
   listen(window, 'blur', clear);
+  listen(window, 'pagehide', clear);
   listen(document, 'visibilitychange', () => { if (document.hidden) clear(); });
+  listen(window, 'touchend', reconcileEndedTouches, { capture: true, passive: true });
+  listen(window, 'touchcancel', reconcileEndedTouches, { capture: true, passive: true });
 
   for (const button of document.querySelectorAll('[data-move]')) {
     if (!MOVES.has(button.dataset.move)) continue;
     listen(button, 'pointerdown', event => {
       if (event.button !== 0) return;
       event.preventDefault();
-      touches.set(event.pointerId, { move: button.dataset.move, button });
+      touches.set(event.pointerId, { move: button.dataset.move, button, pointerType: event.pointerType });
       capture(button, event.pointerId);
       refreshButton(button);
     });
@@ -118,7 +132,7 @@ export function createControls(canvas, handlers = {}) {
 
   listen(canvas, 'pointerdown', event => {
     if (event.button !== 0 || drag) return;
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, pointerType: event.pointerType };
     capture(canvas, event.pointerId);
   });
   listen(window, 'pointermove', event => {

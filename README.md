@@ -37,7 +37,7 @@ El botón **Guiar** desplaza al personaje hacia el objetivo y frena antes de lle
 
 ## Vuelo y escala
 
-La base es **gravedad cero con inercia**: al soltar el empuje seguís derivando, con una amortiguación leve para facilitar el control. Mantené **Q** o el botón táctil **Frenar** para activar los propulsores de frenado y detenerte. Cambiar de dirección requiere contrarrestar el movimiento previo. No hay atracción gravitacional de los planetas ni simulación orbital.
+La base es **gravedad cero con inercia**: al soltar el empuje seguís derivando, con una amortiguación leve para facilitar el control. Mantené **Q** o el botón táctil **Estabilizar** para activar los propulsores de frenado y detenerte. Cambiar de dirección requiere contrarrestar el movimiento previo. No hay atracción gravitacional de los planetas ni simulación orbital.
 
 La nave tiene aceleración y giro limitados; su rumbo es independiente de la velocidad. Puede retroceder o desplazarse lateralmente sin dar media vuelta. Los motores responden al empuje y al frenado, y se apagan durante la deriva. La cámara de cabina acompaña la orientación física de la nave y conserva un horizonte sin alabeo.
 
@@ -87,7 +87,9 @@ Los planetas están en una escena celeste separada, con rotación lenta y muy po
 | Pausar / continuar | Esc o botón de pausa |
 | Sonido | Botón ♪; comienza desactivado |
 
-En móvil, usá la cruceta para moverte, **ALT** para subir o bajar y los botones de impulso y **Frenar**; pueden combinarse con varios dedos. Arrastrá sobre el espacio para mirar u orientar la nave. Las acciones, el cambio de vista y el regreso también tienen botones. La cámara exterior acompaña al actor; visor y cabina permiten evaluar el mismo recorrido en primera persona.
+En móvil, usá la cruceta para moverte, **ALT** para subir o bajar y los botones de impulso y **Estabilizar**; pueden combinarse con varios dedos. Arrastrá sobre el espacio para mirar u orientar la nave. Un solo botón principal cambia entre guiar, escanear, disparar, abordar y recoger según el objetivo y la distancia; durante el combate aparece además **◎** para cambiar de objetivo. El disparo muestra su probabilidad de acierto.
+
+Arriba quedan el objetivo, la integridad y el cable. El menú **☰** pausa la partida y reúne el progreso de la nave, las gemas, la guía de Nóma, el sonido, la ayuda, la inspección y las opciones de cámara. Al cerrarlo continuás donde estabas. Desde allí podés alternar exterior y visor o cabina. Los controles respetan las áreas seguras del teléfono y se adaptan a vertical y horizontal.
 
 ## Semilla y alcance
 

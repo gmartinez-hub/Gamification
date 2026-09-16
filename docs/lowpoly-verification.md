@@ -4,7 +4,7 @@ Fecha: 2026-09-16. Entrada `index.html`; original conservado en `legacy.html`. P
 
 ## Reglas y simulación
 
-`npm test`: **59 pruebas aprobadas**. Cubren:
+`npm test`: **77 pruebas aprobadas**. Cubren:
 
 - Tres sectores, orden de acciones, armas correctas, fallos recuperables y módulos exclusivamente después del corredor.
 - Generación reproducible y recorridos completos de peligros separados de las interacciones obligatorias.
@@ -14,6 +14,8 @@ Fecha: 2026-09-16. Entrada `index.html`; original conservado en `legacy.html`. P
 - Colisión relativa entre fotogramas, normal del lado de entrada, separación y restitución sin perder velocidad tangencial ni exceder límites.
 - Escalas visibles de nave/astronauta/companion, cabina, acople, motores apagados en deriva y conservación de transformaciones.
 - Cielo distante con escala angular estable; peligros que continúan con movimiento reducido; orden y límites de fotogramas en atlas.
+- Selección de la acción móvil según fase, actor, alcance, guía, escaneo, recarga, disparo, regreso y transiciones; bloqueo y reinicio al completar.
+- Liberación táctil cuando falta el evento Pointer terminal, conservación del segundo dedo, teclado y mouse, y limpieza al ocultar o abandonar la página.
 
 Simulación adicional de 30 semillas × 3 sectores: baliza, tres objetivos EVA, abordaje, núcleos, acercamiento de nave a la gema, recogida, retorno y corredor sin rutas bloqueadas.
 
@@ -38,6 +40,25 @@ Playwright y agent-browser, botones/teclado/touch reales y telemetría de solo l
 
 Se preserva el rumbo al cancelar guía y al salir de inspección; frenar no cancela el escaneo. El cruce parte de la posición real de entrada y orienta suavemente hacia el corredor. La llegada al bioma cambia de escena bajo un velo breve, antes del montaje. Los instrumentos de cabina quedaron delante del borde sólido para evitar que éste los ocultara. La inmunidad afecta al daño, no a la separación física de las rocas.
 
-## Límites
+## HUD móvil compacto — revisión del 16 de septiembre
+
+Se reemplazan los paneles superpuestos por sector, objetivo breve, integridad y cable arriba; un botón contextual y controles de vuelo abajo. Gemas, construcción, Nóma, ayuda, cámara y sonido quedan en un menú que pausa la simulación. La acción de combate muestra la probabilidad de acierto y permite cambiar de objetivo.
+
+Verificación en Chrome con emulación táctil:
+
+- Tamaños 320×568, 390×650, 393×696, 390×844, 740×390 y 844×390, exterior y primera persona: controles visibles de al menos 44 px, dentro del viewport, sin solapamientos y alcanzables por hit-test.
+- Áreas seguras simuladas: inferior de 34 px en vertical; laterales de 47 px e inferior de 21 px en horizontal. Botón secundario de combate y menú con desplazamiento incluidos.
+- Menú congela vuelo y guía; cerrar o Escape los restaura. Ayuda conserva pausa y navegación con Tab. Cambio de cámara, inspección, regreso a exploración y nueva expedición accesibles desde móvil.
+- Expedición de tres sectores con 66 pasos usando sólo el botón contextual, cambio de objetivo y menú móviles: disparos, cable recogido al abordar, tres gemas, módulos 33→67→100%, inspección y reinicio. Sin errores de página, consola ni HTTP.
+- Escritorio 1440×900: sin cambios de presentación; comprobados deriva, freno, reversa, ascenso con inclinación, pausa, ayuda e inspección. Sin errores JavaScript.
+
+Corrección táctil posterior al reporte en iPhone:
+
+- WebKit 26.5 de macOS confirmó que flechas y opciones computaban `-webkit-user-select: text`; con la corrección computan `none`. Los controles desactivan además el callout de iOS y el hover sólo se aplica a dispositivos con puntero fino y hover. Texto de ayuda y enlaces conservan selección; el diálogo conserva desplazamiento.
+- Cinco regresiones de cancelación fallaron antes de añadir el respaldo por `touchend`/`touchcancel`; las siete pruebas de controles pasan. El respaldo compara los targets de los contactos activos sin asumir que Touch.identifier coincide con pointerId. No corta pulsaciones por tiempo.
+- Chrome: dos dedos mantenidos durante más de cinco segundos, liberación independiente, soltar fuera del botón, cancelación nativa sin evento Pointer terminal y `pagehide`; sin controles activos residuales.
+- WebKit con viewport táctil: siete flujos de menú, pausa, ayuda, cámara e inspección; toque real libera empuje y estado visual; guía, escaneo y disparo completos, ocho texturas cargadas, sin errores de página ni HTTP. No se reprodujo el menú nativo de selección de un iPhone físico.
+
+## Límites de las pruebas
 
 Móvil emulado; no se verificó aún en teléfono físico, Safari iOS o Android real, ni se garantiza una tasa de cuadros en esos equipos. El disparo continúa asistido y la cabina no es un interior caminable. El cable no resuelve enredos; las colisiones usan esferas y la cámara no colisiona con decoración. La nave se ancla durante EVA. La gravedad cero se expresa mediante inercia y propulsores; no hay atracción planetaria. No hay guardado persistente, exportación GLB ni proyecto Godot. Se mantiene geometría low poly con materiales y recursos reutilizados.

@@ -4,6 +4,7 @@ import { createSectorWorld } from './sector-world.js';
 import { createExpedition, createRandom, aimChance } from './expedition.js';
 import { createFlight, EVA_CENTER_Y, EVA_RADIUS } from './flight.js';
 import { createControls } from './controls.js';
+import { getMobileAction } from './mobile-actions.js';
 import { createCombat, WEAPON_RANGE } from './combat.js';
 import { shipPoint, shipCollisionSpheres, shipFrameRadius } from './spatial.js';
 import { sweptSphereContact, closestApproach } from './hazards.js';
@@ -54,6 +55,9 @@ const audio = new AudioManager({ manifestUrl: new URL('../../nave_three_audio_pa
 audio.setMuted(true);
 let soundEnabled = false, audioReady = false, audioLoading;
 let paused = false, inspecting = false, firstPerson = false;
+let mobileAction = { action: 'none', disabled: true };
+let flightMenuOpen = false, wasPausedBeforeMenu = false;
+const compactHUD = matchMedia('(pointer: coarse), (max-width: 700px)');
 let time = 0, lastFrame = performance.now(), toastUntil = 0, damageUntil = 0, invulnerableUntil = 0;
 let orbit = -.9, elevation = .28, zoom = 1, targetZoom = 1;
 let selectedId = null, navigating = false, scanProgress = 0, scanning = false;
@@ -205,7 +209,7 @@ function setInspect(value) {
 }
 function setPaused(value) {
   paused = value; controls.clear();
-  $('pauseOverlay').hidden = !value;
+  $('pauseOverlay').hidden = !value || flightMenuOpen || $('helpDialog').open;
   $('pauseButton').setAttribute('aria-pressed', String(value));
   $('pauseButton').setAttribute('aria-label', value ? 'Continuar' : 'Pausar');
   audio.setMuted(!soundEnabled || value);
@@ -254,7 +258,40 @@ $('helpButton').onclick = () => { wasPausedBeforeHelp = paused; setPaused(true);
 $('closeHelp').onclick = () => $('helpDialog').close();
 $('helpDialog').onclose = () => setPaused(wasPausedBeforeHelp);
 $('restartButton').onclick = () => { wasPausedBeforeHelp = false; $('helpDialog').close(); resetExpedition(); };
-window.addEventListener('blur', () => { if (!$('helpDialog').open) setPaused(true); });
+function openFlightMenu() {
+  if ($('helpDialog').open || flightMenuOpen) return;
+  wasPausedBeforeMenu = paused; flightMenuOpen = true;
+  setPaused(true); updateHUD(); $('flightMenu').showModal();
+}
+function finishFlightMenuClose() {
+  if (!flightMenuOpen) return;
+  flightMenuOpen = false; setPaused(wasPausedBeforeMenu); updateHUD();
+}
+function closeFlightMenu() {
+  $('flightMenu').close(); finishFlightMenuClose();
+}
+function fromFlightMenu(action) { closeFlightMenu(); action(); updateHUD(); }
+$('mobileMenuButton').onclick = openFlightMenu;
+$('closeFlightMenu').onclick = closeFlightMenu;
+$('flightMenu').addEventListener('close', finishFlightMenuClose);
+$('mobileActionButton').onclick = () => {
+  if (mobileAction.disabled) return;
+  const actions = { navigate, return: returnToShip, deploy, interact, fire, restart: resetExpedition, inspect: () => setInspect(false) };
+  actions[mobileAction.action]?.(); updateHUD();
+};
+$('mobileTargetButton').onclick = () => { targetNext(); updateHUD(); };
+$('mobileGuideButton').onclick = () => fromFlightMenu(navigate);
+$('mobileReturnButton').onclick = () => fromFlightMenu(returnToShip);
+$('mobileDeployButton').onclick = () => fromFlightMenu(deploy);
+$('mobileViewButton').onclick = () => fromFlightMenu(setView);
+$('mobileInspectButton').onclick = () => fromFlightMenu(() => setInspect(!inspecting));
+$('mobileSoundButton').onclick = async () => { await toggleSound(); updateHUD(); };
+$('mobileHelpButton').onclick = () => fromFlightMenu(() => $('helpButton').click());
+$('mobileRestartButton').onclick = () => fromFlightMenu(resetExpedition);
+$('mobileZoomIn').onclick = () => fromFlightMenu(() => $('zoomIn').click());
+$('mobileZoomOut').onclick = () => fromFlightMenu(() => $('zoomOut').click());
+$('mobileZoomReset').onclick = () => fromFlightMenu(() => $('cameraButton').click());
+window.addEventListener('blur', () => { if (!$('helpDialog').open && !flightMenuOpen) setPaused(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
 canvas.addEventListener('wheel', event => { event.preventDefault(); if (!paused) targetZoom = THREE.MathUtils.clamp(targetZoom + event.deltaY * .0007, .6, 1.6); }, { passive: false });
 canvas.addEventListener('pointerdown', event => pointerStart.set(event.clientX, event.clientY));
@@ -505,6 +542,57 @@ function updateMissionUI() {
   document.querySelectorAll('[data-phase]').forEach(item => { item.classList.toggle('active', item.dataset.phase === state.phase); item.classList.toggle('done', phases.indexOf(item.dataset.phase) < phases.indexOf(state.phase)); });
   $('seedReadout').textContent = `RUTA ${state.seed}`;
 }
+function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
+  const assemblyLocked = time < assemblyUntil;
+  mobileAction = inspecting && !paused
+    ? { action: 'inspect', label: 'Volver a explorar', disabled: false }
+    : getMobileAction({ phase: state.phase, actor: flight.actor, navigating, returning: flight.returning,
+      scanning, shotActive: !!combat.shot, cooldown: combat.cooldown, blocked: blocked(), assemblyLocked,
+      actionDistance, targetDistance: distance, weaponRange: WEAPON_RANGE[flight.actor], chance });
+  const titles = {
+    scan: 'Escaneá la baliza', small: 'Destruí los asteroides',
+    large: flight.actor === 'astronaut' ? 'Volvé a la nave' : 'Despejá los núcleos',
+    gem: 'Recuperá la gema', return: flight.actor === 'astronaut' ? 'Volvé a la nave' : 'Atravesá el corredor',
+    transit: 'Viajando al próximo sector', complete: 'Expedición completa',
+  };
+  $('mobileSector').textContent = `${state.layout.name.split(' · ')[0]} · ${String(state.sector + 1).padStart(2, '0')} / 03`;
+  $('mobileObjective').textContent = inspecting ? 'Inspección de la nave' : assemblyLocked ? 'Ensamblando tu nave' : titles[state.phase];
+  $('mobileProgress').textContent = total && !inspecting ? `${done} / ${total}` : '';
+  $('mobileHealth').textContent = `♡ ${health}%`;
+  $('mobileHealth').setAttribute('aria-label', `Integridad: ${health}%`);
+  $('mobileHealth').classList.toggle('danger', health <= 50);
+  $('mobileCable').textContent = flight.actor === 'astronaut' ? `Cable ${Math.round(flight.tetherLength)} / 26 m` : 'A bordo';
+  $('mobileCable').classList.toggle('danger', flight.tension > .8);
+  $('mobileActionLabel').textContent = mobileAction.label + (mobileAction.action === 'fire' && !mobileAction.disabled ? ` · ${Math.round(chance * 100)}%` : '');
+  $('mobileActionButton').disabled = mobileAction.disabled;
+  $('mobileActionButton').title = mobileAction.hint || '';
+  $('mobileActionButton').dataset.action = mobileAction.action;
+  $('mobileTargetButton').hidden = mobileAction.secondary !== 'target';
+  $('mobileTargetButton').disabled = blocked() || !!combat.shot;
+  const progress = scanning ? scanProgress : combat.shot ? Math.min(1, combat.shot.elapsed / combat.shot.lockTime) : 0;
+  $('mobileActionProgress').hidden = !scanning && !combat.shot;
+  $('mobileActionProgress').firstElementChild.style.width = `${progress * 100}%`;
+  $('mobileActionProgress').setAttribute('aria-valuenow', String(Math.round(progress * 100)));
+
+  // Opening the menu pauses time. Availability reflects the state after closing it.
+  const locked = assemblyLocked || state.phase === 'transit';
+  const actorLocked = locked || inspecting || !!combat.shot || state.phase === 'complete';
+  $('mobileMenuObjective').textContent = $('mobileObjective').textContent;
+  $('mobileMenuDescription').textContent = $('missionDescription').textContent;
+  $('mobileMenuGems').textContent = `◇ ${state.gems} / 3 gemas`;
+  $('mobileMenuAssembly').textContent = `Nave ${Math.round(state.moduleStage / 3 * 100)}%`;
+  $('mobileMenuCompanion').textContent = `Nóma · ${$('companionMessage').textContent}`;
+  $('mobileGuideButton').textContent = navigating ? 'Detener guía' : state.phase === 'complete' ? 'Nueva expedición' : 'Guiar al objetivo';
+  $('mobileGuideButton').disabled = locked || flight.returning || !!combat.shot;
+  $('mobileReturnButton').disabled = actorLocked || flight.actor === 'ship' || flight.returning;
+  $('mobileDeployButton').disabled = actorLocked || flight.actor === 'astronaut';
+  $('mobileViewButton').textContent = visorActive() ? 'Pasar a vista exterior' : flight.actor === 'ship' ? 'Ver desde la cabina' : 'Ver desde el visor';
+  $('mobileViewButton').disabled = locked || state.phase === 'complete';
+  $('mobileInspectButton').textContent = inspecting ? 'Volver a explorar' : 'Inspeccionar nave';
+  $('mobileInspectButton').disabled = !!combat.shot || locked;
+  $('mobileSoundButton').textContent = soundEnabled ? 'Silenciar sonido' : 'Activar sonido';
+  $('mobileSoundButton').setAttribute('aria-pressed', String(soundEnabled));
+}
 function updateHUD() {
   updateMissionUI();
   const target = selectedTarget(), obj = objective();
@@ -522,6 +610,7 @@ function updateHUD() {
   $('scanTrack').firstElementChild.style.width = `${scanning ? scanProgress * 100 : combat.shot ? Math.min(100, combat.shot.elapsed / combat.shot.lockTime * 100) : 0}%`;
   const total = ['small', 'large'].includes(state.phase) ? state.layout[state.phase].length : 0;
   const done = total ? state.layout[state.phase].filter(item => state.destroyed.includes(item.id)).length : 0;
+  updateMobileHUD({ distance, actionDistance, chance, done, total });
   $('targetReadout').textContent = combat.shot ? `${combat.shot.phase === 'lock' ? 'ESTABILIZANDO' : 'PROYECTIL EN VUELO'} · ${combat.shot.actor === 'ship' ? 'CAÑÓN' : 'EVA'}` : target ? `${done}/${total} · ${Math.round(distance)} m · ${correctWeapon ? `${Math.round(chance * 100)}% ACIERTO${distance > WEAPON_RANGE[flight.actor] ? ' · FUERA DE ALCANCE' : ''}` : state.phase === 'large' ? 'REQUIERE NAVE' : 'REQUIERE ASTRONAUTA'}` : state.phase === 'scan' ? 'BALIZA → ESCANEO → TRES OBJETIVOS' : state.phase === 'complete' ? `EXPEDICIÓN COMPLETA · ${state.gems} GEMAS` : state.phase === 'return' ? 'GEMA A BORDO → CORREDOR' : 'EXPLORACIÓN EN TRES DIMENSIONES';
   $('healthValue').textContent = `${health}%`; $('healthBar').style.width = `${health}%`;
   $('healthBar').parentElement.parentElement.classList.toggle('danger', health <= 50);
@@ -551,8 +640,8 @@ function updateHUD() {
     const behind = projected.z > 1 || projected.z < -1;
     const rawX = (projected.x + 1) * innerWidth / 2, rawY = (1 - projected.y) * innerHeight / 2;
     const x = THREE.MathUtils.clamp(behind ? innerWidth / 2 : rawX, 90, innerWidth - 90);
-    const minY = innerWidth < 700 ? Math.min(275, innerHeight * .4) : 95;
-    const maxY = Math.max(minY + 20, innerHeight - (innerWidth < 700 ? 280 : 190));
+    const minY = compactHUD.matches ? innerHeight < 500 ? 85 : 115 : 95;
+    const maxY = Math.max(minY + 20, innerHeight - 190);
     const y = THREE.MathUtils.clamp(behind ? (minY + maxY) / 2 : rawY, minY, maxY);
     label.style.left = `${x}px`; label.style.top = `${y}px`;
     label.textContent = `${behind ? '↶ ' : ''}${obj.label}`;
