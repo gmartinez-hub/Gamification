@@ -1,58 +1,80 @@
 # Gravedad Zero — un viaje, pieza por pieza
 
-Primera versión jugable low-poly en Three.js: un astronauta explora tres balizas con su companion y recupera gemas para construir **una nave por módulos**. Nave, astronauta y companion son modelos nuevos creados por código. El entorno aprovecha texturas y audio del repositorio.
+Expedición jugable low poly en Three.js: exploración en tres dimensiones, escaneo, combate con astronauta y nave, regreso por cable y construcción de **una nave por módulos**. Tres sectores combinan un recorrido diseñado con posiciones procedurales reproducibles. Nave, astronauta y companion son modelos nuevos; el entorno reutiliza texturas y audio del repositorio.
 
 ## Ejecutar localmente
 
-Desde la raíz del repositorio, con Python 3 disponible:
+Con Node.js, npm y Python 3 disponibles, desde la raíz del repositorio:
+
+```bash
+npm run dev
+```
+
+Abrí [el juego](http://127.0.0.1:8787/). No hace falta `npm install`: Three.js está incluido en `vendor/`. También podés iniciar el servidor directamente:
 
 ```bash
 python3 -m http.server 8787 --bind 127.0.0.1
 ```
 
-También se puede iniciar el mismo servidor con `npm run dev` si tenés Node.js y npm. No hace falta `npm install`.
+El juego necesita un servidor HTTP y WebGL 2; abrir el HTML desde el disco no alcanza.
 
-Abrí [el juego](http://127.0.0.1:8787/). Los módulos y recursos necesitan un servidor HTTP; abrir el HTML directamente desde el disco no alcanza.
+## Recorrido de la expedición
 
-## Explorar y construir
+En cada sector:
 
-Empezás con la cabina. Seleccioná **Astronauta**, seguí la señal de la baliza activa y acercate para recuperar su gema. Las tres se recogen en orden:
+1. Explorá con el astronauta y escaneá la baliza durante unos segundos, manteniéndote cerca.
+2. Destruí **tres asteroides pequeños** con su arma.
+3. Volvé físicamente al acceso de la nave. Al abordar, el astronauta y el cable desaparecen y se habilita el pilotaje.
+4. Destruí los núcleos grandes con la nave: **uno en Nereida, dos en Vesper y tres en Umbra**.
+5. Acercá la nave a la gema liberada, salí como astronauta y recogela.
+6. Volvé a abordar y atravesá el corredor hacia el siguiente sector.
 
-1. La primera incorpora el hábitat/cuerpo de la nave.
-2. La segunda incorpora el módulo de propulsión.
-3. La tercera completa la expedición y anuncia la activación del núcleo; no añade un cuarto módulo.
+La gema habilita el corredor. El hábitat se incorpora al finalizar el primer cruce y la propulsión al finalizar el segundo. El tercer corredor completa la expedición; no añade un cuarto módulo.
 
-Podés alternar entre astronauta y nave, inspeccionar el ensamblaje y reiniciar al completar la expedición. El progreso dura esta sesión: recargar la página lo reinicia.
+El astronauta vuela en XYZ y permanece unido por un cable de **26 m**. La nave se mantiene quieta durante la salida. Para explorar más lejos, regresá, mové la nave y volvé a salir. El botón **Guiar** desplaza al personaje hacia el objetivo; el jugador decide cuándo escanear, disparar y recoger. El movimiento manual cancela la guía.
 
-| Acción | Control |
+El disparo es asistido: seleccionás un objetivo, ves la probabilidad y activás una secuencia de fijación y proyectil. Acercarte y frenar mejoran el acierto. El resultado se decide al disparar; la animación no simula una colisión física del proyectil. Los fallos se pueden reintentar después de la recuperación del arma.
+
+Las rocas rojas son peligros: cada impacto quita **25 puntos de integridad**, con **2 segundos de protección** entre impactos. Al llegar a cero se recupera la integridad; si estás fuera, empieza un regreso de emergencia a la nave. Conservás los objetivos completados. Los asteroides y planetas de fondo son decorativos.
+
+## Controles
+
+| Acción | Computadora |
 |---|---|
-| Mover el personaje seleccionado | WASD o flechas, respecto de la cámara |
-| Navegar a un punto | Clic o toque sobre el mapa |
-| Recuperar la gema activa | E o botón de acción, cerca de la baliza y con el astronauta |
+| Avanzar, retroceder y desplazarse a los costados | WASD o flechas, respecto de la cámara |
+| Subir / bajar | Espacio / C |
 | Impulso | Mantener Shift |
-| Acercar/alejar | Rueda o botones + / − |
-| Girar cámara | Botón ↻ |
-| Ver el modelo ensamblado | Botón «Inspeccionar nave» |
-| Pausar/continuar | Esc o botón de pausa |
-| Activar/desactivar audio | Botón de sonido; comienza desactivado |
+| Mirar alrededor | Arrastrar sobre el espacio |
+| Seleccionar objetivo | Clic sobre un objetivo o Tab con el foco en el mundo |
+| Disparo asistido | F |
+| Escanear / recoger gema | E, cerca del objeto y con el astronauta |
+| Guiar al objetivo / detener guía | G |
+| Volver y abordar / salir como astronauta | R / X |
+| Alternar exterior y visor o cabina | V |
+| Inspeccionar nave | I |
+| Zoom | Rueda o botones + / − |
+| Pausar / continuar | Esc o botón de pausa |
+| Sonido | Botón ♪; comienza desactivado |
 
-## Alcance de esta versión
+En móvil, usá la cruceta para moverte, **ALT** para subir o bajar y el botón de impulso; pueden combinarse con varios dedos. Arrastrá sobre el espacio para mirar. Las acciones, el cambio de vista y el regreso a la nave también tienen botones. La cámara exterior acompaña al actor; visor y cabina son vistas experimentales para evaluar la jugabilidad.
 
-Esta entrega cubre exploración, recogida secuencial y ensamblaje animado. El combate, apuntado asistido, secuencias de reliquia y sistema anterior de zonas siguen en el prototipo anterior y quedan pendientes de migración. Los personajes usan piezas rígidas articuladas; todavía no hay un rig con deformación de malla ni exportador GLB.
+## Semilla y alcance
 
-- [Versión low-poly](http://127.0.0.1:8787/): entrada por defecto, `index.html` y `src/lowpoly/`.
-- [Prototipo anterior](http://127.0.0.1:8787/legacy.html): `legacy.html` conserva la entrada HTML anterior y carga `src/main.js`.
-- [Laboratorio de fondos](http://127.0.0.1:8787/background-lab/): se mantiene sin cambios.
-- [Inventario de modelos, recursos y próxima migración](docs/lowpoly-assets.md).
+La ruta conserva su estructura y cambia posiciones dentro de volúmenes seguros. La semilla controla balizas, asteroides, peligros y la ubicación de la gema junto a un núcleo. Podés repetir una distribución con [una URL con semilla](http://127.0.0.1:8787/?seed=620), por ejemplo `?seed=620`; la semilla actual aparece como **RUTA** en pantalla. **Nueva expedición** genera otra semilla y actualiza la URL.
+
+El progreso dura esta sesión y se reinicia al recargar. El objetivo de esta versión es probar mecánicas y diseño del nivel: mantiene geometría low poly, cable sin enredos, cámaras experimentales y disparos asistidos. No incluye arte final, guardado persistente, exportador GLB ni proyecto Godot. Los personajes usan piezas rígidas articuladas.
+
+- [Juego actual](http://127.0.0.1:8787/): `index.html` y `src/lowpoly/`.
+- [Prototipo anterior](http://127.0.0.1:8787/legacy.html): conserva su entrada y `src/main.js`.
+- [Laboratorio de fondos](http://127.0.0.1:8787/background-lab/): herramienta independiente.
+- [Modelos, recursos y contratos](docs/lowpoly-assets.md).
 
 ## Pruebas y publicación
-
-Con Node.js disponible:
 
 ```bash
 npm test
 ```
 
-Las pruebas cubren la progresión y el contrato de ensamblaje de la nave. La presentación, navegación, controles táctiles y audio también requieren verificación en navegador.
+Las pruebas cubren reglas de misión, generación, vuelo, cable, regreso, combate y contratos de los modelos. La presentación, las cámaras, los controles táctiles y el audio requieren además verificación en navegador. Consultá el [registro de verificación](docs/lowpoly-verification.md) para conocer lo comprobado y sus límites.
 
-El proyecto es estático y utiliza Three.js local desde `vendor/`, sin dependencias externas durante la ejecución. Puede alojarse en un servidor web estático conservando las rutas del repositorio. Esta entrega no configura ni realiza un despliegue.
+El proyecto es estático y puede alojarse en un servidor web conservando sus rutas. Esta entrega no configura ni realiza un despliegue.
