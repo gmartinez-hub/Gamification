@@ -284,6 +284,7 @@ $('mobileGuideButton').onclick = () => fromFlightMenu(navigate);
 $('mobileReturnButton').onclick = () => fromFlightMenu(returnToShip);
 $('mobileDeployButton').onclick = () => fromFlightMenu(deploy);
 $('mobileViewButton').onclick = () => fromFlightMenu(setView);
+$('mobileQuickViewButton').onclick = () => { setView(); updateHUD(); };
 $('mobileInspectButton').onclick = () => fromFlightMenu(() => setInspect(!inspecting));
 $('mobileSoundButton').onclick = async () => { await toggleSound(); updateHUD(); };
 $('mobileHelpButton').onclick = () => fromFlightMenu(() => $('helpButton').click());
@@ -588,6 +589,10 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
   $('mobileDeployButton').disabled = actorLocked || flight.actor === 'astronaut';
   $('mobileViewButton').textContent = visorActive() ? 'Pasar a vista exterior' : flight.actor === 'ship' ? 'Ver desde la cabina' : 'Ver desde el visor';
   $('mobileViewButton').disabled = locked || state.phase === 'complete';
+  $('mobileQuickViewLabel').textContent = visorActive() ? 'Exterior' : flight.actor === 'ship' ? 'Cabina' : 'Visor';
+  $('mobileQuickViewButton').setAttribute('aria-label', visorActive() ? 'Volver a la vista exterior' : flight.actor === 'ship' ? 'Ver desde la cabina de la nave' : 'Ver desde el visor del astronauta');
+  $('mobileQuickViewButton').setAttribute('aria-pressed', String(visorActive()));
+  $('mobileQuickViewButton').disabled = paused || locked || state.phase === 'complete';
   $('mobileInspectButton').textContent = inspecting ? 'Volver a explorar' : 'Inspeccionar nave';
   $('mobileInspectButton').disabled = !!combat.shot || locked;
   $('mobileSoundButton').textContent = soundEnabled ? 'Silenciar sonido' : 'Activar sonido';

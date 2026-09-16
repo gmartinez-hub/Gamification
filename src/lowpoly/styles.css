@@ -121,7 +121,10 @@
   .mobile-hud{display:block;position:fixed;inset:0;height:100dvh;pointer-events:none;z-index:4;background:linear-gradient(#07121dc9,transparent 122px)}
   .mobile-hud button{pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
   .mobile-topline{position:absolute;top:calc(6px + var(--mobile-safe-top));left:calc(14px + var(--mobile-safe-left));right:calc(14px + var(--mobile-safe-right));height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-  #mobileSector{font-size:10px;letter-spacing:1.6px;line-height:1.4;color:#b6ccc9;text-shadow:0 1px 6px #020914}
+  #mobileSector{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;letter-spacing:1.6px;line-height:1.4;color:#b6ccc9;text-shadow:0 1px 6px #020914}
+  .mobile-top-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+  #mobileQuickViewButton{display:flex;align-items:center;justify-content:center;gap:6px;width:86px;height:44px;min-height:44px;padding:8px;border-radius:12px;background:#10212edb;color:#d1e9e1;font-size:10px;line-height:1;white-space:nowrap}
+  #mobileQuickViewButton[aria-pressed=true]{background:#244849;border-color:var(--cyan);color:#e4fff5}
   #mobileMenuButton{width:44px;height:44px;min-height:44px;padding:8px;border-radius:12px;background:#10212edb;font-size:19px;line-height:1}
   .mobile-objective{position:absolute;top:calc(53px + var(--mobile-safe-top));left:calc(14px + var(--mobile-safe-left));right:calc(14px + var(--mobile-safe-right));display:flex;align-items:baseline;gap:10px;line-height:20px;text-shadow:0 2px 10px #020914}
   #mobileObjective{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -170,9 +173,9 @@
 @media(pointer:coarse) and (min-width:740px) and (max-height:500px){
   .mobile-hud{background:linear-gradient(#07121dc9,transparent 78px)}
   .mobile-topline{top:calc(4px + var(--mobile-safe-top));left:calc(18px + var(--mobile-safe-left));right:calc(18px + var(--mobile-safe-right))}
-  .mobile-objective{top:calc(37px + var(--mobile-safe-top));left:calc(18px + var(--mobile-safe-left));right:90px}
+  .mobile-objective{top:calc(37px + var(--mobile-safe-top));left:calc(18px + var(--mobile-safe-left));right:calc(168px + var(--mobile-safe-right))}
   #mobileObjective{font-size:14px}
-  .mobile-status{top:calc(18px + var(--mobile-safe-top));left:50%;right:100px;font-size:10px}
+  .mobile-status{top:calc(18px + var(--mobile-safe-top));left:50%;right:calc(168px + var(--mobile-safe-right));font-size:10px}
   .mobile-actionbar{left:calc(50% + 56px);bottom:calc(14px + var(--mobile-safe-bottom));width:220px}
   #mobileActionButton{padding:10px;font-size:12px}
   .direction-pad{left:calc(14px + var(--mobile-safe-left))}
