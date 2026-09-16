@@ -1,0 +1,1 @@
+{"name":"gravedad-zero","private":true,"type":"module","scripts":{"dev":"python3 -m http.server 8787 --bind 127.0.0.1","test":"node --test tests/*.test.mjs"}}

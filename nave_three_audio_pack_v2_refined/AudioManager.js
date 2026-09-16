@@ -29,11 +29,15 @@ export class AudioManager {
 
   async preloadManifest(url = this.manifestUrl) {
     await this.init();
-    const manifest = await fetch(url).then((r) => r.json());
+    const manifestUrl = new URL(url, document.baseURI);
+    const response = await fetch(manifestUrl);
+    if (!response.ok) throw new Error(`Audio manifest: ${response.status}`);
+    const manifest = await response.json();
 
     for (const item of manifest.assets) {
       this.items.set(item.id, item);
-      const response = await fetch(`./assets/audio/${item.file}`);
+      const response = await fetch(new URL(item.file, manifestUrl));
+      if (!response.ok) throw new Error(`Audio asset: ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
       this.buffers.set(item.id, audioBuffer);

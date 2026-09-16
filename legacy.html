@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nave Gamification Prototype</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Prototipo visual de nave en gravedad cero"></canvas>
+    <div class="mission-hud" aria-label="Estado de Gravedad Zero">
+      <div id="missionTitle" class="mission-title">GRAVEDAD ZERO</div>
+      <div id="missionSubtitle" class="mission-subtitle">SECTOR INICIAL</div>
+      <div id="missionStatus" class="mission-status">TOMA EL CONTROL</div>
+      <div id="missionProgress" class="mission-progress"></div>
+      <div id="gemHud" class="gem-hud">GEMAS 0/3</div>
+    </div>
+    <div id="gemBadge" class="gem-badge" aria-label="Gemas de ruta" hidden>◇◇◇</div>
+    <div class="hud" aria-label="Controles de stage">
+      <div id="stageLabel" class="stage-label">Sector 1</div>
+      <button id="speedButton" class="speed-button" type="button">VELOCIDAD x1</button>
+      <button id="stageButton" class="stage-button" type="button">Sector 1 -> Sector 2</button>
+    </div>
+    <div id="robotPanel" class="robot-panel" aria-label="Robot companion" hidden>
+      <div id="robotStateLabel" class="robot-state-label">COMPANION / SISTEMA ONLINE</div>
+      <div class="robot-tutorial-block">
+        <span>Objetivo actual</span>
+        <strong id="robotGoal">Iniciá la misión para recuperar las gemas de ruta.</strong>
+      </div>
+      <div class="robot-tutorial-block">
+        <span>Qué hacer</span>
+        <strong id="robotAction">Mové la nave con WASD o flechas.</strong>
+      </div>
+      <div id="robotTip" class="robot-tip">Clickeá objetivos marcados para activar autoaim.</div>
+      <div id="robotMessage" class="robot-message">RUMBO EN ESPERA</div>
+      <div class="robot-counters" aria-label="Objetivos pendientes">
+        <div><span>FRAGMENTOS</span><strong id="robotSmallCounter">0/3</strong></div>
+        <div><span>NÚCLEOS</span><strong id="robotLargeCounter">0/1</strong></div>
+        <div><span>RELIQUIA</span><strong id="robotRelicCounter">0/1</strong></div>
+      </div>
+    </div>
+    <div id="gameMenu" class="game-menu" aria-label="Menú Gravedad Zero">
+      <div class="game-menu-inner">
+        <div id="menuEyebrow" class="menu-eyebrow">SECTOR INICIAL</div>
+        <div id="menuTitle" class="menu-title">GRAVEDAD ZERO</div>
+        <div id="menuSubtitle" class="menu-subtitle">TOMA EL CONTROL</div>
+        <div id="menuBody" class="menu-body"></div>
+        <div id="menuActions" class="menu-actions">
+          <button id="startMissionButton" type="button">INICIAR MISIÓN</button>
+          <button id="controlsButton" type="button">CONTROLES</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.js?v=next-release-v1"></script>
+  </body>
+</html>
