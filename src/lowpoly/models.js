@@ -1,4 +1,5 @@
 import * as THREE from '../../vendor/three.module.js';
+import { SHIP_SCALE, COMPANION_SCALE } from './spatial.js';
 
 // All actors face -Z. Navigation owns the outer group; animation only moves
 // its children. The shared palette keeps independently replaceable parts coherent.
@@ -92,9 +93,35 @@ function engine(parent, name, position, radius = 0.27, length = 0.42) {
   cylinder(assembly, `${name}-recess`, radius * 0.8, 0.035, palette.seam, [0, 0, length / 2 + 0.005], true);
   cylinder(assembly, `${name}-core`, radius * 0.53, 0.045, palette.cyan, [0, 0, length / 2 + 0.035], true);
   const flame = group(assembly, `${name}-exhaust`, [0, 0, length / 2 + 0.055]);
+  flame.visible = false;
   const jet = mesh(flame, `${name}-plume`, new THREE.ConeGeometry(radius * 0.56, 0.72, 6), palette.exhaust, [0, 0, 0.36]);
   jet.rotation.x = Math.PI / 2;
   return flame;
+}
+
+function thrustAmount(thrust, moving) {
+  const value = thrust === undefined ? moving : typeof thrust === 'number' ? thrust : Math.hypot(thrust.x || 0, thrust.y || 0, thrust.z || 0);
+  return THREE.MathUtils.clamp(Number(value) || 0, 0, 1);
+}
+
+function animateJet(jet, amount, time, index, boost = false) {
+  jet.visible = amount > .025;
+  jet.scale.set(1, 1, Math.max(.01, amount * (boost ? 1.25 : .85)) * (1 + Math.sin(time * 24 + index * 1.6) * .07));
+}
+
+// Repeating fasteners share one draw call and one very small geometry.
+function fasteners(parent, name, points, radius = .022) {
+  const bolts = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(radius, 0), palette.copper, points.length);
+  bolts.name = name;
+  const transform = new THREE.Object3D();
+  points.forEach((point, index) => {
+    transform.position.set(...point);
+    transform.updateMatrix();
+    bolts.setMatrixAt(index, transform.matrix);
+  });
+  bolts.castShadow = true;
+  bolts.instanceMatrix.needsUpdate = true;
+  parent.add(bolts);
 }
 
 export function createShip() {
@@ -102,6 +129,7 @@ export function createShip() {
   root.name = 'modular-spacecraft';
   root.userData.kind = 'ship';
   const visual = group(root, 'ship-visual');
+  visual.scale.setScalar(SHIP_SCALE);
   const cockpit = group(visual, 'module-cockpit', [0, 0, -1.5]);
   const body = group(visual, 'module-body', [0, 0, 0.7]);
   const propulsion = group(visual, 'module-propulsion', [0, 0, 2.3]);
@@ -145,6 +173,31 @@ export function createShip() {
   }
   const podJets = [-1, 1].map(side => engine(cockpit, `pod-maneuver-engine-${side}`, [side * 0.59, -0.32, 0.77], 0.12, 0.23));
 
+  // The visible starboard airlock matches the shared tether/hatch anchors.
+  const airlock = group(cockpit, 'starboard-airlock', [.94, .02, .5]);
+  airlock.rotation.y = Math.PI / 2;
+  cylinder(airlock, 'airlock-pressure-door', .34, .055, palette.graphite, [0, 0, 0], true);
+  ring(airlock, 'airlock-copper-seal', .305, .028, palette.copper, [0, 0, .045]);
+  cylinder(airlock, 'airlock-inner-door', .258, .035, palette.ivory, [0, 0, .047], true);
+  cylinder(airlock, 'airlock-viewport-rim', .10, .04, palette.graphite, [0, .09, .065], true);
+  cylinder(airlock, 'airlock-viewport', .073, .045, palette.glass, [0, .09, .078], true);
+  box(airlock, 'airlock-handle', [.14, .033, .042], palette.copper, [.025, -.10, .085]);
+  box(airlock, 'tether-reel-cover', [.12, .15, .08], palette.teal, [-.22, -.10, .10]);
+  fasteners(airlock, 'airlock-fasteners', [[-.21, .20, .075], [.21, .20, .075], [-.21, -.20, .075], [.21, -.20, .075]], .025);
+
+  const maneuverJets = [];
+  for (const side of [-1, 1]) {
+    const mount = group(cockpit, `rcs-cluster-${side}`, [side * .77, -.25, -.45]);
+    mount.rotation.y = side * Math.PI / 2;
+    maneuverJets.push(engine(mount, `lateral-rcs-${side}`, [0, 0, 0], .07, .10));
+    const brakingMount = group(cockpit, `brake-cluster-${side}`, [side * .45, -.26, -.78]);
+    brakingMount.rotation.y = Math.PI;
+    maneuverJets.push(engine(brakingMount, `braking-rcs-${side}`, [0, 0, 0], .058, .10));
+    box(cockpit, `cockpit-service-hatch-${side}`, [.035, .19, .29], palette.graphite, [side * .848, -.27, -.17]);
+    box(cockpit, `cockpit-service-inset-${side}`, [.044, .13, .19], palette.teal, [side * .85, -.27, -.17]);
+    fasteners(cockpit, `cockpit-panel-fasteners-${side}`, [[side * .906, .18, .69], [side * .906, -.22, .69], [side * .857, -.31, -.30], [side * .857, -.31, -.03]]);
+  }
+
   hull(body, 'habitat-pressure-shell', [
     { z: -0.94, w: 0.7, h: 0.54 },
     { z: -0.73, w: 1.0, h: 0.68 },
@@ -164,6 +217,18 @@ export function createShip() {
     box(body, `habitat-lower-panel-${side}`, [0.065, 0.18, 1.16], palette.teal, [side * 0.96, -0.39, -0.01]);
     box(body, `habitat-roof-rail-${side}`, [0.075, 0.12, 1.08], palette.ivory, [side * 0.46, 0.79, 0.02]);
     box(body, `habitat-keel-${side}`, [0.14, 0.07, 1.26], palette.graphite, [side * 0.47, -0.72, 0.02]);
+    for (const z of [-.72, .69]) {
+      box(body, `habitat-frame-${side}-${z}`, [.07, .54, .065], palette.ivory, [side * 1.024, .035, z]);
+      box(body, `habitat-frame-seal-${side}-${z}`, [.078, .36, .025], palette.copper, [side * 1.033, .025, z]);
+    }
+    fasteners(body, `habitat-panel-fasteners-${side}`, [-.60, -.19, .23, .60].flatMap(z => [[side * 1.047, .315, z], [side * 1.01, -.48, z]]));
+  }
+  // Dark collars and copper locks keep the construction narrative readable.
+  for (const z of [-.96, .93]) {
+    cylinder(body, `habitat-transfer-collar-${z}`, .59, .15, palette.graphite, [0, 0, z], true);
+    for (const side of [-1, 1]) {
+      box(body, `habitat-coupling-lock-${z}-${side}`, [.15, .20, .20], palette.copper, [side * .63, -.07, z]);
+    }
   }
 
   hull(propulsion, 'propulsion-core-shell', [
@@ -176,17 +241,18 @@ export function createShip() {
   box(propulsion, 'reactor-power-strip', [0.17, 0.03, 0.58], palette.cyan, [0, 0.736, -0.04]);
   const mainJets = [];
   for (const side of [-1, 1]) {
-    const wing = fin(propulsion, `swept-wing-${side}`, [[0.62, -0.44], [1.28, -0.24], [2.12, 0.44], [2.03, 0.69], [0.6, 0.46]], 0.1, palette.ivory, [0, -0.18, 0]);
+    const wing = fin(propulsion, `swept-wing-${side}`, [[0.62, -0.44], [1.15, -0.24], [1.70, 0.44], [1.64, 0.69], [0.6, 0.46]], 0.1, palette.ivory, [0, -0.18, 0]);
     wing.scale.x = side;
-    const inlay = fin(propulsion, `wing-teal-inlay-${side}`, [[0.93, -0.25], [1.23, -0.12], [1.91, 0.44], [1.7, 0.45]], 0.025, palette.teal, [0, -0.09, 0]);
+    const inlay = fin(propulsion, `wing-teal-inlay-${side}`, [[0.93, -0.25], [1.10, -0.12], [1.52, 0.44], [1.35, 0.45]], 0.025, palette.teal, [0, -0.09, 0]);
     inlay.scale.x = side;
-    box(propulsion, `wingtip-running-light-${side}`, [0.1, 0.055, 0.14], palette.cyan, [side * 2.01, -0.09, 0.47]);
+    box(propulsion, `wingtip-running-light-${side}`, [0.1, 0.055, 0.14], palette.cyan, [side * 1.62, -0.09, 0.47]);
     box(propulsion, `engine-mount-${side}`, [0.32, 0.38, 0.86], palette.graphite, [side * 0.82, -0.12, 0.22]);
     mainJets.push(engine(propulsion, `main-engine-${side}`, [side * 0.9, -0.13, 0.52], 0.29, 0.56));
     box(propulsion, `engine-armored-cowl-${side}`, [0.42, 0.12, 0.55], palette.ivory, [side * 0.9, 0.21, 0.39]);
     for (let vent = 0; vent < 3; vent++) {
       box(propulsion, `reactor-vent-${side}-${vent}`, [0.045, 0.25, 0.085], palette.graphite, [side * 0.858, 0.05, -0.31 + vent * 0.16]);
     }
+    fasteners(propulsion, `engine-cowl-fasteners-${side}`, [[side * .76, .28, .18], [side * 1.04, .28, .18], [side * .76, .28, .60], [side * 1.04, .28, .60]]);
   }
 
   let stage = 1;
@@ -215,11 +281,19 @@ export function createShip() {
     root.userData.stage = stage;
   }
   setStage(1, false);
-  function update(time, { moving = 0, boost = false } = {}) {
+  const localThrust = new THREE.Vector3();
+  const inverseRotation = new THREE.Quaternion();
+  function update(time, { moving = 0, boost = false, thrust, braking = false } = {}) {
     lastTime = time;
-    const motion = Math.min(1, Math.max(0, Number(moving) || 0));
-    visual.position.y = Math.sin(time * 1.25) * 0.045;
-    visual.rotation.z = Math.sin(time * 0.8) * 0.012;
+    const motion = thrustAmount(thrust, moving);
+    let forward = motion;
+    let lateral = motion * .2;
+    if (thrust && typeof thrust === 'object') {
+      inverseRotation.copy(root.quaternion).invert();
+      localThrust.copy(thrust).applyQuaternion(inverseRotation);
+      forward = THREE.MathUtils.clamp(-localThrust.z, 0, 1);
+      lateral = THREE.MathUtils.clamp(Math.hypot(localThrust.x, localThrust.y) + Math.max(0, localThrust.z), 0, 1);
+    }
     for (const [part, attachment] of attachments) {
       const progress = Math.min(1, Math.max(0, (time - attachment.started) / duration));
       const ease = 1 - Math.pow(1 - progress, 3);
@@ -228,10 +302,8 @@ export function createShip() {
       part.rotation.set(0.08 * (1 - ease), (attachment.index === 1 ? -0.24 : 0.24) * (1 - ease), 0.14 * (1 - ease));
       if (progress === 1) attachments.delete(part);
     }
-    [...podJets, ...mainJets].forEach((jet, index) => {
-      const pulse = 1 + Math.sin(time * 24 + index * 1.6) * 0.09;
-      jet.scale.set(1, 1, (boost ? 1.28 : 0.28 + motion * 0.66) * pulse);
-    });
+    [...podJets, ...mainJets].forEach((jet, index) => animateJet(jet, braking ? 0 : forward, time, index, boost));
+    maneuverJets.forEach((jet, index) => animateJet(jet, braking ? .7 : lateral, time, index));
   }
   return { group: root, setStage, update };
 }
@@ -272,6 +344,8 @@ export function createAstronaut() {
   box(pack, 'backpack-shell', [0.37, 0.45, 0.12], palette.ivory, [0, 0.01, 0.215]);
   box(pack, 'backpack-teal-spine', [0.11, 0.32, 0.03], palette.teal, [0, 0.02, 0.286]);
   box(pack, 'backpack-charge-light', [0.045, 0.13, 0.016], palette.cyan, [0, 0.08, 0.31]);
+  cylinder(pack, 'backpack-tether-socket', .058, .045, palette.copper, [0, -.14, .31], true);
+  box(pack, 'backpack-top-handle', [.23, .045, .065], palette.copper, [0, .27, .17]);
   const jets = [];
   for (const side of [-1, 1]) {
     cylinder(pack, `oxygen-tank-${side}`, 0.105, 0.38, palette.ivory, [side * 0.245, 0.04, 0.14]);
@@ -311,21 +385,20 @@ export function createAstronaut() {
     legs.push(leg);
     shins.push(knee);
   }
-  function update(time, { moving = 0, boost = false } = {}) {
-    const motion = Math.min(1, Math.max(0, Number(moving) || 0));
-    const gait = time * (boost ? 10 : 7);
-    suit.position.y = 0.025 + Math.sin(time * 2.1) * 0.025 + (boost ? 0.1 : 0);
-    suit.rotation.x = motion * (boost ? -0.28 : -0.08);
-    suit.rotation.z = Math.sin(gait * 0.5) * motion * 0.025;
+  function update(time, { moving = 0, boost = false, thrust, braking = false } = {}) {
+    const motion = thrustAmount(thrust, moving);
+    const float = Math.sin(time * .8);
+    suit.position.y = .025 + float * .012;
+    suit.rotation.x = motion * (boost ? -.22 : -.10);
+    suit.rotation.z = Math.sin(time * .53) * .012;
     for (let i = 0; i < 2; i++) {
       const sign = i === 0 ? -1 : 1;
-      const step = Math.sin(gait + i * Math.PI);
-      arms[i].rotation.z = -sign * (0.14 + motion * 0.1);
-      arms[i].rotation.x = step * motion * 0.36 - (boost ? 0.3 : 0.07);
-      forearms[i].rotation.x = -0.2 - motion * 0.16;
-      legs[i].rotation.x = -step * motion * (boost ? 0.19 : 0.44) + (boost ? 0.22 : 0);
-      shins[i].rotation.x = Math.max(0, step) * motion * 0.46 + (boost ? 0.22 : 0.025);
-      jets[i].scale.z = (boost ? 1.35 : 0.16 + motion * 0.4) * (1 + Math.sin(time * 23 + i) * 0.12);
+      arms[i].rotation.z = -sign * (.24 + (braking ? .08 : 0) + Math.sin(time * .7 + i) * .018);
+      arms[i].rotation.x = -.22 - motion * .12 + Math.sin(time * .6 + i) * .025;
+      forearms[i].rotation.x = -.43 - motion * .15;
+      legs[i].rotation.x = -.12 - motion * .10 + Math.sin(time * .55 + i) * .023;
+      shins[i].rotation.x = .38 + motion * .10 + float * .025;
+      animateJet(jets[i], braking ? .7 : motion, time, i, boost);
     }
   }
   update(0);
@@ -337,6 +410,7 @@ export function createCompanion() {
   root.name = 'companion';
   root.userData.kind = 'companion';
   const orb = group(root, 'companion-visual');
+  orb.scale.setScalar(COMPANION_SCALE);
   mesh(orb, 'faceted-orb-core', new THREE.IcosahedronGeometry(0.35, 0), palette.graphite);
   const shell = mesh(orb, 'faceted-ivory-shell', new THREE.DodecahedronGeometry(0.37, 0), palette.ivory);
   shell.scale.set(1, 1.03, 0.88);
@@ -363,6 +437,69 @@ export function createCompanion() {
     orb.rotation.z = Math.sin(time * 1.5) * 0.065;
     orb.rotation.x = -motion * 0.15;
     jet.scale.z = (boost ? 0.9 : 0.32 + motion * 0.22) * (1 + Math.sin(time * 21) * 0.1);
+    jet.visible = true;
   }
+  return { group: root, update };
+}
+
+/** Camera-local cockpit: the eye is the origin and the windshield faces -Z.
+ * Keep the centre clear so both portrait and landscape can aim through it. */
+export function createCockpit() {
+  const root = new THREE.Group();
+  root.name = 'pilot-cockpit';
+  const frame = group(root, 'cockpit-interior');
+  frame.position.y = .20;
+  const screenMaterial = new THREE.MeshBasicMaterial({ color: 0x092a36 });
+  const illuminated = new THREE.MeshBasicMaterial({ color: 0x8ee9df, toneMapped: false });
+  const warning = new THREE.MeshBasicMaterial({ color: 0xffc58d, toneMapped: false });
+
+  // Recessed instrument brow sits below the flight sightline.
+  hull(frame, 'instrument-brow', [
+    { z: -1.32, w: .77, h: .11, y: -.53 },
+    { z: -1.08, w: .71, h: .13, y: -.57 },
+    { z: -.82, w: .60, h: .11, y: -.64 },
+  ], palette.graphite);
+  box(frame, 'brow-ivory-trim', [1.36, .034, .055], palette.ivory, [0, -.426, -1.20]);
+  box(frame, 'brow-copper-seam', [1.19, .013, .030], palette.copper, [0, -.405, -1.22]);
+  box(frame, 'flight-display-surround', [.44, .20, .035], palette.seam, [0, -.54, -.94]);
+  box(frame, 'flight-display-glass', [.40, .16, .013], screenMaterial, [0, -.54, -.916]);
+  box(frame, 'display-horizon', [.27, .008, .008], illuminated, [0, -.515, -.905]);
+  const speedBars = [];
+  for (let i = 0; i < 7; i++) {
+    speedBars.push(box(frame, `display-speed-${i}`, [.031, .019, .008], illuminated, [-.129 + i * .043, -.567, -.904]));
+  }
+  const brakeLamp = box(frame, 'brake-indicator', [.045, .012, .01], warning, [.155, -.483, -.903]);
+  for (const side of [-1, 1]) {
+    const console = box(frame, `side-instrument-panel-${side}`, [.19, .13, .025], screenMaterial, [side * .39, -.56, -.95]);
+    console.rotation.z = -side * .06;
+    box(frame, `side-readout-${side}`, [.12, .010, .015], illuminated, [side * .39, -.54, -.93]);
+    box(frame, `side-secondary-readout-${side}`, [.075, .007, .015], palette.copper, [side * .405, -.58, -.93]);
+    const pillar = box(frame, `canopy-pillar-${side}`, [.07, .90, .09], palette.ivory, [side * .77, -.02, -1.40]);
+    pillar.rotation.z = -side * .15;
+    const seal = box(frame, `canopy-pillar-seal-${side}`, [.022, .87, .10], palette.graphite, [side * .728, -.02, -1.395]);
+    seal.rotation.z = -side * .15;
+    box(frame, `canopy-lower-joint-${side}`, [.12, .14, .12], palette.copper, [side * .70, -.39, -1.40]);
+    const grip = box(frame, `pilot-grip-${side}`, [.06, .15, .09], palette.graphite, [side * .56, -.63, -.75]);
+    grip.rotation.z = -side * .22;
+    box(frame, `grip-trigger-${side}`, [.038, .025, .02], palette.copper, [side * .55, -.59, -.695]);
+  }
+  // Instruments sit in front of the solid brow, within the vertical field of view.
+  // Mounting them behind its forward lip would leave only blank glass visible.
+  for (const part of frame.children) {
+    if (/^(flight-display|display-|brake-indicator|side-instrument|side-readout|side-secondary)/.test(part.name)) {
+      part.position.z += .18; part.position.y += .09;
+    }
+  }
+  const attitude = ring(frame, 'attitude-ring', .043, .003, illuminated, [-.39, -.442, -.73]);
+  box(frame, 'attitude-center', [.055, .003, .007], illuminated, [-.39, -.442, -.724]);
+  for (let i = 0; i < 3; i++) box(frame, `systems-status-${i}`, [.013, .018, .008], i === 2 ? warning : illuminated, [.35 + i * .031, -.442, -.725]);
+  box(frame, 'canopy-overhead-frame', [1.75, .065, .10], palette.ivory, [0, .52, -1.54]);
+  box(frame, 'canopy-overhead-seal', [1.62, .021, .105], palette.graphite, [0, .474, -1.536]);
+  function update(time, { speed = 0, braking = false } = {}) {
+    const level = THREE.MathUtils.clamp(speed / 12, 0, 1);
+    speedBars.forEach((bar, index) => { bar.visible = index / speedBars.length < level; });
+    brakeLamp.visible = braking;
+  }
+  update(0);
   return { group: root, update };
 }

@@ -1,12 +1,14 @@
+import { sweptSphereHit } from './hazards.js';
+
 // Mission rules use world-space metres and plain data, independently of camera or renderer.
 export const AIM_RANGES = Object.freeze({ astronaut: 30, ship: 70 });
 
 const SECTORS = [
-  { name: "Nereida · Campo inestable", color: 0x66d8df },
-  { name: "Vesper · Órbita fracturada", color: 0xb299ef },
-  { name: "Umbra · Núcleo desconocido", color: 0xf397b5 },
+  { biomeId: 'nereida', name: "Nereida · Campo inestable", color: 0x66d8df },
+  { biomeId: 'vesper', name: "Vesper · Órbita fracturada", color: 0xb299ef },
+  { biomeId: 'umbra', name: "Umbra · Núcleo desconocido", color: 0xf397b5 },
 ];
-const LAUNCH = { x: 2, y: 0, z: 10 };
+const LAUNCH = { x: 4.5, y: -.85, z: 7.5 };
 const SHIP_START = { x: 0, y: 0, z: 10 };
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -95,18 +97,43 @@ function createLayout(seed, sector) {
   const gate = { x: 0, y: 0, z: -56 };
   const exit = { x: 0, y: 0, z: -80 };
 
-  const hazards = [3, -9, -19, -27, -37, -45].map((z, index) => {
+  const protectedVolumes = [
+    { position: SHIP_START, radius: 8 },
+    { position: beacon, radius: 6 },
+    { position: gem, radius: 6 },
+    ...occupied.map(object => ({ position: object.position, radius: object.radius + 2 })),
+  ];
+  // Overlapping spheres contain the entire 9 m corridor capsule, including its approach.
+  for (let z = -47; z >= -87; z -= 4) protectedVolumes.push({ position: { x: 0, y: 0, z }, radius: 10 });
+
+  const hazards = [2, -9, -19, -27, -37, -45].map((z, index) => {
     const radius = 1.25 + hazardRandom() * .8;
+    const axis = sector === 1
+      ? { x: .65, y: (index % 2 ? -1 : 1) * .72, z: .12 }
+      : sector === 2
+        ? { x: .42, y: (index % 2 ? -1 : 1) * .91, z: .16 }
+        : { x: .96, y: .23, z: (index % 2 ? -1 : 1) * .12 };
+    const length = Math.hypot(axis.x, axis.y, axis.z);
+    for (const key of ['x', 'y', 'z']) axis[key] /= length;
+    const amplitude = 4.5 + hazardRandom() * (1.5 + sector * .5);
+    const maximumSpeed = 1.15 + sector * .4 + hazardRandom() * .45;
+    const motion = { axis, amplitude, period: Math.PI * 2 * amplitude / maximumSpeed, phase: hazardRandom() * Math.PI * 2 };
     const position = pointInVolume(
       hazardRandom,
-      { x: index % 2 ? 16 : -16, y: index % 3 === 0 ? 7 : -3, z },
-      { x: 5, y: 4, z: 3 },
-      candidate => distance(candidate, SHIP_START) > radius + 5 &&
-        [beacon, gem, gate].every(point => distance(candidate, point) > radius + 4) &&
-        occupied.every(other => distance(candidate, other.position) > radius + other.radius + 2) &&
-        (candidate.z >= -44 || Math.hypot(candidate.x, candidate.y) > radius + 6)
+      { x: index % 2 ? 21 : -21, y: index % 3 === 0 ? 7 : -3, z },
+      { x: 6, y: 4, z: 3 },
+      candidate => {
+        const a = {}, b = {};
+        for (const key of ['x', 'y', 'z']) {
+          a[key] = candidate[key] - axis[key] * amplitude;
+          b[key] = candidate[key] + axis[key] * amplitude;
+        }
+        // The sinusoid visits exactly this segment: one swept test protects every time sample.
+        return protectedVolumes.every(volume => !sweptSphereHit(a, b, volume.position, volume.position, radius + volume.radius + .15)) &&
+          occupied.every(other => distance(candidate, other.position) > radius + other.radius + 2);
+      }
     );
-    const result = { id: `sector-${sector + 1}-hazard-${index + 1}`, position, radius };
+    const result = { id: `sector-${sector + 1}-hazard-${index + 1}`, position, radius, motion };
     occupied.push(result);
     return result;
   });

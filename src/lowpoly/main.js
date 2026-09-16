@@ -1,10 +1,14 @@
 import * as THREE from '../../vendor/three.module.js';
-import { createShip, createAstronaut, createCompanion } from './models.js';
+import { createShip, createAstronaut, createCompanion, createCockpit } from './models.js';
 import { createSectorWorld } from './sector-world.js';
 import { createExpedition, createRandom, aimChance } from './expedition.js';
-import { createFlight } from './flight.js';
+import { createFlight, EVA_CENTER_Y, EVA_RADIUS } from './flight.js';
 import { createControls } from './controls.js';
 import { createCombat, WEAPON_RANGE } from './combat.js';
+import { shipPoint, shipCollisionSpheres, shipFrameRadius } from './spatial.js';
+import { sweptSphereContact, closestApproach } from './hazards.js';
+import { createPresentation, createReflectionEnvironment } from './presentation.js';
+import { createEffects } from './effects.js';
 import { AudioManager } from '../../nave_three_audio_pack_v2_refined/AudioManager.js';
 
 const $ = id => document.getElementById(id);
@@ -23,15 +27,19 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x080f1e);
+scene.background = null;
+const reflection = createReflectionEnvironment(renderer);
+scene.environment = reflection.texture; scene.environmentIntensity = .45;
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, .1, 600);
-scene.add(new THREE.HemisphereLight(0xc7e7ef, 0x18203a, 2.3));
-const sun = new THREE.DirectionalLight(0xffe2bb, 3.5);
+scene.add(new THREE.HemisphereLight(0xc7e7ef, 0x18203a, 1.45));
+const sun = new THREE.DirectionalLight(0xffe2bb, 3.8);
 sun.position.set(-30, 45, 20); scene.add(sun);
-const rim = new THREE.DirectionalLight(0x6bbfcf, 1.7);
+const rim = new THREE.DirectionalLight(0x6bbfcf, 1.25);
 rim.position.set(15, 9, -20); scene.add(rim);
 const ship = createShip(), astronaut = createAstronaut(), companion = createCompanion();
-scene.add(ship.group, astronaut.group, companion.group);
+scene.add(ship.group, astronaut.group, companion.group, camera);
+const cockpit = createCockpit(); camera.add(cockpit.group); cockpit.group.visible = false;
+const presentation = createPresentation(renderer);
 const params = new URLSearchParams(location.search);
 const seedParam = params.get('seed');
 const seed = seedParam ? /^\d+$/.test(seedParam) ? Number(seedParam) : seedParam : 712069;
@@ -47,7 +55,7 @@ audio.setMuted(true);
 let soundEnabled = false, audioReady = false, audioLoading;
 let paused = false, inspecting = false, firstPerson = false;
 let time = 0, lastFrame = performance.now(), toastUntil = 0, damageUntil = 0, invulnerableUntil = 0;
-let orbit = .45, elevation = .3, zoom = 1, targetZoom = 1;
+let orbit = -.9, elevation = .28, zoom = 1, targetZoom = 1;
 let selectedId = null, navigating = false, scanProgress = 0, scanning = false;
 let health = 100, assemblyUntil = 0, transitStart = 0;
 let pendingModule = 0, attachAt = 0, arrivalVeilUntil = 0;
@@ -56,6 +64,10 @@ const direction = new THREE.Vector3(), right = new THREE.Vector3(), forward = ne
 const cameraTarget = new THREE.Vector3(2, .8, 10), cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3(), projected = new THREE.Vector3(), temp = new THREE.Vector3();
 const up = new THREE.Vector3(0, 1, 0);
+const previousPosition = new THREE.Vector3(), previousQuaternion = new THREE.Quaternion();
+const colliderStart = new THREE.Vector3(), colliderEnd = new THREE.Vector3(), relativeVelocity = new THREE.Vector3();
+let collisionActor = flight.actor, hazardWarning = null, controlWasLocked = false;
+const transitEntry = new THREE.Vector3();
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), pointerStart = new THREE.Vector2();
 const tetherPositions = new Float32Array(25 * 3);
 const tetherGeometry = new THREE.BufferGeometry();
@@ -66,8 +78,7 @@ const selection = new THREE.Mesh(new THREE.TorusGeometry(1, .022, 4, 48), new TH
 scene.add(selection);
 const projectile = new THREE.Mesh(new THREE.SphereGeometry(.14, 6, 4), new THREE.MeshBasicMaterial({ color: 0xb5fff1, toneMapped: false }));
 projectile.visible = false; scene.add(projectile);
-const burst = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xa9ffdf, wireframe: true, transparent: true, opacity: 0 }));
-scene.add(burst); let burstStart = -10;
+const effects = createEffects(scene);
 
 function notify(message, duration = 4) { $('toast').textContent = message; $('toast').classList.add('visible'); toastUntil = time + duration; }
 function say(message) { $('companionMessage').textContent = message; }
@@ -89,7 +100,7 @@ function ensureTarget() {
   if (!selectedTarget()) selectedId = validTargets().sort((a, b) => a.position.distanceToSquared(flight.position) - b.position.distanceToSquared(flight.position))[0]?.id || null;
 }
 function objective() {
-  if (flight.returning) return { position: flight.shipPosition, label: 'REGRESO · NAVE', stop: 0 };
+  if (flight.returning) return { position: flight.dockPosition, label: 'REGRESO · NAVE', stop: 0 };
   if (state.phase === 'scan') return { position: world.beacon.position, label: 'BALIZA · ESCANEAR', stop: 2.5 };
   if (state.phase === 'small' || state.phase === 'large') {
     if ((state.phase === 'large' && flight.actor === 'astronaut') || (state.phase === 'small' && flight.actor === 'ship')) {
@@ -98,9 +109,9 @@ function objective() {
     const target = selectedTarget();
     if (target) return { position: target.position, label: `${target.kind === 'small' ? 'ASTEROIDE' : 'NÚCLEO'} · ${Math.round(target.position.distanceTo(flight.position))} m`, stop: target.kind === 'small' ? 10 : 15 };
   }
-  if (state.phase === 'gem') return { position: world.gem.position, label: 'GEMA · RECUPERAR', stop: flight.actor === 'ship' ? 5 : 1.7 };
+  if (state.phase === 'gem') return { position: world.gem.position, label: 'GEMA · RECUPERAR', stop: flight.actor === 'ship' ? 10 : 1.7 };
   if (state.phase === 'return') return flight.actor === 'astronaut'
-    ? { position: flight.shipPosition, label: 'NAVE · ABORDAR', stop: 0 }
+    ? { position: flight.dockPosition, label: 'NAVE · ABORDAR', stop: 0 }
     : { position: world.gate.position, label: 'CORREDOR · SIGUIENTE HORIZONTE', stop: .5 };
   return null;
 }
@@ -121,15 +132,19 @@ function deploy() {
     play('ui_mission_click', .18);
   }
 }
+function stopNavigation() {
+  if (navigating && flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
+  navigating = false;
+}
 function navigate() {
   if (paused || combat.shot) return;
   if (state.phase === 'complete') { resetExpedition(); return; }
   if (inspecting) setInspect(false);
   if (blocked()) return;
-  if (navigating) { navigating = false; notify('Guía desactivada · Vuelo libre'); return; }
+  if (navigating) { stopNavigation(); notify('Guía desactivada · Vuelo libre'); return; }
   if (flight.actor === 'astronaut' && (state.phase === 'large' || state.phase === 'return')) { returnToShip(); return; }
   if (flight.actor === 'ship' && (state.phase === 'scan' || state.phase === 'small')) deploy();
-  if (state.phase === 'gem' && flight.actor === 'ship' && flight.position.distanceTo(world.gem.position) < 7) deploy();
+  if (state.phase === 'gem' && flight.actor === 'ship' && flight.position.distanceTo(world.gem.position) < 12) deploy();
   navigating = true; scanning = false;
   say('Sigo la ruta. Movete con los controles para recuperar el vuelo libre.');
   play('ui_mission_click', .16);
@@ -144,7 +159,7 @@ function interact() {
   } else if (state.phase === 'gem') {
     if (flight.position.distanceTo(world.gem.position) > 3) { notify('Acercate a menos de 3 m de la gema.'); return; }
     if (mission.collectGem()) {
-      navigating = false; triggerBurst(world.gem.position, 0xb6ffe3);
+      navigating = false; triggerBurst(world.gem.position, 'gem');
       play('reward_unlock_sparkle', .3);
       notify('Gema recuperada · Corredor habilitado');
       say('La ruta está abierta. Volvé a abordar; el módulo nos espera en el corredor.');
@@ -161,21 +176,28 @@ function fire() {
   if (distance > WEAPON_RANGE[flight.actor]) { notify('Fuera de alcance. Acercate antes de disparar.'); return; }
   const chance = aimChance({ actor: flight.actor, distance, sector: state.sector, speed: flight.velocity.length() });
   if (combat.start({ id: target.id, actor: flight.actor, kind: target.kind, distance, chance, origin: flight.position.clone().add(new THREE.Vector3(0, .8, -1)) })) {
+    if (flight.actor === 'ship') {
+      temp.subVectors(target.position, flight.shipPosition).normalize();
+      forward.set(0, 0, -1).applyQuaternion(flight.shipQuaternion);
+      combat.shot.lockTime = Math.max(1.6, forward.angleTo(temp) / (65 * Math.PI / 180) + 1.05);
+    }
     navigating = false; scanning = false; controls.clear();
     play('ui_hover_sonar', .16);
   }
 }
-function triggerBurst(position, color) { burst.position.copy(position); burst.material.color.setHex(color); burstStart = time; }
+function triggerBurst(position, kind = 'scan') { effects.burst(position, kind, time); }
 function setView() {
   if (paused || time < assemblyUntil || state.phase === 'transit' || state.phase === 'complete') return;
   if (inspecting) setInspect(false);
   firstPerson = !firstPerson;
-  if (firstPerson) { orbit = (flight.actor === 'ship' ? ship.group : astronaut.group).rotation.y; elevation = 0; }
-  notify(firstPerson ? flight.actor === 'ship' ? 'Vista de cabina · Arrastrá para mirar' : 'Vista de visor · Arrastrá para mirar' : 'Vista exterior');
+  if (flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
+  else if (firstPerson) { orbit = astronaut.group.rotation.y; elevation = 0; }
+  notify(firstPerson ? flight.actor === 'ship' ? 'Vista de cabina · Arrastrá para orientar la nave' : 'Vista de visor · Arrastrá para mirar' : 'Vista exterior');
 }
 function setInspect(value) {
   if (paused || combat.shot || state.phase === 'transit') return;
-  inspecting = value; navigating = false; scanning = false; firstPerson = false; controls.clear();
+  inspecting = value; stopNavigation(); scanning = false; firstPerson = false; controls.clear();
+  if (!value && flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
   document.body.classList.toggle('inspecting', value);
   $('inspectButton').setAttribute('aria-pressed', String(value));
   $('inspectButton').textContent = value ? 'Volver a explorar ↙' : 'Inspeccionar nave ↗';
@@ -206,11 +228,11 @@ async function toggleSound() {
 }
 function resetExpedition() {
   const randomSeed = crypto.getRandomValues(new Uint32Array(1))[0];
-  mission.reset(randomSeed); flight.reset(); combat.reset(); world.load(state.layout); ship.setStage(1, false);
+  mission.reset(randomSeed); flight.reset(); flight.setStage(1); combat.reset(); world.load(state.layout); ship.setStage(1, false);
   shotRandom = createRandom(`${state.seed}:combat`);
   paused = false; inspecting = false; firstPerson = false; navigating = false; scanning = false; scanProgress = 0;
   selectedId = null; health = 100; assemblyUntil = 0; pendingModule = 0; arrivalVeilUntil = 0; invulnerableUntil = time + 2; damageUntil = 0;
-  previousPhase = state.phase; previousActor = flight.actor; orbit = .45; elevation = .3; targetZoom = 1;
+  previousPhase = state.phase; previousActor = flight.actor; orbit = -.9; elevation = .28; targetZoom = 1;
   document.body.classList.remove('inspecting'); document.querySelector('.mission-panel').inert = false;
   $('inspectButton').setAttribute('aria-pressed', 'false'); $('inspectButton').textContent = 'Inspeccionar nave ↗';
   controls.clear(); setPaused(false); updateMissionUI();
@@ -245,7 +267,7 @@ canvas.addEventListener('pointerup', event => {
 });
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 900 ? 1.5 : 2)); renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 900 ? 1.5 : 2)); renderer.setSize(innerWidth, innerHeight); presentation.resize();
 });
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault(); setPaused(true); $('loading').hidden = false; $('loading').style.opacity = '1';
@@ -255,39 +277,52 @@ canvas.addEventListener('webglcontextlost', event => {
 function updateFlight(dt, input) {
   if (state.phase === 'transit') { updateTransit(dt); return; }
   direction.set(0, 0, 0);
-  if (inspecting || time < assemblyUntil || state.phase === 'complete') { flight.velocity.set(0, 0, 0); return; }
-  if (!combat.shot) {
-    const manual = input.x || input.y || input.z;
-    if (manual && !flight.returning) { navigating = false; scanning = false; }
-    if (manual) {
-      camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
-      if (forward.lengthSq() < .1) forward.set(0, 0, -1);
-      right.crossVectors(forward, up).normalize();
-      direction.addScaledVector(right, input.x).addScaledVector(forward, -input.z); direction.y = input.y;
-      if (direction.lengthSq() > 1) direction.normalize();
-    } else if (navigating && !flight.returning) {
-      const goal = objective();
-      if (goal) {
-        const remaining = flight.position.distanceTo(goal.position) - goal.stop;
-        if (remaining < .15) { navigating = false; flight.velocity.set(0, 0, 0); say(state.phase === 'gem' && flight.actor === 'ship' ? 'Estamos cerca. Salí de la nave para recoger la gema.' : 'Llegamos. La siguiente acción está lista.'); }
-        else direction.subVectors(goal.position, flight.position).normalize().multiplyScalar(Math.min(1, remaining * .7));
-      } else navigating = false;
-    }
+  if (inspecting || time < assemblyUntil || state.phase === 'complete') { controlWasLocked = true; return; }
+  if (controlWasLocked && flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
+  controlWasLocked = false;
+  const manual = input.x || input.y || input.z;
+  if ((manual || input.brake) && !combat.shot && !flight.returning) { stopNavigation(); if (manual) scanning = false; }
+  if (manual && !combat.shot) {
+    if (flight.actor === 'ship') forward.set(0, 0, -1).applyQuaternion(flight.shipQuaternion);
+    else { camera.getWorldDirection(forward); if (!visorActive()) forward.y = 0; forward.normalize(); }
+    if (forward.lengthSq() < .1) forward.set(0, 0, -1);
+    right.crossVectors(forward, up).normalize();
+    direction.addScaledVector(right, input.x).addScaledVector(forward, -input.z).addScaledVector(up, input.y);
+    if (direction.lengthSq() > 1) direction.normalize();
   }
-  flight.update(dt, direction, input.boost && !combat.shot && !scanning);
+  const goal = navigating && !flight.returning && !combat.shot ? objective() : null;
+  let lookYaw = orbit, lookPitch = -elevation;
+  if (combat.shot && selectedTarget() && flight.actor === 'ship') {
+    temp.subVectors(selectedTarget().position, flight.shipPosition).normalize();
+    lookYaw = Math.atan2(-temp.x, -temp.z); lookPitch = Math.asin(THREE.MathUtils.clamp(temp.y, -1, 1));
+    orbit = lookYaw; elevation = -lookPitch;
+  }
+  flight.update(dt, direction, input.boost && !combat.shot && !scanning, {
+    brake: input.brake, hold: !!combat.shot || scanning,
+    lookYaw, lookPitch, navigationTarget: goal?.position, arrivalRadius: goal?.stop,
+  });
+  if (goal && flight.arrived) {
+    navigating = false;
+    if (flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
+    say(state.phase === 'gem' && flight.actor === 'ship' ? 'Estamos cerca. Salí de la nave para recoger la gema.' : 'Llegamos. La siguiente acción está lista.');
+  }
   if (flight.actor !== previousActor) {
     previousActor = flight.actor; controls.clear(); navigating = false;
-    if (flight.actor === 'ship') { notify('A bordo · Cable recogido'); say(state.phase === 'large' ? 'Cañón disponible. Seleccioná un núcleo y prepará el disparo.' : 'Al mando. Busquemos nuestro siguiente destino.'); play('ship_module_attach', .13); }
+    if (flight.actor === 'ship') {
+      orbit = flight.shipYaw; elevation = -flight.shipPitch;
+      notify('A bordo · Cable recogido'); say(state.phase === 'large' ? 'Cañón disponible. Seleccioná un núcleo y prepará el disparo.' : 'Al mando. Busquemos nuestro siguiente destino.'); play('ship_module_attach', .13);
+    }
   }
   if (flight.tension > .9 && navigating && flight.velocity.length() < .25) { navigating = false; notify('Límite del cable · Volvé y acercá la nave'); }
   if (state.phase === 'return' && flight.actor === 'ship' && flight.position.distanceTo(world.gate.position) < 4) {
-    if (mission.enterCorridor('ship')) { navigating = false; transitStart = time; firstPerson = false; controls.clear(); play('motion_liftoff', .25); say('Entramos al corredor. Preparando el acople.'); }
+    if (mission.enterCorridor('ship')) { navigating = false; transitStart = time; transitEntry.copy(flight.shipPosition); firstPerson = false; controls.clear(); play('motion_liftoff', .25); say('Entramos al corredor. Preparando el acople.'); }
   }
 }
 function updateTransit(dt) {
   const age = time - transitStart;
   temp.copy(state.layout.exit);
-  flight.shipPosition.lerpVectors(world.gate.position, temp, Math.min(1, age / 5));
+  flight.shipPosition.lerpVectors(transitEntry, temp, Math.min(1, age / 5));
+  flight.updateHeading(dt, { lookYaw: 0, lookPitch: 0 });
   flight.velocity.set(0, 0, -4.8);
   if (age >= 5) {
     mission.finishTransit(); combat.reset(); selectedId = null; navigating = false; scanning = false; scanProgress = 0;
@@ -295,12 +330,13 @@ function updateTransit(dt) {
       flight.velocity.set(0, 0, 0); notify('Tres gemas. Una nave completa. Expedición terminada.', 8); say('Llegamos juntos. Podés inspeccionar la nave o iniciar otra expedición.');
     } else {
       // The next sector begins aboard after crossing its entry corridor.
-      world.load(state.layout); flight.reset(); flight.returnToShip(); flight.update(.05, new THREE.Vector3()); previousActor = 'ship';
+      world.load(state.layout); flight.reset({ aboard: true }); flight.setStage(state.moduleStage); previousActor = 'ship';
+      orbit = -.9; elevation = .28;
       pendingModule = state.moduleStage; attachAt = time + .65; assemblyUntil = time + 3.4; arrivalVeilUntil = time + .6;
       // Reframe on the new sector while the corridor veil is opaque, before revealing the acople.
       cameraTarget.copy(flight.shipPosition).add(new THREE.Vector3(0, .3, 0));
       const fit = Math.max(1, .78 / camera.aspect);
-      camera.position.set(Math.sin(orbit) * Math.cos(.48), Math.sin(.48), Math.cos(orbit) * Math.cos(.48)).multiplyScalar(12 * zoom * fit).add(cameraTarget);
+      camera.position.set(Math.sin(orbit) * Math.cos(.48), Math.sin(.48), Math.cos(orbit) * Math.cos(.48)).multiplyScalar((shipFrameRadius(state.moduleStage) * 2.8 + 5) * zoom * fit).add(cameraTarget);
       camera.lookAt(cameraTarget); health = Math.min(100, health + 25);
       notify(state.moduleStage === 2 ? 'HÁBITAT ACOPLADO · Entramos en Vesper' : 'PROPULSIÓN ACOPLADA · Entramos en Umbra', 5);
       say('Nuevo módulo conectado. Salí cuando estés listo para explorar el sector.');
@@ -313,7 +349,7 @@ function updateScan(dt) {
   scanProgress = Math.min(1, scanProgress + dt / 2.2);
   if (scanProgress === 1) {
     mission.scan(); scanning = false; play('ui_mission_accept', .25);
-    triggerBurst(world.beacon.position, 0xaaffdc); notify('Señal decodificada · Tres asteroides localizados');
+    triggerBurst(world.beacon.position, 'scan'); notify('Señal decodificada · Tres asteroides localizados');
     say('Tres objetivos pequeños. Seleccioná uno, acercate y dispará con el astronauta.');
   }
 }
@@ -330,26 +366,48 @@ function updateCombat(dt) {
       projectile.scale.setScalar(shot.actor === 'ship' ? 2.8 : 1);
       projectile.visible = true;
     }
-    if (shot.elapsed < shot.lockTime && shot.elapsed + dt >= shot.lockTime) play('motion_liftoff', .15);
+    if (shot.elapsed < shot.lockTime && shot.elapsed + dt >= shot.lockTime) {
+      const origin = shot.actor === 'ship' ? shipPoint('muzzle', flight.shipPosition, flight.shipQuaternion) : flight.position.clone().add(new THREE.Vector3(.25, 1.05, 0));
+      Object.assign(shot.origin, { x: origin.x, y: origin.y, z: origin.z });
+      play('motion_liftoff', .15);
+    }
   }
   const result = combat.update(dt);
   if (result) {
     const target = world.targets.find(item => item.id === result.id);
     if (result.hit && mission.hit(result.id, result.actor)) {
-      if (target) triggerBurst(target.position, result.actor === 'ship' ? 0xffcd8f : 0xa1ffdb);
+      if (target) triggerBurst(target.position, result.actor === 'ship' ? 'ship' : 'eva');
       play('reward_unlock_sparkle', .18); notify(result.actor === 'ship' ? 'Núcleo destruido' : 'Asteroide destruido', 2);
     } else { notify('Disparo fallido · Acercate para mejorar la probabilidad', 3); say('Podemos volver a intentarlo. Acercarnos mejora el disparo.'); }
   }
 }
 function updateHazards() {
-  if (time < invulnerableUntil || inspecting || state.phase === 'transit' || state.phase === 'complete' || time < assemblyUntil) return;
-  const playerRadius = flight.actor === 'ship' ? 1.7 : .7;
+  hazardWarning = null;
+  if (inspecting || state.phase === 'transit' || state.phase === 'complete' || time < assemblyUntil) return;
+  const spheres = flight.actor === 'ship' ? shipCollisionSpheres(state.moduleStage) : [{ center: { x: 0, y: EVA_CENTER_Y, z: 0 }, radius: EVA_RADIUS }, { center: { x: 0, y: 1.58, z: 0 }, radius: .36 }];
   for (const hazard of world.hazards) {
-    if (flight.position.distanceTo(hazard.position) < hazard.radius + playerRadius) {
-      health = Math.max(0, health - 25); invulnerableUntil = time + 2; damageUntil = time + .4;
-      temp.subVectors(flight.position, hazard.position).normalize(); if (!temp.lengthSq()) temp.set(0, 1, 0);
-      // Apply impact through velocity so flight keeps enforcing tether and world limits.
-      flight.velocity.copy(temp).multiplyScalar(4); navigating = false; scanning = false;
+    for (const sphere of spheres) {
+      colliderEnd.copy(sphere.center);
+      colliderStart.copy(sphere.center);
+      if (flight.actor === 'ship') {
+        colliderEnd.applyQuaternion(flight.shipQuaternion);
+        colliderStart.applyQuaternion(previousQuaternion);
+      }
+      colliderEnd.add(flight.position);
+      colliderStart.add(previousPosition);
+      if (collisionActor !== flight.actor) colliderStart.copy(colliderEnd);
+      const radius = hazard.radius + sphere.radius;
+      temp.subVectors(hazard.position, colliderEnd);
+      relativeVelocity.copy(hazard.velocity).sub(flight.velocity);
+      const approach = closestApproach(temp, relativeVelocity, 2.4);
+      if (approach.distance < radius + 1.5 && approach.time > .05 && (!hazardWarning || approach.time < hazardWarning.time)) hazardWarning = { time: approach.time, position: hazard.position };
+      const contact = sweptSphereContact(colliderStart, colliderEnd, hazard.previousPosition, hazard.position, radius);
+      if (!contact) continue;
+      flight.applyImpact(contact.normal, contact.depth, hazard.velocity);
+      stopNavigation(); scanning = false;
+      if (time < invulnerableUntil) break;
+      const impact = Math.round(THREE.MathUtils.clamp(12 + relativeVelocity.length() * 2.5, 15, 38));
+      health = Math.max(0, health - impact); invulnerableUntil = time + 2; damageUntil = time + .4;
       notify(`Impacto · Integridad ${health}%`, 2);
       if (health === 0) {
         health = 100; invulnerableUntil = time + 12;
@@ -363,56 +421,64 @@ function updateHazards() {
 }
 function updateActors(dt, input) {
   if (pendingModule && time >= attachAt) { ship.setStage(pendingModule, !reducedMotion); pendingModule = 0; play('ship_module_attach', .3); }
-  ship.group.position.copy(flight.shipPosition);
+  ship.group.position.copy(flight.shipPosition); ship.group.quaternion.copy(flight.shipQuaternion);
   astronaut.group.position.copy(flight.astronautPosition);
-  const actorGroup = flight.actor === 'ship' ? ship.group : astronaut.group;
-  if (combat.shot && selectedTarget()) temp.subVectors(selectedTarget().position, flight.position);
-  else temp.copy(flight.velocity);
-  if (temp.lengthSq() > .05) {
-    const heading = Math.atan2(-temp.x, -temp.z);
-    actorGroup.rotation.y += Math.atan2(Math.sin(heading - actorGroup.rotation.y), Math.cos(heading - actorGroup.rotation.y)) * Math.min(1, dt * 7);
+  if (flight.actor === 'astronaut') {
+    if (combat.shot && selectedTarget()) temp.subVectors(selectedTarget().position, flight.position);
+    else if (visorActive()) temp.set(-Math.sin(orbit), 0, -Math.cos(orbit));
+    else temp.copy(flight.velocity);
+    if (temp.lengthSq() > .05) {
+      const heading = Math.atan2(-temp.x, -temp.z);
+      astronaut.group.rotation.y += Math.atan2(Math.sin(heading - astronaut.group.rotation.y), Math.cos(heading - astronaut.group.rotation.y)) * Math.min(1, dt * 5);
+    }
   }
-  ship.update(time, { moving: flight.actor === 'ship' ? Math.min(1, flight.velocity.length() / 8) : 0, boost: input.boost });
-  astronaut.update(time, { moving: flight.actor === 'astronaut' ? Math.min(1, flight.velocity.length() / 5.6) : 0, boost: input.boost });
-  // Hide only the controlled model in visor/cockpit view. Boarding also hides astronaut and cable.
+  const frozen = inspecting || time < assemblyUntil || state.phase === 'complete';
+  ship.update(time, { thrust: flight.actor === 'ship' && !frozen ? flight.thrust : 0, braking: !frozen && flight.actor === 'ship' && flight.braking, boost: input.boost });
+  astronaut.update(time, { thrust: flight.actor === 'astronaut' && !frozen ? flight.thrust : 0, braking: !frozen && flight.braking, boost: input.boost });
   astronaut.group.visible = flight.actor === 'astronaut' && !visorActive();
   ship.group.visible = !(flight.actor === 'ship' && visorActive());
-  temp.copy(flight.position).add(new THREE.Vector3(2.3, 2, .5));
+  cockpit.group.visible = flight.actor === 'ship' && visorActive();
+  cockpit.update(time, { speed: flight.velocity.length(), braking: flight.braking });
+  temp.copy(flight.position).add(new THREE.Vector3(1.8, 1.8, .5));
   companion.group.position.lerp(temp, 1 - Math.exp(-dt * 4));
-  companion.group.rotation.y = actorGroup.rotation.y; companion.update(time, { moving: flight.velocity.length() / 8 });
+  companion.group.rotation.y = flight.actor === 'ship' ? flight.shipYaw : astronaut.group.rotation.y;
+  companion.group.visible = !(flight.actor === 'ship' && visorActive());
+  companion.update(time, { moving: flight.velocity.length() / 8 });
   tether.visible = flight.actor === 'astronaut';
   if (tether.visible) {
-    const a = flight.shipPosition, b = flight.astronautPosition;
+    const a = flight.tetherPosition, b = flight.astronautPosition;
     for (let i = 0; i < 25; i++) {
       const t = i / 24; const slack = Math.sin(t * Math.PI) * (1 - flight.tension) * Math.min(1.2, flight.tetherLength * .08);
       tetherPositions[i * 3] = a.x + (b.x - a.x) * t;
-      tetherPositions[i * 3 + 1] = a.y + .3 + (b.y + .9 - a.y - .3) * t - slack;
-      tetherPositions[i * 3 + 2] = a.z + (b.z - a.z) * t + (reducedMotion ? 0 : Math.sin(time * 2 + t * 5) * .035 * Math.sin(t * Math.PI));
+      tetherPositions[i * 3 + 1] = a.y + (b.y + EVA_CENTER_Y - a.y) * t - slack;
+      tetherPositions[i * 3 + 2] = a.z + (b.z - a.z) * t + (reducedMotion ? 0 : Math.sin(time * 1.2 + t * 5) * .035 * Math.sin(t * Math.PI));
     }
     tetherGeometry.attributes.position.needsUpdate = true;
     tether.material.color.setHex(flight.tension > .8 ? 0xffad74 : 0x9fe5db);
   }
 }
-function updateCamera(dt, input) {
-  if (!paused) {
-    orbit -= input.lookX * .005;
-    elevation = THREE.MathUtils.clamp(elevation + input.lookY * .004, -.65, 1.15);
-  }
+function updateCamera(dt) {
   zoom = THREE.MathUtils.damp(zoom, targetZoom, 6, dt);
   const focusShip = forcedExterior();
   const focus = focusShip ? flight.shipPosition : flight.position;
-  const smoothing = reducedMotion ? 1 : 1 - Math.exp(-dt * 6);
+  const smoothing = reducedMotion ? 1 : 1 - Math.exp(-dt * 5);
   cameraTarget.copy(focus).add(new THREE.Vector3(0, flight.actor === 'astronaut' && !focusShip ? .9 : .3, 0));
   if (visorActive()) {
-    cameraPosition.copy(cameraTarget).add(new THREE.Vector3(0, flight.actor === 'ship' ? .8 : .65, 0));
-    if (combat.shot && selectedTarget()) lookTarget.copy(selectedTarget().position);
-    else lookTarget.copy(cameraPosition).add(new THREE.Vector3(-Math.sin(orbit) * Math.cos(elevation), -Math.sin(elevation), -Math.cos(orbit) * Math.cos(elevation)).multiplyScalar(20));
-    camera.position.copy(cameraPosition); camera.lookAt(lookTarget);
+    if (flight.actor === 'ship') {
+      shipPoint('eye', flight.shipPosition, flight.shipQuaternion, camera.position);
+      camera.quaternion.copy(flight.shipQuaternion);
+    } else {
+      camera.position.copy(flight.astronautPosition).add(new THREE.Vector3(0, 1.55, 0));
+      if (combat.shot && selectedTarget()) lookTarget.copy(selectedTarget().position);
+      else lookTarget.copy(camera.position).add(new THREE.Vector3(-Math.sin(orbit) * Math.cos(elevation), -Math.sin(elevation), -Math.cos(orbit) * Math.cos(elevation)).multiplyScalar(20));
+      camera.lookAt(lookTarget);
+    }
   } else {
     const portrait = Math.max(1, .78 / camera.aspect);
-    const distance = (focusShip ? 12 : flight.actor === 'ship' ? 21 : 16) * zoom * portrait;
-    const angle = focusShip ? .48 : elevation;
-    cameraPosition.set(Math.sin(orbit) * Math.cos(angle), Math.sin(angle), Math.cos(orbit) * Math.cos(angle)).multiplyScalar(distance).add(cameraTarget);
+    const distance = (focusShip || flight.actor === 'ship' ? shipFrameRadius(state.moduleStage) * 2.8 + 5 : 18) * zoom * portrait;
+    const angle = focusShip ? .42 : flight.actor === 'ship' ? .27 - flight.shipPitch * .45 : elevation;
+    const heading = flight.actor === 'ship' && !focusShip ? flight.shipYaw : orbit;
+    cameraPosition.set(Math.sin(heading) * Math.cos(angle), Math.sin(angle), Math.cos(heading) * Math.cos(angle)).multiplyScalar(distance).add(cameraTarget);
     camera.position.lerp(cameraPosition, smoothing); camera.lookAt(cameraTarget);
   }
 }
@@ -421,7 +487,7 @@ function updateMissionUI() {
     scan: ['Todo empieza <br/>con una señal.', 'Encontrá la baliza y escaneala con el astronauta. El cable mantiene tu conexión con la nave.', 'Guiar a la baliza'],
     small: ['Abrir un camino.', 'Destruí tres asteroides con el astronauta. Seleccioná un objetivo y acercate para mejorar el disparo.', 'Acercar al objetivo'],
     large: ['La fuerza <br/>de tu nave.', 'Volvé y abordá para activar el cañón. Los núcleos grandes guardan la energía del sector.', flight.actor === 'astronaut' ? 'Volver y abordar' : 'Acercar al núcleo'],
-    gem: ['Una conexión <br/>más.', 'Recuperá la gema con el astronauta. Si está lejos, acercá primero la nave y después salí.', flight.actor === 'ship' && flight.position.distanceTo(world.gem.position) < 7 ? 'Salir y buscar la gema' : 'Guiar hacia la gema'],
+    gem: ['Una conexión <br/>más.', 'Recuperá la gema con el astronauta. Si está lejos, acercá primero la nave y después salí.', flight.actor === 'ship' && flight.position.distanceTo(world.gem.position) < 12 ? 'Salir y buscar la gema' : 'Guiar hacia la gema'],
     return: ['El siguiente <br/>horizonte.', 'Volvé a la nave y atravesá el corredor. El próximo módulo se acopla al cambiar de sector.', flight.actor === 'astronaut' ? 'Volver y abordar' : 'Entrar al corredor'],
     transit: ['Pieza por pieza.', 'Atravesando el corredor. Preparando la nave para el próximo horizonte.', 'En tránsito…'],
     complete: ['Lo construimos <br/>juntos.', 'Tres sectores recorridos, tres gemas recuperadas. Tu nave está completa.', 'Nueva expedición'],
@@ -463,8 +529,16 @@ function updateHUD() {
   $('cableValue').textContent = flight.actor === 'astronaut' ? `${Math.round(flight.tetherLength)} / 26 m` : 'A BORDO';
   $('cableBar').style.width = `${flight.actor === 'astronaut' ? flight.tetherLength / 26 * 100 : 100}%`;
   $('cableBar').parentElement.parentElement.classList.toggle('danger', flight.tension > .8);
+  $('motionReadout').textContent = flight.braking ? 'ESTABILIZANDO' : flight.thrust.length() > .12 ? 'PROPULSORES' : flight.velocity.length() > .15 ? 'DERIVA' : 'ESTABLE';
+  $('brakeButton').classList.toggle('active', flight.braking);
+  $('hazardWarning').hidden = !hazardWarning;
+  if (hazardWarning) {
+    projected.copy(hazardWarning.position).project(camera);
+    const arrow = projected.z > 1 ? '↶' : projected.x < -.25 ? '←' : projected.x > .25 ? '→' : projected.y > .25 ? '↑' : '↓';
+    $('hazardWarning').textContent = `${arrow} TRAYECTORIA DE IMPACTO · ${hazardWarning.time.toFixed(1)} s`;
+  }
   $('flightReadout').textContent = `ALT ${flight.position.y >= 0 ? '+' : ''}${flight.position.y.toFixed(1)} m · ${flight.velocity.length().toFixed(1)} m/s`;
-  $('missionHint').textContent = flight.tension > .8 ? 'Cable cerca del límite. Acercá la nave para seguir.' : navigating ? 'Guía activa. WASD o controles táctiles para cancelar.' : 'Vuelo XYZ · El horizonte de la cámara permanece estable.';
+  $('missionHint').textContent = flight.tension > .8 ? 'Cable cerca del límite. Acercá la nave para seguir.' : navigating ? 'Guía activa. WASD o controles táctiles para cancelar.' : 'Soltá para derivar · Mantené Q para estabilizar.';
   $('viewButton').disabled = paused || time < assemblyUntil || state.phase === 'transit' || state.phase === 'complete';
   $('viewButton').textContent = visorActive() ? `Vista: ${flight.actor === 'ship' ? 'cabina' : 'visor'}` : 'Vista: exterior'; $('viewButton').setAttribute('aria-pressed', String(visorActive()));
   document.body.classList.toggle('first-person', visorActive()); document.body.classList.toggle('aiming', !!combat.shot); document.body.classList.toggle('damage', time < damageUntil);
@@ -486,6 +560,8 @@ function updateHUD() {
   // Read-only telemetry supports diagnostics without exposing mutation or skip controls.
   canvas.dataset.phase = state.phase; canvas.dataset.actor = flight.actor; canvas.dataset.sector = String(state.sector);
   canvas.dataset.position = `${flight.position.x.toFixed(2)},${flight.position.y.toFixed(2)},${flight.position.z.toFixed(2)}`;
+  canvas.dataset.speed = flight.velocity.length().toFixed(3); canvas.dataset.thrust = flight.thrust.length().toFixed(3);
+  canvas.dataset.heading = `${flight.shipYaw.toFixed(3)},${flight.shipPitch.toFixed(3)}`;
   canvas.dataset.tether = flight.tetherLength.toFixed(2); canvas.dataset.health = String(health);
 }
 function handlePhaseChange() {
@@ -501,15 +577,16 @@ function animate(now) {
   const input = controls.sample();
   if (!paused) {
     time += dt; ensureTarget();
+    if (!combat.shot) { orbit -= input.lookX * .005; elevation = THREE.MathUtils.clamp(elevation + input.lookY * .004, -1.1, 1.1); }
+    previousPosition.copy(flight.position); previousQuaternion.copy(flight.shipQuaternion); collisionActor = flight.actor;
     updateFlight(dt, input); updateScan(dt); updateCombat(dt); handlePhaseChange(); ensureTarget();
-    world.sync(state, reducedMotion ? 0 : time); world.gate.visible = !inspecting; updateHazards(); updateActors(dt, input); updateCamera(dt, input);
+    world.sync(state, time, { reducedMotion }); world.gate.visible = !inspecting; updateHazards(); updateActors(dt, input); updateCamera(dt, input);
     const target = selectedTarget(); selection.visible = !!target && !inspecting;
     if (target) { selection.position.copy(target.position); selection.quaternion.copy(camera.quaternion); selection.scale.setScalar(target.radius * 1.45); }
-    const burstAge = time - burstStart; burst.visible = burstAge < 1.1;
-    if (burst.visible) { burst.scale.setScalar(.5 + burstAge * 5); burst.material.opacity = Math.max(0, .85 - burstAge * .8); }
+    effects.update(time, camera, { reducedMotion });
     if (time > toastUntil) $('toast').classList.remove('visible');
     if (audioReady && soundEnabled) {
-      const engineState = flight.velocity.length() > .1 ? input.boost ? 'boost' : 'move' : 'idle';
+      const engineState = flight.thrust.length() > .12 ? input.boost ? 'boost' : 'move' : 'idle';
       if (audio.currentEngineState !== engineState) audio.setEngineState(engineState);
     }
   }
@@ -517,7 +594,9 @@ function animate(now) {
   if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
   const veil = state.phase === 'transit' && state.sector < 2 ? THREE.MathUtils.clamp((time - transitStart - 4.4) / .6, 0, 1) : THREE.MathUtils.clamp((arrivalVeilUntil - time) / .6, 0, 1);
   $('transitionVeil').style.opacity = String(veil);
-  renderer.render(scene, camera);
+  sun.color.setHex(world.lighting.sun); rim.color.setHex(world.lighting.fill);
+  renderer.toneMappingExposure = world.lighting.exposure;
+  presentation.render(scene, camera, world);
   if (++frames === 2) { $('loading').style.opacity = '0'; setTimeout(() => { $('loading').hidden = true; }, reducedMotion ? 0 : 550); }
   requestAnimationFrame(animate);
 }

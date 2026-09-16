@@ -1,7 +1,7 @@
 const MOVEMENT_KEYS = {
   KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
   KeyW: 'forward', ArrowUp: 'forward', KeyS: 'back', ArrowDown: 'back',
-  Space: 'up', KeyC: 'down', ShiftLeft: 'boost', ShiftRight: 'boost',
+  Space: 'up', KeyC: 'down', ShiftLeft: 'boost', ShiftRight: 'boost', KeyQ: 'brake',
 };
 
 const ACTION_KEYS = {
@@ -10,7 +10,7 @@ const ACTION_KEYS = {
   KeyG: 'onNavigate', KeyI: 'onInspect',
 };
 
-const MOVES = new Set(['left', 'right', 'forward', 'back', 'up', 'down', 'boost']);
+const MOVES = new Set(['left', 'right', 'forward', 'back', 'up', 'down', 'boost', 'brake']);
 
 /** Input is in camera-local axes. Positive look deltas mean dragging right/down, in CSS pixels. */
 export function createControls(canvas, handlers = {}) {
@@ -143,6 +143,7 @@ export function createControls(canvas, handlers = {}) {
         y: Number(pressed.has('up')) - Number(pressed.has('down')),
         z: Number(pressed.has('back')) - Number(pressed.has('forward')),
         boost: pressed.has('boost'),
+        brake: pressed.has('brake'),
         lookX,
         lookY,
       };

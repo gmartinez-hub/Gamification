@@ -196,3 +196,44 @@ test("aim chance rewards closing distance and steady flight without allowing unw
     }
   }
 });
+
+test('biomes have explicit identities and moving hazard routes protect all mandatory interactions', () => {
+  const spawn = { x: 0, y: 0, z: 10 };
+  const eva = { x: 4.5, y: -.85, z: 7.5 };
+  const tether = { x: 2.4, y: .05, z: 7.5 };
+  for (let seed = 0; seed < 100; seed++) {
+    const mission = createExpedition(seed);
+    for (let sector = 0; sector < 3; sector++) {
+      const layout = mission.state.layout;
+      assert.equal(layout.biomeId, ['nereida', 'vesper', 'umbra'][sector]);
+      assert.ok(distance(layout.beacon, tether) < 24);
+      for (const target of layout.small) assert.ok(distance(target.position, eva) < 26);
+      for (const hazard of layout.hazards) {
+        const { axis, amplitude, period, phase } = hazard.motion;
+        assert.ok(amplitude >= 4 && amplitude <= 7.5);
+        assert.ok(Math.abs(Math.hypot(axis.x, axis.y, axis.z) - 1) < 1e-8);
+        assert.ok(amplitude * Math.PI * 2 / period >= 1);
+        assert.ok(amplitude * Math.PI * 2 / period <= 3);
+        for (let step = 0; step < 80; step++) {
+          const displacement = Math.sin(step / 80 * Math.PI * 2 + phase) * amplitude;
+          const point = {
+            x: hazard.position.x + axis.x * displacement,
+            y: hazard.position.y + axis.y * displacement,
+            z: hazard.position.z + axis.z * displacement,
+          };
+          assert.ok(distance(point, spawn) > hazard.radius + 8, `unsafe spawn route: seed ${seed}`);
+          for (const interaction of [layout.beacon, layout.gem]) {
+            assert.ok(distance(point, interaction) > hazard.radius + 6, `unsafe interaction route: seed ${seed}`);
+          }
+          const corridorPoint = { x: 0, y: 0, z: Math.max(-84, Math.min(-47, point.z)) };
+          assert.ok(distance(point, corridorPoint) > hazard.radius + 9, `unsafe corridor: seed ${seed}`);
+          for (const target of [...layout.small, ...layout.large]) {
+            assert.ok(distance(point, target.position) > hazard.radius + target.radius + 2);
+          }
+        }
+      }
+      clearEncounter(mission);
+      mission.collectGem(); mission.enterCorridor('ship'); mission.finishTransit();
+    }
+  }
+});

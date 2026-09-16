@@ -1,6 +1,6 @@
 # Gravedad Zero — un viaje, pieza por pieza
 
-Expedición jugable low poly en Three.js: exploración en tres dimensiones, escaneo, combate con astronauta y nave, regreso por cable y construcción de **una nave por módulos**. Tres sectores combinan un recorrido diseñado con posiciones procedurales reproducibles. Nave, astronauta y companion son modelos nuevos; el entorno reutiliza texturas y audio del repositorio.
+Expedición jugable low poly en Three.js: exploración en tres dimensiones, escaneo, combate con astronauta y nave, regreso por cable y construcción de **una nave por módulos**. Tres sectores combinan un recorrido diseñado con posiciones procedurales reproducibles. La V3 incorpora vuelo con inercia, proporciones habitables, cabina 3D y una atmósfera inspirada en el póster. Nave, astronauta y companion son modelos nuevos; el entorno reutiliza texturas y audio del repositorio.
 
 ## Ejecutar localmente
 
@@ -31,20 +31,51 @@ En cada sector:
 
 La gema habilita el corredor. El hábitat se incorpora al finalizar el primer cruce y la propulsión al finalizar el segundo. El tercer corredor completa la expedición; no añade un cuarto módulo.
 
-El astronauta vuela en XYZ y permanece unido por un cable de **26 m**. La nave se mantiene quieta durante la salida. Para explorar más lejos, regresá, mové la nave y volvé a salir. El botón **Guiar** desplaza al personaje hacia el objetivo; el jugador decide cuándo escanear, disparar y recoger. El movimiento manual cancela la guía.
+El astronauta vuela en XYZ y permanece unido al puerto físico de la nave por un cable de **26 m**, que empieza a tensarse progresivamente desde los **22 m**. La nave conserva posición y orientación durante la salida. Para explorar más lejos, regresá, mové la nave y volvé a salir. La guía y el regreso buscan una ruta exterior alrededor del casco hasta la escotilla.
+
+El botón **Guiar** desplaza al personaje hacia el objetivo y frena antes de llegar; el jugador decide cuándo escanear, disparar y recoger. El movimiento manual o el freno cancelan la guía. El escaneo y el apuntado aplican estabilización, sin detener instantáneamente una deriva.
+
+## Vuelo y escala
+
+La base es **gravedad cero con inercia**: al soltar el empuje seguís derivando, con una amortiguación leve para facilitar el control. Mantené **Q** o el botón táctil **Frenar** para activar los propulsores de frenado y detenerte. Cambiar de dirección requiere contrarrestar el movimiento previo. No hay atracción gravitacional de los planetas ni simulación orbital.
+
+La nave tiene aceleración y giro limitados; su rumbo es independiente de la velocidad. Puede retroceder o desplazarse lateralmente sin dar media vuelta. Los motores responden al empuje y al frenado, y se apagan durante la deriva. La cámara de cabina acompaña la orientación física de la nave y conserva un horizonte sin alabeo.
+
+| Modelo | Dimensión aproximada |
+|---|---|
+| Cabina inicial | 6,18 m de longitud |
+| Cabina y hábitat | 10,96 m de longitud |
+| Nave completa | 14,53 m de longitud |
+| Astronauta | 1,93 m de altura |
+| Companion | 0,7 m de altura |
+
+La vista en primera persona de la nave incluye marcos, consola y elementos de una cabina 3D. El astronauta mantiene la vista de visor; avanzar desde esa vista sigue también la inclinación de la mirada. La inspección exterior permite revisar los módulos y sus proporciones.
 
 El disparo es asistido: seleccionás un objetivo, ves la probabilidad y activás una secuencia de fijación y proyectil. Acercarte y frenar mejoran el acierto. El resultado se decide al disparar; la animación no simula una colisión física del proyectil. Los fallos se pueden reintentar después de la recuperación del arma.
 
-Las rocas rojas son peligros: cada impacto quita **25 puntos de integridad**, con **2 segundos de protección** entre impactos. Al llegar a cero se recupera la integridad; si estás fuera, empieza un regreso de emergencia a la nave. Conservás los objetivos completados. Los asteroides y planetas de fondo son decorativos.
+## Peligros y biomas
+
+Las rocas rojas son peligros móviles con trayectorias acotadas y reproducibles. Sus velocidades máximas varían según la semilla: aproximadamente **1,15–1,60 m/s en Nereida**, **1,55–2,00 m/s en Vesper** y **1,95–2,40 m/s en Umbra**. Las líneas de trayectoria y el aviso direccional ayudan a anticiparlas. La generación protege las zonas de interacción y el corredor.
+
+Las colisiones comprueban el recorrido entre fotogramas de las esferas del jugador y del peligro. El contacto separa los cuerpos y produce un rebote leve, conservando el movimiento tangencial. Cada impacto quita **15–38 puntos de integridad**, según la velocidad relativa, y deja **2 segundos de protección contra nuevo daño**; esa protección no desactiva la respuesta física. Al llegar a cero se recupera la integridad; si estás fuera, empieza un regreso de emergencia a la nave. Conservás los objetivos completados. Los asteroides ambientales y planetas son decorativos.
+
+| Bioma | Entorno |
+|---|---|
+| Nereida | Planeta oceánico, nubes, luz cálida y formaciones de roca con superficies aplanadas |
+| Vesper | Planeta con anillos, fragmentos alargados, cinturón diagonal y luz violeta fría |
+| Umbra | Planeta oscuro, formaciones más verticales y luz cobriza con acentos rosados |
+
+Los planetas están en una escena celeste separada, con rotación lenta y muy poco paralaje. El polvo y las rocas próximas aportan referencias de velocidad y profundidad. Cada bioma cambia geometría, iluminación y composición, además de la paleta; no cambia la física de gravedad cero.
 
 ## Controles
 
 | Acción | Computadora |
 |---|---|
-| Avanzar, retroceder y desplazarse a los costados | WASD o flechas, respecto de la cámara |
+| Avanzar, retroceder y desplazarse a los costados | WASD o flechas; rumbo de la nave al pilotar, cámara al controlar al astronauta |
 | Subir / bajar | Espacio / C |
 | Impulso | Mantener Shift |
-| Mirar alrededor | Arrastrar sobre el espacio |
+| Frenar / estabilizar | Mantener Q |
+| Mirar u orientar la nave | Arrastrar sobre el espacio |
 | Seleccionar objetivo | Clic sobre un objetivo o Tab con el foco en el mundo |
 | Disparo asistido | F |
 | Escanear / recoger gema | E, cerca del objeto y con el astronauta |
@@ -56,13 +87,13 @@ Las rocas rojas son peligros: cada impacto quita **25 puntos de integridad**, co
 | Pausar / continuar | Esc o botón de pausa |
 | Sonido | Botón ♪; comienza desactivado |
 
-En móvil, usá la cruceta para moverte, **ALT** para subir o bajar y el botón de impulso; pueden combinarse con varios dedos. Arrastrá sobre el espacio para mirar. Las acciones, el cambio de vista y el regreso a la nave también tienen botones. La cámara exterior acompaña al actor; visor y cabina son vistas experimentales para evaluar la jugabilidad.
+En móvil, usá la cruceta para moverte, **ALT** para subir o bajar y los botones de impulso y **Frenar**; pueden combinarse con varios dedos. Arrastrá sobre el espacio para mirar u orientar la nave. Las acciones, el cambio de vista y el regreso también tienen botones. La cámara exterior acompaña al actor; visor y cabina permiten evaluar el mismo recorrido en primera persona.
 
 ## Semilla y alcance
 
 La ruta conserva su estructura y cambia posiciones dentro de volúmenes seguros. La semilla controla balizas, asteroides, peligros y la ubicación de la gema junto a un núcleo. Podés repetir una distribución con [una URL con semilla](http://127.0.0.1:8787/?seed=620), por ejemplo `?seed=620`; la semilla actual aparece como **RUTA** en pantalla. **Nueva expedición** genera otra semilla y actualiza la URL.
 
-El progreso dura esta sesión y se reinicia al recargar. El objetivo de esta versión es probar mecánicas y diseño del nivel: mantiene geometría low poly, cable sin enredos, cámaras experimentales y disparos asistidos. No incluye arte final, guardado persistente, exportador GLB ni proyecto Godot. Los personajes usan piezas rígidas articuladas.
+El progreso dura esta sesión y se reinicia al recargar. El objetivo de esta versión sigue siendo probar mecánicas y diseño del nivel: mantiene geometría low poly, cable sin enredos y disparos asistidos. La dirección visual se acerca al póster mediante proporciones, materiales, iluminación y composición; el póster no representa una captura del juego. No incluye arte final, guardado persistente, exportador GLB ni proyecto Godot. Los personajes usan piezas rígidas articuladas.
 
 - [Juego actual](http://127.0.0.1:8787/): `index.html` y `src/lowpoly/`.
 - [Prototipo anterior](http://127.0.0.1:8787/legacy.html): conserva su entrada y `src/main.js`.
@@ -75,6 +106,6 @@ El progreso dura esta sesión y se reinicia al recargar. El objetivo de esta ver
 npm test
 ```
 
-Las pruebas cubren reglas de misión, generación, vuelo, cable, regreso, combate y contratos de los modelos. La presentación, las cámaras, los controles táctiles y el audio requieren además verificación en navegador. Consultá el [registro de verificación](docs/lowpoly-verification.md) para conocer lo comprobado y sus límites.
+Las pruebas cubren reglas de misión, generación, inercia y frenado, orientación, cable, regreso alrededor del casco, trayectorias de peligros, colisiones entre fotogramas, combate y contratos de los modelos. La presentación, las cámaras, los controles táctiles y el audio requieren además verificación en navegador. Consultá el [registro de verificación](docs/lowpoly-verification.md) para conocer lo comprobado y sus límites; la emulación móvil no sustituye las pruebas en un teléfono físico.
 
-El proyecto es estático y puede alojarse en un servidor web conservando sus rutas. Esta entrega no configura ni realiza un despliegue.
+El proyecto es estático y puede alojarse en un servidor web conservando sus rutas.
