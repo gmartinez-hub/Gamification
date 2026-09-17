@@ -42,7 +42,7 @@ export function createPresentation(renderer, { bloom = .16 } = {}) {
     glowTarget.setSize(Math.max(1, Math.floor(size.x / 4)), Math.max(1, Math.floor(size.y / 4)));
     glowMaterial.uniforms.texel.value.set(4 / size.x, 4 / size.y);
     outputMaterial.uniforms.texel.value.set(4 / size.x, 4 / size.y);
-    sceneTarget.samples = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches ? 0 : 2;
+    sceneTarget.samples = 2;
   }
   resize(); renderer.autoClear = false; renderer.info.autoReset = false;
   return {

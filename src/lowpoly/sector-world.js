@@ -1,5 +1,6 @@
 import * as THREE from '../../vendor/three.module.js';
 import { sampleHazard } from './hazards.js';
+import { loadModelSet } from './asset-loading.js';
 
 const TEXTURES = {
   ocean: new URL('../../assets/runtime/lowpoly-textures/ocean.jpg', import.meta.url).href,
@@ -17,7 +18,7 @@ const BIOMES = {
   },
   vesper: {
     planet: 0xb4accf, atmosphere: 0xa393dc, rock: 0x827e92, accent: 0xb9a0ee, texture: 'gas',
-    sky: 0x040512, haze: 0x31204f, warmHaze: 0x1a3449, sun: 0xcbd8ff, fill: 0xa08fd1, exposure: 1.02,
+    sky: 0x040512, haze: 0x31204f, warmHaze: 0x1a3449, sun: 0xcbd8ff, fill: 0xbcc7ed, exposure: 1.18,
     planetPosition: [-94, 26, -430], planetRadius: 108, moonPosition: [196, -75, -560], moonRadius: 19,
   },
   umbra: {
@@ -60,19 +61,10 @@ function collectModelResources(models) {
 
 /** Load once before world.load(). Ownership transfers to the world supplied
  * with this bundle; imported resources survive sector changes. */
-export async function loadWorldAssets() {
-  const { GLTFLoader } = await import('../../vendor/GLTFLoader.js');
-  const loader = new GLTFLoader();
-  const entries = Object.entries(MODEL_FILES);
-  const results = await Promise.allSettled(entries.map(async ([name, file]) => [name,
-    (await loader.loadAsync(new URL(`../../assets/runtime/models/${file}.glb`, import.meta.url).href)).scene]));
-  const assets = Object.fromEntries(results.filter(result => result.status === 'fulfilled').map(result => result.value));
-  const failed = results.find(result => result.status === 'rejected');
-  if (failed) {
-    for (const resource of collectModelResources(assets)) resource.dispose();
-    throw new Error('Could not load the world models.', { cause: failed.reason });
-  }
-  return assets;
+export async function loadWorldAssets(options = {}) {
+  const models = await loadModelSet(Object.entries(MODEL_FILES), options);
+  if (options.mobile) Object.assign(models, await loadModelSet([['fractureRock','asteroide-marron'],['fractureBase','asteroide-base']], { mobile:true, directory:'fracture-proxies' }));
+  return Object.fromEntries(Object.entries(models).map(([name, gltf]) => [name, gltf.scene]));
 }
 
 /** Presentation only. The layout remains immutable; public positions follow the
@@ -128,7 +120,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   function installAssets(models) {
     for (const resource of collectModelResources(models)) assetResources.add(resource);
     const templates = {};
-    for (const name of Object.keys(MODEL_FILES)) {
+    for (const name of Object.keys(models)) {
       const source = models[name];
       if (!source?.isObject3D) throw new Error(`Missing world model: ${name}`);
       source.updateMatrixWorld(true);
@@ -155,6 +147,11 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       template.userData.model = MODEL_FILES[name];
       templates[name] = template;
     }
+    // Templates own normalized clones. The imported meshes were never rendered;
+    // their original geometry is no longer needed after normalization.
+    for (const model of Object.values(models)) model.traverse(part => {
+      if (part.isMesh && assetResources.delete(part.geometry)) part.geometry.dispose();
+    });
     assetTemplates = templates;
   }
 
@@ -240,7 +237,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     const loaded = new THREE.TextureLoader().load(TEXTURES[name], image => {
       if (disposed || version !== generation) { image.dispose(); return; }
       image.colorSpace = slot === 'normalMap' ? THREE.NoColorSpace : THREE.SRGBColorSpace;
-      image.anisotropy = 4;
+      image.anisotropy = 8;
       image.wrapS = THREE.RepeatWrapping;
       if (repeat > 1) image.wrapT = THREE.RepeatWrapping;
       image.repeat.set(repeat, repeat);
@@ -600,6 +597,8 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       body.scale.setScalar(radius * .94);
       body.traverse(part => {
         if (!part.isMesh) return;
+        const proxy = assetTemplates[isHazard || isLarge ? 'fractureBase' : 'fractureRock'];
+        if (proxy) part.userData.fractureGeometry = proxy.children[0].geometry;
         if (isHazard || isLarge) part.material = isHazard ? materials.importedHazard : materials.importedCore;
       });
       object.add(body);
@@ -720,7 +719,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     currentLayout = layout;
     sectorPalette = BIOMES[layout.biomeId] || BIOMES.nereida;
     Object.assign(lighting, { sun: sectorPalette.sun, fill: sectorPalette.fill, exposure: sectorPalette.exposure });
-    skySun.color.set(sectorPalette.sun); skyFill.color.set(sectorPalette.fill);
+    skySun.color.set(sectorPalette.sun); skyFill.color.set(sectorPalette.fill); skyFill.intensity = layout.biomeId === 'vesper' ? .8 : .48;
     const random = randomForLayout(layout);
     materials = {
       ivory: surface(0xe5e1cd), graphite: surface(0x22333e), copper: surface(0xba8154, { metalness: 0.55 }),

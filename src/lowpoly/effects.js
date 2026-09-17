@@ -3,13 +3,15 @@ import * as THREE from '../../vendor/three.module.js';
 const NO_OPTIONS = Object.freeze({});
 const ATLAS_FILES = Object.freeze({ scan: 'scan-atlas.png', ship: 'ship-impact.png', eva: 'eva-impact.png' });
 const EFFECTS = Object.freeze({
+  evaMuzzle: { atlas:'eva', columns:4, rows:4, duration:.16, scale:.32, color:0xb6f5ff, opacity:.85, rings:0, radius:.2, fragments:5, speed:.6 },
+  shipMuzzle: { atlas:'ship', columns:4, rows:4, duration:.24, scale:.85, color:0xffd1a1, opacity:.85, rings:0, radius:.4, fragments:9, speed:1.1 },
   scan: { atlas:'scan', columns:4, rows:1, duration:1.1, scale:2.3, color:0xa5ffe8, opacity:.55, rings:1, radius:2.2, fragments:10, speed:.7 },
   eva: { atlas:'eva', columns:4, rows:4, duration:.9, scale:2.0, color:0xb6f5ff, opacity:.72, rings:1, radius:2.2, fragments:14, speed:2.5 },
-  ship: { atlas:'ship', columns:4, rows:4, duration:1.45, scale:4.8, color:0xffd1a1, opacity:.88, rings:2, radius:5.2, fragments:28, speed:4.5 },
-  gem: { atlas:'scan', columns:4, rows:1, duration:2, scale:3.2, color:0xaaf4df, opacity:.64, rings:3, radius:3.3, fragments:24, speed:1.5 },
-  collect: { atlas:'scan', columns:4, rows:1, duration:1.5, scale:1.7, color:0xb6ffee, opacity:.60, rings:2, radius:1.1, fragments:20, speed:.65 },
-  warp: { atlas:'scan', columns:4, rows:1, duration:2.1, scale:8, color:0xc1e5ff, opacity:.32, rings:3, radius:8.4, fragments:28, speed:6 },
-  attach: { atlas:'ship', columns:4, rows:4, duration:1.9, scale:3, color:0xffd3a1, opacity:.38, rings:2, radius:3.8, fragments:24, speed:2.7 },
+  ship: { atlas:'ship', columns:4, rows:4, duration:1.45, scale:4.8, color:0xffd1a1, opacity:.88, rings:2, radius:5.2, fragments:56, speed:4.5 },
+  gem: { atlas:'scan', columns:4, rows:1, duration:2, scale:3.2, color:0xaaf4df, opacity:.64, rings:3, radius:3.3, fragments:48, speed:1.5 },
+  collect: { atlas:'scan', columns:4, rows:1, duration:1.5, scale:1.7, color:0xb6ffee, opacity:.60, rings:2, radius:1.1, fragments:40, speed:.65 },
+  warp: { atlas:'scan', columns:4, rows:1, duration:2.1, scale:8, color:0xc1e5ff, opacity:.32, rings:3, radius:8.4, fragments:56, speed:6 },
+  attach: { atlas:'ship', columns:4, rows:4, duration:1.9, scale:3, color:0xffd3a1, opacity:.38, rings:2, radius:3.8, fragments:40, speed:2.7 },
 });
 
 /** Atlas files run left-to-right, top-to-bottom; texture UVs start below.
@@ -35,8 +37,8 @@ function prepareTexture(texture) {
 }
 const finitePoint = point => point && [point.x,point.y,point.z].every(Number.isFinite);
 
-/** A fixed four-event pool: one atlas, one wave batch and one fragment batch
- * per event. All are depth tested; a missing atlas never hides the 3D action. */
+/** A fixed four-event pool: shared atlas images with independent frame offsets,
+ * one wave batch and one fragment batch per event. Missing atlases never hide 3D action. */
 export function createEffects(scene) {
   const root = new THREE.Group(); root.name = 'legacy-atlas-effects'; scene.add(root);
   const sources = {};
@@ -54,8 +56,10 @@ export function createEffects(scene) {
   const fragmentGeometry = new THREE.IcosahedronGeometry(1,0);
   const slots = Array.from({length:4},(_,index)=>{
     const group = new THREE.Group(); group.name=`milestone-effect-${index}`;group.visible=false;root.add(group);
-    const texture=prepareTexture(new THREE.Texture());
-    const material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false,toneMapped:false,fog:false});
+    // Keep each Texture's Source fixed for its entire GPU lifetime. Clones share
+    // atlas image/storage while every event keeps independent frame UVs.
+    const textures=Object.fromEntries(Object.entries(sources).map(([kind,source])=>[kind,source.texture.clone()]));
+    const material=new THREE.SpriteMaterial({map:textures.eva,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false,toneMapped:false,fog:false});
     // Keep the verified atlas timing and alpha, while removing the legacy
     // magenta/green artwork so each weapon follows this expedition's palette.
     material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`
@@ -70,8 +74,8 @@ export function createEffects(scene) {
     const waveMaterial=new THREE.MeshBasicMaterial({color:0xb6f5ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false,toneMapped:false});
     const waves=new THREE.InstancedMesh(waveGeometry,waveMaterial,3);waves.name='curved-energy-waves';waves.instanceMatrix.setUsage(THREE.DynamicDrawUsage);waves.frustumCulled=false;group.add(waves);
     const fragmentMaterial=new THREE.MeshStandardMaterial({color:0xa8b7b1,emissive:0x285653,emissiveIntensity:.45,metalness:.22,roughness:.6,transparent:true,opacity:0,depthWrite:false,flatShading:true});
-    const fragments=new THREE.InstancedMesh(fragmentGeometry,fragmentMaterial,28);fragments.name='mineral-fragments';fragments.instanceMatrix.setUsage(THREE.DynamicDrawUsage);fragments.frustumCulled=false;group.add(fragments);
-    return {group,sprite,material,texture,waves,waveMaterial,fragments,fragmentMaterial,active:false,attached:false,config:EFFECTS.eva,kind:'eva',start:0,uv:{},from:new THREE.Vector3(),to:new THREE.Vector3(),travel:false};
+    const fragments=new THREE.InstancedMesh(fragmentGeometry,fragmentMaterial,64);fragments.name='mineral-fragments';fragments.instanceMatrix.setUsage(THREE.DynamicDrawUsage);fragments.frustumCulled=false;group.add(fragments);
+    return {group,sprite,material,textures,waves,waveMaterial,fragments,fragmentMaterial,active:false,config:EFFECTS.eva,kind:'eva',start:0,uv:{},from:new THREE.Vector3(),to:new THREE.Vector3(),travel:false};
   });
   const transform=new THREE.Object3D();
   const waveRotation=new THREE.Quaternion();
@@ -82,7 +86,8 @@ export function createEffects(scene) {
     const config=EFFECTS[kind];
     if (disposed || !config || !Number.isFinite(time) || !finitePoint(position)) return false;
     const slot=slots[cursor];cursor=(cursor+1)%slots.length;
-    slot.active=true;slot.attached=false;slot.config=config;slot.kind=kind;slot.start=time;slot.travel=false;
+    slot.active=true;slot.config=config;slot.kind=kind;slot.start=time;slot.travel=false;
+    slot.material.map=slot.textures[config.atlas];
     slot.from.copy(position);slot.group.position.copy(position);slot.group.visible=false;
     slot.sprite.visible=false;slot.sprite.scale.setScalar(config.scale);slot.material.color.setHex(config.color).multiplyScalar(kind==='ship'||kind==='warp'?2:1.6);
     slot.waveMaterial.color.setHex(config.color).multiplyScalar(1.65);
@@ -116,9 +121,9 @@ export function createEffects(scene) {
       const source=sources[c.atlas];
       slot.sprite.visible=source.ready;
       if(source.ready){
-        if(!slot.attached){slot.texture.source=source.texture.source;slot.texture.needsUpdate=true;slot.attached=true;}
+        const texture=slot.textures[c.atlas];
         atlasFrame(c.columns,c.rows,reduced?.55:Math.min(1,progress*1.55),slot.uv);
-        slot.texture.repeat.set(slot.uv.width,slot.uv.height);slot.texture.offset.set(slot.uv.x,slot.uv.y);
+        texture.repeat.set(slot.uv.width,slot.uv.height);texture.offset.set(slot.uv.x,slot.uv.y);
         slot.sprite.scale.setScalar(c.scale*(reduced?1:1+progress*.12));
         slot.material.opacity=c.opacity*(reduced?.18:1)*Math.pow(1-progress,1.3);
       }
@@ -152,7 +157,7 @@ export function createEffects(scene) {
 
   function dispose() {
     if(disposed)return;disposed=true;root.removeFromParent();
-    for(const slot of slots){slot.texture.dispose();slot.material.dispose();slot.waveMaterial.dispose();slot.fragmentMaterial.dispose();slot.waves.dispose();slot.fragments.dispose();}
+    for(const slot of slots){for(const texture of Object.values(slot.textures))texture.dispose();slot.material.dispose();slot.waveMaterial.dispose();slot.fragmentMaterial.dispose();slot.waves.dispose();slot.fragments.dispose();}
     for(const source of Object.values(sources))source.texture.dispose();
     waveGeometry.dispose();fragmentGeometry.dispose();
   }

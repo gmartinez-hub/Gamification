@@ -65,11 +65,16 @@ export function fractureGeometry(coreGeometry, count = 24) {
 }
 
 // Source geometry is prepared once, reused for repeated hits, and released at disposal.
-export function createDestruction(scene) {
+export function createDestruction(scene, { maxSourceTriangles = Infinity } = {}) {
   const templates=new Map(),active=[];
   const root=new THREE.Group();root.name='closed-mineral-fractures';scene.add(root);
   function body(record){let largest=null;record.object.userData.body.traverse(o=>{if(o.isMesh&&(!largest||o.geometry.attributes.position.count>largest.geometry.attributes.position.count))largest=o;});return largest;}
-  function prepare(record){const mesh=body(record);if(!mesh)return null;if(!templates.has(mesh.geometry))templates.set(mesh.geometry,fractureGeometry(mesh.geometry));return templates.get(mesh.geometry);}
+  function prepare(record){const mesh=body(record);if(!mesh)return null;
+    // Mobile derivatives fit this budget. If a future asset exceeds it, the
+    // existing particle burst still plays without a full-mesh CPU allocation.
+    const geometry = mesh.userData.fractureGeometry || mesh.geometry;
+    if((geometry.index?.count || geometry.attributes.position.count)/3 > maxSourceTriangles)return null;
+    if(!templates.has(geometry))templates.set(geometry,fractureGeometry(geometry));return templates.get(geometry);}
   function burst(record,time){
     const original=body(record),source=prepare(record);if(!original||!source)return;
     original.updateWorldMatrix(true,false);

@@ -45,14 +45,14 @@ test('imported asteroid surfaces share geometry and remain inside their gameplay
   world.dispose();
 });
 
-test('sector replacement retains imported resources until world disposal', () => {
+test('normalization releases source geometry while sector replacement retains shared templates', () => {
   const fixture = assetFixture(), world = createSectorWorld(new THREE.Scene(), { assets: fixture.assets });
   world.load(layout());
   const shared = firstMesh(world.targets[0].object.userData.body).geometry;
   let releases = 0; shared.addEventListener('dispose', () => releases++);
   world.load({ ...layout(), biomeId: 'umbra' });
   assert.equal(firstMesh(world.targets[0].object.userData.body).geometry, shared);
-  assert.equal(releases, 0); assert.deepEqual(fixture.releases, []);
+  assert.equal(releases, 0); assert.deepEqual(fixture.releases.sort(), ['base:geometry', 'beacon:geometry', 'rock:geometry']);
   world.dispose(); world.dispose();
   assert.equal(releases, 1);
   assert.equal(fixture.releases.length, 6);

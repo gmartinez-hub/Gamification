@@ -64,3 +64,41 @@ test('milestone effects share a bounded pool and reduced motion suppresses fragm
   assert.ok(root.children.every(group=>group.getObjectByName('mineral-fragments').visible));
   fx.update(10,camera);assert.ok(root.children.every(group=>!group.visible));fx.dispose();
 });
+
+test('pool reuse keeps uploaded atlas sources fixed and releases every owned texture once', async t => {
+  const { Scene, Vector3, Texture, TextureLoader } = await import('../vendor/three.module.js');
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: {} });
+  t.after(() => {
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else delete globalThis.document;
+  });
+  const loaded = [];
+  t.mock.method(TextureLoader.prototype, 'load', (url, onLoad) => {
+    const texture = new Texture({ width: 1024, height: url.includes('scan') ? 256 : 1024 });
+    loaded.push(texture); onLoad(texture); return texture;
+  });
+  const scene = new Scene(), fx = effects.createEffects(scene);
+  const sprites = scene.getObjectByName('legacy-atlas-effects').children.map(group => group.children.find(object => object.isSprite));
+  const sourceByKind = Object.fromEntries(['scan', 'ship', 'eva'].map((kind, i) => [kind, loaded[i].source]));
+  const seen = new Map(), mapsBySlot = sprites.map(() => new Map());
+  for (let round = 0; round < 9; round++) {
+    const kind = ['eva', 'ship', 'scan'][round % 3], time = round * 2;
+    for (let i = 0; i < 4; i++) fx.burst(new Vector3(), kind, time + i * .07);
+    fx.update(time + .3, null);
+    assert.equal(new Set(sprites.map(sprite => sprite.material.map)).size, 4, 'events own independent frame offsets');
+    sprites.forEach((sprite, i) => {
+      const map = sprite.material.map;
+      assert.equal(map.source, sourceByKind[kind], 'the current effect samples its own atlas');
+      if (mapsBySlot[i].has(kind)) assert.equal(map, mapsBySlot[i].get(kind), 'pool reuse does not allocate another texture');
+      else mapsBySlot[i].set(kind, map);
+      if (!seen.has(map)) seen.set(map, map.source);
+    });
+    for (const [map, source] of seen) assert.equal(map.source, source, 'a previously uploaded texture never changes source');
+  }
+  assert.equal(seen.size, 12, 'four slots times three fixed atlas views');
+  const disposals = new Map([...seen.keys(), ...loaded].map(texture => [texture, 0]));
+  for (const texture of disposals.keys()) texture.addEventListener('dispose', () => disposals.set(texture, disposals.get(texture) + 1));
+  fx.dispose(); fx.dispose();
+  assert.ok([...disposals.values()].every(count => count === 1), 'all texture views and atlas owners are released exactly once');
+});

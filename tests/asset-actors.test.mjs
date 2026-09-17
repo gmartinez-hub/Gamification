@@ -19,3 +19,23 @@ test('main exhaust stops in drift/reverse and RCS fires on the opposite side of 
  ship.group.rotation.y=Math.PI/2;ship.update(4,{thrust:new Vector3(-1,0,0)});assert(Math.abs(main.userData.power-1)<1e-6);
  ship.group.updateMatrixWorld(true);const v=ship.muzzle.getWorldPosition(new Vector3());assert(v.toArray().every(Number.isFinite));
 });
+
+test('ship loads future modules on demand without changing attachment planes or duplicating models',()=>{
+ const ship=createAssetShip({capsula:{scene:new Group()}});
+ assert(ship.hasStage(1));assert(!ship.hasStage(2));
+ const habitat={scene:new Group()};ship.install({habitat});assert(ship.hasStage(2));assert(!ship.hasStage(3));
+ assert.equal(ship.modules[1].visible,false);ship.setStage(2,false);assert.equal(ship.modules[1].visible,true);
+ const children=ship.modules[1].children.length;ship.install({habitat});assert.equal(ship.modules[1].children.length,children);
+ assert.equal(ship.modules[1].position.z,.575);assert.equal(habitat.scene.scale.x,2.5);
+});
+
+test('turbo expands main plasma, illuminates active stage-three nozzles, and drift extinguishes it',()=>{
+ const ship=fixture();ship.setStage(3,false);
+ ship.update(1,{thrust:new Vector3(0,0,-1)});
+ const engine=ship.modules[2].children.find(o=>o.name.startsWith('plasma-engine-'));
+ const core=engine.children.find(o=>o.isMesh),light=engine.children.find(o=>o.isPointLight);
+ const normal=core.material.uniforms.length.value;assert(light.intensity>0);
+ ship.update(2,{thrust:new Vector3(0,0,-1),boost:true});assert(core.material.uniforms.length.value>normal*1.5);
+ assert(engine.getObjectByName('exhaust-plasma-motes'));
+ ship.update(3,{thrust:new Vector3()});assert.equal(engine.visible,false);assert.equal(light.intensity,0);
+});

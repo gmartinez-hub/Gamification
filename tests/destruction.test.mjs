@@ -14,3 +14,17 @@ test('fracture retains original exterior/UV and closes every piece at its cut ed
  assert([...positions.array,...g.attributes.normal.array].every(Number.isFinite));
  original.dispose();g.dispose();
 });
+
+test('mobile fracture budget rejects oversized source geometry without changing or allocating fragments', async () => {
+ const { Scene, Group, Mesh, MeshStandardMaterial } = await import('../vendor/three.module.js');
+ const { createDestruction } = await import('../src/lowpoly/destruction.js');
+ const scene = new Scene(), body = new Group(), original = new IcosahedronGeometry(1, 2);
+ body.add(new Mesh(original, new MeshStandardMaterial()));
+ const record = { id: 'rock', radius: 1, object: new Group() }; record.object.userData.body = body;
+ const destruction = createDestruction(scene, { maxSourceTriangles: 10 });
+ assert.equal(destruction.prepare(record), null);
+ destruction.burst(record, 0);
+ assert.equal(scene.getObjectByName('closed-mineral-fractures').children.length, 0);
+ assert.equal(original.attributes.position.count, 540);
+ destruction.dispose(); original.dispose(); body.children[0].material.dispose();
+});

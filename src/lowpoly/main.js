@@ -1,6 +1,7 @@
 import * as THREE from '../../vendor/three.module.js';
+import { usesMobileAssets } from './asset-loading.js';
 import { loadActorAssets, createAssetShip, createAssetAstronaut, createAssetCompanion, createAssetCockpit, createAssetVisor } from './asset-actors.js';
-import { createSectorWorld } from './sector-world.js';
+import { createSectorWorld, loadWorldAssets } from './sector-world.js';
 import { createExpedition, createRandom, aimChance } from './expedition.js';
 import { createFlight, EVA_CENTER_Y, EVA_RADIUS } from './flight.js';
 import { createControls } from './controls.js';
@@ -17,15 +18,17 @@ import { createCheckpointStore, DEFAULT_SETTINGS } from './checkpoint.js';
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const mobileGPU = matchMedia('(pointer:coarse)').matches;
+const mobileGPU = usesMobileAssets({ coarsePointer: matchMedia('(pointer:coarse)').matches, userAgent: navigator.userAgent, platform: navigator.platform, maxTouchPoints: navigator.maxTouchPoints });
+canvas.dataset.assetProfile = mobileGPU ? 'mobile' : 'desktop';
+const renderPixelRatio = () => Math.min(devicePixelRatio, 720 / Math.min(innerWidth, innerHeight), 1280 / Math.max(innerWidth, innerHeight));
 let renderer;
-try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobileGPU, powerPreference: 'high-performance' }); }
 catch (error) {
   $('loading').classList.add('error');
   $('loading').querySelector('p').textContent = 'No pudimos iniciar el mundo 3D. Probá con WebGL 2 y aceleración gráfica activada.';
   throw error;
 }
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1280 / innerWidth, 720 / innerHeight));
+renderer.setPixelRatio(renderPixelRatio());
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -38,7 +41,8 @@ scene.background = null;
 const reflection = createReflectionEnvironment(renderer);
 scene.environment = reflection.texture; scene.environmentIntensity = .32;
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, .1, 600);
-scene.add(new THREE.HemisphereLight(0xc7e7ef, 0x18203a, .72));
+const ambient = new THREE.HemisphereLight(0xd4e5f2, 0x404252, .95); scene.add(ambient);
+const cameraFill = new THREE.DirectionalLight(0xc9deef, .45); scene.add(cameraFill, cameraFill.target);
 const sun = new THREE.DirectionalLight(0xffe2bb, 3);
 sun.position.set(-30, 45, 20); scene.add(sun);
 sun.castShadow = true;
@@ -48,16 +52,6 @@ sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias = -.0002; sun.shadow
 scene.add(sun.target);
 const rim = new THREE.DirectionalLight(0x6bbfcf, 1);
 rim.position.set(15, 9, -20); scene.add(rim);
-let actorAssets;
-try { actorAssets = await loadActorAssets((done,total) => { $('loading').querySelector('p').textContent = `Preparando modelos y texturas · ${done} / ${total}`; }); }
-catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo completar la descarga de los modelos. Recargá para volver a intentar.'; throw error; }
-const ship = createAssetShip(actorAssets), astronaut = createAssetAstronaut(actorAssets), companion = createAssetCompanion(actorAssets);
-scene.add(ship.group, astronaut.group, companion.group, camera);
-const cockpit = createAssetCockpit(actorAssets); camera.add(cockpit.group); cockpit.group.visible = false;
-const visor = createAssetVisor(actorAssets); camera.add(visor.group);
-const eventLight = new THREE.PointLight(0x7deaff, 0, 26, 2); scene.add(eventLight);
-let eventLightUntil = 0;
-const presentation = createPresentation(renderer);
 const params = new URLSearchParams(location.search);
 const seedParam = params.get('seed');
 const seed = seedParam ? /^\d+$/.test(seedParam) ? Number(seedParam) : seedParam : 712069;
@@ -67,12 +61,22 @@ const checkpoint = createCheckpointStore();
 const saved = checkpoint.load(seedParam ? { seed: state.seed } : {});
 const settings = { ...DEFAULT_SETTINGS, ...saved?.settings };
 if (saved) mission.restoreCheckpoint(saved);
+let actorAssets;
+try { actorAssets = await loadActorAssets((done,total) => { $('loading').querySelector('p').textContent = `Preparando modelos y texturas · ${done} / ${total}`; }, { mobile: mobileGPU, stage: state.moduleStage }); }
+catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo completar la descarga de los modelos. Recargá para volver a intentar.'; throw error; }
+const ship = createAssetShip(actorAssets), astronaut = createAssetAstronaut(actorAssets), companion = createAssetCompanion(actorAssets);
+scene.add(ship.group, astronaut.group, companion.group, camera);
+const cockpit = createAssetCockpit(actorAssets); camera.add(cockpit.group); cockpit.group.visible = false;
+const visor = createAssetVisor(actorAssets); camera.add(visor.group);
+const eventLight = new THREE.PointLight(0x7deaff, 0, 26, 2); scene.add(eventLight);
+let eventLightUntil = 0;
+const presentation = createPresentation(renderer);
 const flight = createFlight();
 if (saved) flight.reset({ aboard: true });
 flight.setStage(state.moduleStage);
 let shotRandom = createRandom(`${state.seed}:combat`);
 const combat = createCombat(() => shotRandom());
-const world = createSectorWorld(scene);
+const world = createSectorWorld(scene, { assetLoader: () => loadWorldAssets({ mobile: mobileGPU }) });
 $('loading').querySelector('p').textContent = 'Preparando baliza, minerales y biomas…';
 try { await world.loadAssets(); } catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo descargar el escenario. Recargá para volver a intentar.'; throw error; }
 world.load(state.layout);
@@ -89,6 +93,7 @@ let orbit = firstPerson ? 0 : -.9, elevation = firstPerson ? 0 : .28, zoom = 1, 
 let selectedId = null, navigating = false, scanProgress = 0, scanning = false;
 let health = 100, assemblyUntil = 0, transitStart = 0;
 let pendingModule = 0, attachAt = 0, arrivalVeilUntil = 0;
+let attachFlashAt = 0, attachJoint = null, cameraLean = 0;
 let previousActor = flight.actor, previousPhase = state.phase, hudTimer = 0, frames = 0;
 let tutorialUntil = settings.introSeen ? 0 : 9, qualityElapsed = 0, qualityFrames = 0;
 let qualityScale = 1;
@@ -111,8 +116,19 @@ scene.add(selection);
 const projectile = new THREE.Mesh(new THREE.SphereGeometry(.14, 6, 4), new THREE.MeshBasicMaterial({ color: 0xb5fff1, toneMapped: false }));
 projectile.visible = false; scene.add(projectile);
 const effects = createEffects(scene);
-const destruction = createDestruction(scene);
+const destruction = createDestruction(scene, { maxSourceTriangles: mobileGPU ? 16000 : Infinity });
 for(const record of world.targets) destruction.prepare(record);
+
+let stageLoad = null, stageRetryAt = 0, stageWaiting = false;
+async function prepareNextStage() {
+  const next = state.moduleStage + 1;
+  if (next > 3 || ship.hasStage(next) || stageLoad || performance.now() < stageRetryAt) return;
+  const missing = ['capsula','habitat','propulsion'].slice(0,next).filter(name => !actorAssets[name]);
+  stageLoad = loadActorAssets(() => {}, { mobile: mobileGPU, only: missing });
+  try { const records = await stageLoad; Object.assign(actorAssets, records); ship.install(records); }
+  catch { stageRetryAt = performance.now() + 10000; notify('Reintentando la descarga del próximo módulo…', 10); }
+  finally { stageLoad = null; }
+}
 
 function notify(message, duration = 4) { $('toast').textContent = message; $('toast').classList.add('visible'); toastUntil = time + duration; }
 function say(message) { $('companionMessage').textContent = message; play('companionHint'); }
@@ -364,7 +380,7 @@ canvas.addEventListener('pointerup', event => {
 });
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1280 / innerWidth, 720 / innerHeight) * qualityScale); renderer.setSize(innerWidth, innerHeight); presentation.resize();
+  renderer.setPixelRatio(renderPixelRatio() * qualityScale); renderer.setSize(innerWidth, innerHeight); presentation.resize();
 });
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault(); setPaused(true); $('loading').hidden = false; $('loading').style.opacity = '1';
@@ -422,6 +438,13 @@ function updateTransit(dt) {
   flight.updateHeading(dt, { lookYaw: 0, lookPitch: 0 });
   flight.velocity.set(0, 0, -4.8);
   if (age >= 5) {
+    if (state.moduleStage < 3 && !ship.hasStage(state.moduleStage + 1)) {
+      prepareNextStage(); stageWaiting = true;
+      $('loading').hidden = false; $('loading').style.opacity = '1';
+      $('loading').querySelector('p').textContent = 'Atravesando el corredor · descargando el próximo módulo…';
+      return;
+    }
+    if (stageWaiting) { $('loading').hidden = true; stageWaiting = false; }
     mission.finishTransit(); combat.reset(); selectedId = null; navigating = false; scanning = false; scanProgress = 0;
     if (state.phase === 'complete') {
       flight.velocity.set(0, 0, 0); flight.thrust.set(0, 0, 0); notify('Tres gemas. Una nave completa. Expedición terminada.', 8); say('Llegamos juntos. Podés inspeccionar la nave o iniciar otra expedición.'); play('complete'); triggerBurst(flight.shipPosition, 'attach');
@@ -470,6 +493,7 @@ function updateCombat(dt) {
       const origin = mount.getWorldPosition(new THREE.Vector3());
       if(shot.actor === 'astronaut' && visorActive()) visor.kick();
       illuminate(origin, shot.actor === 'ship' ? 0xffbd75 : 0x80e8ff, .18);
+      triggerBurst(origin, shot.actor === 'ship' ? 'shipMuzzle' : 'evaMuzzle');
       Object.assign(shot.origin, { x: origin.x, y: origin.y, z: origin.z });
       play(shot.actor === 'ship' ? 'shipFire' : 'evaFire');
     }
@@ -525,7 +549,7 @@ function updateHazards() {
   }
 }
 function updateActors(dt, input) {
-  if (pendingModule && time >= attachAt) { ship.setStage(pendingModule, !reducedMotion); pendingModule = 0; play('moduleAttach'); triggerBurst(flight.shipPosition, 'attach'); illuminate(flight.shipPosition, 0x9deee6, 1.3); }
+  if (pendingModule && time >= attachAt) { attachJoint = ship.group.getObjectByName(pendingModule === 2 ? 'habitat-front-seal' : 'engine-front-seal'); ship.setStage(pendingModule, !reducedMotion); pendingModule = 0; attachFlashAt = time + (reducedMotion ? .01 : 2.2); }
   ship.group.position.copy(flight.shipPosition); ship.group.quaternion.copy(flight.shipQuaternion);
   astronaut.group.position.copy(flight.astronautPosition);
   if (flight.actor === 'astronaut') {
@@ -538,8 +562,9 @@ function updateActors(dt, input) {
     }
   }
   const frozen = inspecting || time < assemblyUntil || state.phase === 'complete';
-  ship.update(time, { thrust: flight.actor === 'ship' && !frozen ? flight.thrust : 0, braking: !frozen && flight.actor === 'ship' && flight.braking, boost: input.boost });
-  astronaut.update(time, { aiming: !!combat.shot, interacting: scanning, thrust: flight.actor === 'astronaut' && !frozen ? flight.thrust : 0, braking: !frozen && flight.braking, boost: input.boost });
+  ship.update(time, { thrust: flight.actor === 'ship' && !frozen ? flight.thrust : 0, braking: !frozen && flight.actor === 'ship' && flight.braking, boost: input.boost, reducedMotion });
+  if (attachJoint && time >= attachFlashAt) { attachJoint.updateWorldMatrix(true,false); const point = attachJoint.getWorldPosition(new THREE.Vector3()); triggerBurst(point,'attach'); illuminate(point,0x9deee6,1.3); play('moduleAttach'); attachJoint = null; }
+  astronaut.update(time, { aiming: !!combat.shot, interacting: scanning, thrust: flight.actor === 'astronaut' && !frozen ? flight.thrust : 0, braking: !frozen && flight.braking, boost: input.boost, reducedMotion });
   astronaut.group.visible = flight.actor === 'astronaut' && !visorActive();
   ship.group.visible = !(flight.actor === 'ship' && visorActive());
   cockpit.group.visible = flight.actor === 'ship' && visorActive();
@@ -565,7 +590,11 @@ function updateActors(dt, input) {
   }
 }
 function updateCamera(dt) {
-  const fov = visorActive() ? flight.actor === 'ship' ? 57 : 72 : 52;
+  const baseFov = visorActive() ? flight.actor === 'ship' ? 57 : 72 : 52;
+  const pulse = reducedMotion ? 0 : Math.sin(Math.min(1, Math.max(0, eventLightUntil-time)/1.4)*Math.PI)*1.5;
+  const warp = !reducedMotion && state.phase === 'transit' ? Math.sin(Math.min(1,(time-transitStart)/5)*Math.PI)*12 : 0;
+  const driftFov = reducedMotion || combat.shot || scanning ? 0 : Math.min(1.8,flight.velocity.length()*.12);
+  const fov = THREE.MathUtils.damp(camera.fov,baseFov + warp + driftFov - pulse,7,dt);
   if(camera.fov !== fov) { camera.fov = fov; camera.near = .025; camera.updateProjectionMatrix(); }
   zoom = THREE.MathUtils.damp(zoom, targetZoom, 6, dt);
   const focusShip = forcedExterior();
@@ -586,10 +615,13 @@ function updateCamera(dt) {
     const portrait = Math.max(1, .78 / camera.aspect);
     const distance = (focusShip || flight.actor === 'ship' ? shipFrameRadius(state.moduleStage) * 2.8 + 5 : 7.5) * zoom * portrait;
     const angle = focusShip ? .42 : flight.actor === 'ship' ? .27 - flight.shipPitch * .45 : elevation;
-    const heading = flight.actor === 'ship' && !focusShip ? flight.shipYaw : orbit;
+    const revealOrbit = !reducedMotion && time < assemblyUntil ? Math.sin(Math.max(0,3.4-(assemblyUntil-time))/3.4*Math.PI)*.28 : 0;
+    const heading = (flight.actor === 'ship' && !focusShip ? flight.shipYaw : orbit) + revealOrbit;
     cameraPosition.set(Math.sin(heading) * Math.cos(angle), Math.sin(angle), Math.cos(heading) * Math.cos(angle)).multiplyScalar(distance).add(cameraTarget);
     camera.position.lerp(cameraPosition, smoothing); camera.lookAt(cameraTarget);
   }
+  const leanTarget = reducedMotion || combat.shot || scanning || forcedExterior() ? 0 : THREE.MathUtils.clamp(-flight.thrust.x*.004,-.012,.012);
+  cameraLean = THREE.MathUtils.damp(cameraLean,leanTarget,4,dt); camera.rotateZ(cameraLean);
 }
 function updateMissionUI() {
   const content = {
@@ -736,7 +768,7 @@ function updateHUD() {
   canvas.dataset.tether = flight.tetherLength.toFixed(2); canvas.dataset.health = String(health);
   canvas.dataset.view = visorActive() ? flight.actor === 'ship' ? 'cabina' : 'visor' : 'exterior';
   canvas.dataset.quality = qualityScale.toFixed(2);
-  canvas.dataset.models = 'meshy-integrated-v1'; canvas.dataset.triangles = String(renderer.info.render.triangles);
+  canvas.dataset.models = 'meshy-streamed-original-v2'; canvas.dataset.triangles = String(renderer.info.render.triangles);
   canvas.dataset.navigating = String(navigating); canvas.dataset.scanning = String(scanning);
   canvas.dataset.shot = combat.shot?.phase || ''; canvas.dataset.ready = 'true';
 }
@@ -760,6 +792,7 @@ function animate(now) {
   const input = controls.sample();
   if (!paused) {
     time += dt; ensureTarget();
+    if (state.phase === 'gem' || state.phase === 'return') prepareNextStage();
     if (!combat.shot) { orbit -= input.lookX * .005; elevation = THREE.MathUtils.clamp(elevation + input.lookY * .004, -1.1, 1.1); }
     previousPosition.copy(flight.position); previousQuaternion.copy(flight.shipQuaternion); collisionActor = flight.actor;
     updateFlight(dt, input); updateScan(dt); updateCombat(dt); handlePhaseChange(); ensureTarget();
@@ -777,21 +810,24 @@ function animate(now) {
   const veil = state.phase === 'transit' && state.sector < 2 ? THREE.MathUtils.clamp((time - transitStart - 4.4) / .6, 0, 1) : THREE.MathUtils.clamp((arrivalVeilUntil - time) / .6, 0, 1);
   $('transitionVeil').style.opacity = String(veil);
   sun.color.setHex(world.lighting.sun); rim.color.setHex(world.lighting.fill);
+  ambient.intensity = state.layout.biomeId === 'vesper' ? 1.35 : 1.05;
+  cameraFill.position.copy(camera.position); cameraFill.target.position.copy(flight.position).add(new THREE.Vector3(0,1,0));
   sun.target.position.copy(flight.position); sun.position.copy(flight.position).add(new THREE.Vector3(-30, 45, 20));
   renderer.shadowMap.needsUpdate = frames % (mobileGPU ? 2 : 1) === 0;
   eventLight.intensity = reducedMotion ? 0 : Math.max(0, eventLightUntil - time) * 26;
   renderer.toneMappingExposure = world.lighting.exposure;
   destruction.update(time);
+  presentation.setBloom(.16 + (reducedMotion ? 0 : Math.min(.13, Math.max(0,eventLightUntil-time)*.09)) + (state.phase === 'transit' && !reducedMotion ? .07 : 0));
   presentation.render(scene, camera, world);
   if (!paused && realDelta > 0 && realDelta < .25 && frames > 120) {
     qualityElapsed += realDelta; qualityFrames++;
     if (qualityElapsed >= 4) {
       const rate = qualityFrames / qualityElapsed;
       canvas.dataset.fps = rate.toFixed(1);
-      const next = rate < 38 ? Math.max(.7, qualityScale - .1) : rate > 57 ? Math.min(1, qualityScale + .05) : qualityScale;
+      const next = 1; // Preserve the agreed resolution; optimize loading, not image sharpness.
       if (next !== qualityScale) {
         qualityScale = next;
-        renderer.setPixelRatio(Math.min(devicePixelRatio, 1280 / innerWidth, 720 / innerHeight) * qualityScale);
+        renderer.setPixelRatio(renderPixelRatio() * qualityScale);
         renderer.setSize(innerWidth, innerHeight); presentation.resize();
       }
       qualityElapsed = qualityFrames = 0;

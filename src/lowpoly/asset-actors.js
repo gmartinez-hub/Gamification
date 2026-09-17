@@ -1,22 +1,18 @@
 import * as THREE from '../../vendor/three.module.js';
-import { GLTFLoader } from '../../vendor/GLTFLoader.js';
+import { loadModelSet } from './asset-loading.js';
 import { createPropulsion } from './plasma.js';
 
 const names = ['capsula','habitat','propulsion','astronauta-armado','astronauta-brazos-armado','cabina-integrada','robot'];
-export async function loadActorAssets(onProgress = () => {}) {
-  const loader = new GLTFLoader(); let complete = 0;
-  const records = await Promise.all(names.map(async name => {
-    const gltf = await loader.loadAsync(new URL(`../../assets/runtime/models/${name}.glb`,import.meta.url).href);
-    gltf.scene.traverse(o => { if (o.isMesh) {
-      o.castShadow = true; o.receiveShadow = true;
-      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-        if (m.map) m.map.anisotropy = 4;
-        m.envMapIntensity = .8;
-      }
-    }});
-    onProgress(++complete,names.length); return [name,gltf];
-  }));
-  return Object.fromEntries(records);
+export async function loadActorAssets(onProgress = () => {}, { mobile = false, stage = 3, only = null } = {}) {
+  const records = await loadModelSet((only || names.filter((_, index) => index >= 3 || index < stage)).map(name => [name, name]), { mobile, onProgress });
+  for (const gltf of Object.values(records)) gltf.scene.traverse(o => { if (o.isMesh) {
+    o.castShadow = true; o.receiveShadow = true;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (m.map) m.map.anisotropy = 8;
+      m.envMapIntensity = .8;
+    }
+  }});
+  return records;
 }
 const metal = new THREE.MeshStandardMaterial({color:0x343d43,metalness:.75,roughness:.35});
 const trim = new THREE.MeshStandardMaterial({color:0xbeb7a7,metalness:.45,roughness:.43});
@@ -34,7 +30,7 @@ export function createAssetShip(assets) {
   const modules=names.slice(0,3).map((name,index)=>{
     const root=new THREE.Group();root.name=['module-cockpit','module-body','module-propulsion'][index];
     root.position.z=[-3.5,.575,4.75][index];root.userData.stage=index+1;
-    const model=assets[name].scene;model.rotation.x=-Math.PI/2;model.scale.setScalar(2.5);root.add(model);group.add(root);return root;
+    const model=assets[name]?.scene;if(model){model.rotation.x=-Math.PI/2;model.scale.setScalar(2.5);root.add(model);root.userData.loaded=true;}group.add(root);return root;
   });
   // Mating planes are measured in the source models, then converted Y -> -Z.
   // Short collars hide the two original independent rims without changing their bodies.
@@ -67,14 +63,17 @@ export function createAssetShip(assets) {
     });stage=next;group.userData.stage=next;
   }
   setStage(1,false);
-  return {group,setStage,muzzle,modules,update(time,{thrust=0,braking=false,boost=false}={}) {
+  return {group,setStage,muzzle,modules,
+    hasStage(next){return modules.slice(0,next).every(m=>m.userData.loaded);},
+    install(records){for(const [name,asset] of Object.entries(records)){const index=names.slice(0,3).indexOf(name);if(index<0||modules[index].userData.loaded)continue;asset.scene.rotation.x=-Math.PI/2;asset.scene.scale.setScalar(2.5);modules[index].add(asset.scene);modules[index].userData.loaded=true;}},
+    update(time,{thrust=0,braking=false,boost=false,reducedMotion=false}={}) {
     last=time;
     if(typeof thrust==='number')local.set(0,0,-thrust);else local.copy(thrust).applyQuaternion(inverse.copy(group.quaternion).invert());
     const forward=THREE.MathUtils.clamp(-local.z,0,1);
     for(const source of podJets)source.userData.power=stage<3?forward:0;
     for(const source of mainJets)source.userData.power=stage===3?forward:0;
     for(const {source,axis,sign} of rcs)source.userData.power=Math.max(0,local[axis]*sign);
-    exhaust.update(time,{thrust:forward});
+    exhaust.update(time,{thrust:forward,boost,reducedMotion});
     for(const [m,a] of arrivals){const t=THREE.MathUtils.clamp((time-a.time)/2.2,0,1),e=1-(1-t)**3;
       m.position.lerpVectors(a.from,positions[a.index],e);m.rotation.z=(1-e)*.16;if(t===1)arrivals.delete(m);}
   }};
@@ -108,10 +107,10 @@ export function createAssetAstronaut(assets) {
   const pose=poseActor(gltf),muzzle=model.getObjectByName('WeaponMuzzle');
   const jets=new THREE.Group();jets.position.set(0,1.1,.2);group.add(jets);jet(jets,'eva-left',[-.23,0,0]);jet(jets,'eva-right',[.23,0,0]);
   jets.scale.setScalar(.22);const exhaust=createPropulsion(jets,{gain:.6});
-  return {group,muzzle,update(time,{aiming=false,thrust=0,braking=false,interacting=false}={}) {
+  return {group,muzzle,update(time,{aiming=false,thrust=0,braking=false,interacting=false,reducedMotion=false}={}) {
     const power=typeof thrust==='number'?thrust:thrust.length();
     pose.update(time,aiming,power,braking,interacting);model.position.y=Math.sin(time*1.4)*.009;
-    exhaust.update(time,{thrust:power});
+    exhaust.update(time,{thrust:power,reducedMotion});
   }};
 }
 export function createAssetVisor(assets) {

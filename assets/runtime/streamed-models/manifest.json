@@ -1,0 +1,224 @@
+{
+  "description": "Original geometry, animation and image bytes; shared external textures. No decimation or resizing.",
+  "models": [
+    {
+      "file": "asteroide-base.glb",
+      "bytes": 10038248,
+      "sourceBytes": 17266736,
+      "sourceHash": "03c3ee737aaee74c4888e0911d60e6ecc15f1cb4df49b72c887f6c9e84563fed",
+      "images": []
+    },
+    {
+      "file": "asteroide-marron.glb",
+      "bytes": 4187500,
+      "sourceBytes": 13955052,
+      "sourceHash": "0a410dbaee489552f41e9094e9358a270b1581d3b03014ce86463308f6f85b47",
+      "images": [
+        {
+          "uri": "textures/862bb24bd52d44cc7479a17537a9021b5abb350967590d66cebc38f7c84111cc.jpg",
+          "bytes": 2396579
+        },
+        {
+          "uri": "textures/ca446cbd238d315fc03e4ca3b2bb4c96182f53f2214d63900ef41f9f8bafa302.jpg",
+          "bytes": 3081210
+        },
+        {
+          "uri": "textures/78577a06c01a7e75805a066bd8f87971a2650e44bcd0b589e4d0243982408178.jpg",
+          "bytes": 2413696
+        }
+      ]
+    },
+    {
+      "file": "astronauta-armado.glb",
+      "bytes": 7015500,
+      "sourceBytes": 23448468,
+      "sourceHash": "4ff5770bf9889f8714bf35f417e7555284057334f4d7d7c2db4031c1c1b8c5a6",
+      "images": [
+        {
+          "uri": "textures/de75439bf7b1393e0cbda9449fe9389b94e63b6c501c457a41b986c9ec113552.jpg",
+          "bytes": 2379311
+        },
+        {
+          "uri": "textures/915d86768b5e906d9ef7f4dc7f901e848477520cb882e4635a5f647baa13acb4.jpg",
+          "bytes": 2853703
+        },
+        {
+          "uri": "textures/3bfc5f903ef441dc80a6660de10e2667036f9ca91790a461448f19400d83c44c.jpg",
+          "bytes": 1670120
+        },
+        {
+          "uri": "textures/b7b3dfce18e95b4741980e446646c2f57a749ba2979d2a4fe22dd6ef122cbfdf.jpg",
+          "bytes": 2172233
+        },
+        {
+          "uri": "textures/6fc95091807c4f8ee3c183774b29ea6d1fd7feb720e060c30e144766e10d6fa1.jpg",
+          "bytes": 2705193
+        },
+        {
+          "uri": "textures/d51709540b93edd088dff0fe4d242468162d5e8d46d409ed05ea93ad20306e53.jpg",
+          "bytes": 2109536
+        }
+      ]
+    },
+    {
+      "file": "astronauta-brazos-armado.glb",
+      "bytes": 4015404,
+      "sourceBytes": 19548012,
+      "sourceHash": "698ef8902148e44b9cdefc893742129117012f85a1ac9052d06e3a07c5fcbe35",
+      "images": [
+        {
+          "uri": "textures/de75439bf7b1393e0cbda9449fe9389b94e63b6c501c457a41b986c9ec113552.jpg",
+          "bytes": 2379311
+        },
+        {
+          "uri": "textures/915d86768b5e906d9ef7f4dc7f901e848477520cb882e4635a5f647baa13acb4.jpg",
+          "bytes": 2853703
+        },
+        {
+          "uri": "textures/3bfc5f903ef441dc80a6660de10e2667036f9ca91790a461448f19400d83c44c.jpg",
+          "bytes": 1670120
+        },
+        {
+          "uri": "textures/b7b3dfce18e95b4741980e446646c2f57a749ba2979d2a4fe22dd6ef122cbfdf.jpg",
+          "bytes": 2172233
+        },
+        {
+          "uri": "textures/6fc95091807c4f8ee3c183774b29ea6d1fd7feb720e060c30e144766e10d6fa1.jpg",
+          "bytes": 2705193
+        },
+        {
+          "uri": "textures/d51709540b93edd088dff0fe4d242468162d5e8d46d409ed05ea93ad20306e53.jpg",
+          "bytes": 2109536
+        }
+      ]
+    },
+    {
+      "file": "baliza.glb",
+      "bytes": 2514324,
+      "sourceBytes": 10225840,
+      "sourceHash": "14ed72619950c51f798706391ca8b3ead10f54d5e8a2248339e5174da47a5afc",
+      "images": [
+        {
+          "uri": "textures/abc819039230a4cb4cb1354e755f35f55d2e7bfa879c4b9ae5e57bdbb4d6ce9b.jpg",
+          "bytes": 2111864
+        },
+        {
+          "uri": "textures/7468642662888f758583fbad83de623b90898c4cabc947a51dccadb1c15702b4.jpg",
+          "bytes": 2632266
+        },
+        {
+          "uri": "textures/408c0173e140844c64abc1b68b01e0ef4c2d6cb1fbe1028992101fdd6939b98a.jpg",
+          "bytes": 1688808
+        }
+      ]
+    },
+    {
+      "file": "cabina-integrada.glb",
+      "bytes": 7041440,
+      "sourceBytes": 18778952,
+      "sourceHash": "4b3efc37e7f0438c3f66e9c2d7b5ca22fe42e00b8cced15aecd7633256191e7d",
+      "images": [
+        {
+          "uri": "textures/32ac7c26b13c06e001751f168047246d51c298e8d2e626109bfe279bd5d61769.png",
+          "bytes": 985681
+        },
+        {
+          "uri": "textures/d05e1b2a83500dbe399918f939f2b9a64b66af245cf9ea5d4c468000570d0c54.png",
+          "bytes": 551288
+        },
+        {
+          "uri": "textures/3f64463994aee87acfc136c53729f3e3a4140dbed232f11c8dc75d9915525698.jpg",
+          "bytes": 2066312
+        },
+        {
+          "uri": "textures/f693b4ce9c4b169f57e98ae8227ed94ee62a858b24125f6e58f2ff099aac0f37.jpg",
+          "bytes": 2557803
+        },
+        {
+          "uri": "textures/05acf49aa7311a36ce68b9246aed1209ea77ee0068221be0f7f30d2cbcce6df1.jpg",
+          "bytes": 2119298
+        }
+      ]
+    },
+    {
+      "file": "capsula.glb",
+      "bytes": 13254716,
+      "sourceBytes": 26803532,
+      "sourceHash": "e58cee7a9c00245470a0ae420ac27afccc15535b5bb973e2fed48a9f7122cc7b",
+      "images": [
+        {
+          "uri": "textures/629fbcb2c9b17b9303e6565aad07c6451e8e8a4c865f3a19fcbca1aab542c603.jpg",
+          "bytes": 2348709
+        },
+        {
+          "uri": "textures/179cfab315999b520ce2e283e19093c3ac8a8e39c0bfeaaa6bde41c59c8d5a7f.jpg",
+          "bytes": 2835327
+        },
+        {
+          "uri": "textures/315506e8683568427da1ddfbc643f56654764429e8ce40ca6e52207a28c2751f.jpg",
+          "bytes": 2201452
+        }
+      ]
+    },
+    {
+      "file": "habitat.glb",
+      "bytes": 12339480,
+      "sourceBytes": 25996400,
+      "sourceHash": "d4cb26340638ca627eaf8635458cc498ffa5455b1aa6b687746255ed8bf0ce7f",
+      "images": [
+        {
+          "uri": "textures/37b0b88d4358103df88295f695398ac876d44bb60bcfeae29f98703bc8cf2e6d.jpg",
+          "bytes": 2477468
+        },
+        {
+          "uri": "textures/3ef7c1b3c06c9170fb63d92dbbd6c711abee4885eb6c662c8977e74582d8648f.jpg",
+          "bytes": 2981016
+        },
+        {
+          "uri": "textures/5cc50f64543d3f5ed4fc10510c8c086f14c46eec4e9652e87fc888d7efa0b13f.jpg",
+          "bytes": 2411873
+        }
+      ]
+    },
+    {
+      "file": "propulsion.glb",
+      "bytes": 21393832,
+      "sourceBytes": 39651188,
+      "sourceHash": "77cac3af81234dbdda8ed3db3d0d98ddb16280a8a6a8050fd46c20e9a9695df0",
+      "images": [
+        {
+          "uri": "textures/5ae44025400b9935d072063a8bd64808c01e242c8b15bf7e54af663257a66716.jpg",
+          "bytes": 2614365
+        },
+        {
+          "uri": "textures/acfbd8cc48dc74fa53af197807e4b6678238607c25e448aba2593f6a0ae016fc.jpg",
+          "bytes": 3133885
+        },
+        {
+          "uri": "textures/c989e07ca6fb9ca57e6399ba267314a143590d685e038724e8a0dfe648869516.jpg",
+          "bytes": 2504464
+        }
+      ]
+    },
+    {
+      "file": "robot.glb",
+      "bytes": 2972616,
+      "sourceBytes": 11131080,
+      "sourceHash": "9a0d3b2f9a431b687e462bf66a5812ba883427e8f12b597f0dc5386be1e50289",
+      "images": [
+        {
+          "uri": "textures/847b6bcf5963557fb7791fabde85faa84600847b4ec8f6b098a41745418a2ad1.jpg",
+          "bytes": 2107537
+        },
+        {
+          "uri": "textures/ca0efaadeff577ffe2a3d41bd935ee793f210158250f1431fb9d9acc756d577f.jpg",
+          "bytes": 2641568
+        },
+        {
+          "uri": "textures/183785566c21bbf628124a67604f703276952a51801d40ba2557a62be1a091c1.jpg",
+          "bytes": 1978342
+        }
+      ]
+    }
+  ]
+}

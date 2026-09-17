@@ -25,7 +25,7 @@ void main() {
 }`;
 const fragmentShader = /* glsl */`
 uniform float time; uniform float power; uniform float motion;
-uniform float layer; uniform float seed; uniform float gain;
+uniform float layer; uniform float seed; uniform float gain; uniform float boost;
 varying vec2 plasmaUv; varying vec3 plasmaNormal; varying vec3 plasmaWorld;
 void main() {
   float t = plasmaUv.y, a = plasmaUv.x * 6.2831853;
@@ -48,7 +48,8 @@ void main() {
     color = vec3(.02, .42, 1.8);
     opacity = .075 * pow(facing, .65);
   }
-  opacity *= longitudinal * base * smoothstep(0.0, .12, power) * gain;
+  color = mix(color, color * vec3(1.32, 1.1, 1.24) + vec3(.8, .65, .6) * diamonds, boost * .65);
+  opacity *= (1.0 + boost * .35) * longitudinal * base * smoothstep(0.0, .12, power) * gain;
   if (opacity < .001) discard;
   gl_FragColor = vec4(color * (.62 + power * .38), opacity);
 }`;
@@ -61,7 +62,7 @@ export function createPropulsion(shipGroup, { gain = 1 } = {}) {
   geometry.rotateX(Math.PI / 2); geometry.translate(0, 0, .5);
   const level = Number.isFinite(gain) ? clamp(gain, 0, 2) : 1;
   const engines = [], materials = [], forward = new THREE.Vector3(0, 0, 1);
-  const stats = { engines: sources.length, layers: sources.length * 3, lights: Math.min(2, sources.length), triangles: sources.length * 3 * 24 * 32 * 2 };
+  const stats = { engines: sources.length, layers: sources.length * 3, lights: 0, triangles: sources.length * 3 * 24 * 32 * 2 };
   for (let i = 0; i < sources.length; i++) {
     const original = sources[i], parent = original.parent;
     original.updateMatrix();
@@ -75,7 +76,7 @@ export function createPropulsion(shipGroup, { gain = 1 } = {}) {
     const layers = [];
     for (let layer = 0; layer < 3; layer++) {
       const material = new THREE.ShaderMaterial({
-        uniforms: { time: { value: 0 }, power: { value: 0 }, length: { value: 1 }, radius: { value: .3 }, motion: { value: 1 }, seed: { value: i * 1.71 }, layer: { value: layer }, gain: { value: level } },
+        uniforms: { time: { value: 0 }, power: { value: 0 }, length: { value: 1 }, radius: { value: .3 }, motion: { value: 1 }, seed: { value: i * 1.71 }, layer: { value: layer }, gain: { value: level }, boost: { value: 0 } },
         vertexShader, fragmentShader, transparent: true, depthWrite: false,
         blending: THREE.AdditiveBlending, side: THREE.FrontSide, toneMapped: false,
       });
@@ -84,32 +85,47 @@ export function createPropulsion(shipGroup, { gain = 1 } = {}) {
       layers.push(material.uniforms); materials.push(material);
     }
     let light;
-    if (i < 2) { light = new THREE.PointLight(0x40bcff, 0, 5.5, 2); light.position.z = .18; root.add(light); }
+    if (i < 2 || /^main-ring-[03]-/.test(original.name)) { light = new THREE.PointLight(0x40bcff, 0, 5.5, 2); light.position.z = .18; root.add(light); stats.lights++; }
     engines.push({ original, priorVisible: original.visible, root, layers, light });
     original.visible = false; root.visible = false;
   }
+  // Each nozzle owns a small analytic particle plume; no growing trail buffers.
+  const plumeGeometry = new THREE.BufferGeometry();
+  const seeds = new Float32Array(32 * 3);
+  for(let i=0;i<32;i++){seeds[i*3]=i/32;seeds[i*3+1]=(i*2.399963)%(Math.PI*2);seeds[i*3+2]=.3+(i%7)/10;}
+  plumeGeometry.setAttribute('position',new THREE.BufferAttribute(seeds,3));
+  for(const engine of engines){
+    const uniforms={time:{value:0},power:{value:0},boost:{value:0}};
+    const material=new THREE.ShaderMaterial({uniforms,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,
+      vertexShader:`uniform float time;uniform float power;uniform float boost;varying float fade;
+        void main(){float age=fract(position.x+time*(.75+boost*.5));float spread=(.1+age*age*.5)*position.z;vec3 p=vec3(cos(position.y)*spread,sin(position.y)*spread,age*(4.8+boost*5.));vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp((16.+boost*10.)/max(1.,-mv.z),1.,5.);fade=sin(age*3.14159)*power;}`,
+      fragmentShader:`varying float fade;void main(){float r=length(gl_PointCoord-.5)*2.;float alpha=(1.-smoothstep(.15,1.,r))*fade*.6;if(alpha<.005)discard;gl_FragColor=vec4(.2,1.2,2.8,alpha);}`});
+    const particles=new THREE.Points(plumeGeometry,material);particles.name='exhaust-plasma-motes';particles.frustumCulled=false;engine.root.add(particles);engine.plume=uniforms;materials.push(material);
+  }
   let disposed = false;
-  function update(time = 0, { thrust = 0, reducedMotion = false } = {}) {
+  function update(time = 0, { thrust = 0, reducedMotion = false, boost = false } = {}) {
     if (disposed) return;
     const t = Number.isFinite(time) ? time : 0, power = clamp(Number(thrust) || 0);
     for (let i = 0; i < engines.length; i++) {
       const engine = engines[i]; engine.original.visible = false;
       const power = clamp(engine.original.userData.power ?? thrust);
       engine.root.visible = power > .015 && level > 0;
+      const boosted = boost && /^(main-ring|pod-)/.test(engine.original.name) ? 1 : 0;
+      engine.plume.time.value = reducedMotion ? 0 : t; engine.plume.power.value = reducedMotion ? 0 : power; engine.plume.boost.value = boosted;
       const breathe = reducedMotion ? 1 : 1 + Math.sin(t * 17 + i * 1.7) * .018;
       for (let j = 0; j < engine.layers.length; j++) {
         const u = engine.layers[j];
-        u.time.value = t; u.power.value = power; u.motion.value = reducedMotion ? 0 : 1;
-        u.length.value = (.34 + power * 4.2) * (j === 0 ? .82 : j === 1 ? 1 : 1.06) * breathe;
-        u.radius.value = (.19 + power * .19) * (j === 0 ? .61 : j === 1 ? 1 : 1.32);
+        u.time.value = t; u.power.value = power; u.boost.value = boosted; u.motion.value = reducedMotion ? 0 : 1;
+        u.length.value = (.34 + power * (4.8 + boosted * 4.2)) * (j === 0 ? .82 : j === 1 ? 1 : 1.06) * breathe;
+        u.radius.value = (.19 + power * (.22 + boosted * .07)) * (j === 0 ? .61 : j === 1 ? 1 : 1.32);
       }
-      if (engine.light) engine.light.intensity = power * level * (reducedMotion ? 1.15 : 2.1);
+      if (engine.light) engine.light.intensity = power * level * (reducedMotion ? 1.15 : 3.2 + boosted * 3.2);
     }
   }
   function dispose() {
     if (disposed) return; disposed = true;
     for (const engine of engines) { engine.root.removeFromParent(); engine.original.visible = engine.priorVisible; }
-    for (const material of materials) material.dispose(); geometry.dispose();
+    for (const material of materials) material.dispose(); geometry.dispose(); plumeGeometry.dispose();
   }
   return { update, dispose, stats };
 }
