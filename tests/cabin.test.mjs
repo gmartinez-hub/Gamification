@@ -41,3 +41,32 @@ test('approved GLB pilot has two contact hands, boot contact, holstered weapon a
  let sourceDisposed=0,ownDisposed=0;body.geometry.addEventListener('dispose',()=>sourceDisposed++);cabin.group.getObjectByName('seat-cushion').geometry.addEventListener('dispose',()=>ownDisposed++);cabin.dispose();cabin.dispose();assert.equal(sourceDisposed,0);assert.equal(ownDisposed,1);assert.equal(boneDisposed,1,'dispose the private pilot skeleton GPU texture');eva.dispose();
  function CABIN_FLOOR(){return mod.CABIN_LAYOUT.origin.y;}
 });
+
+let cameraFixture;
+async function cameras(){
+ if(!cameraFixture)cameraFixture=(async()=>{const {readFile}=await import('node:fs/promises'),{GLTFLoader}=await import('../vendor/GLTFLoader.js'),T=await import('../vendor/three.module.js'),{createWalkableCabin}=await import('../src/lowpoly/cabin.js');const loader=new GLTFLoader();loader.register(()=>({name:'CameraGeometryOnly',loadTexture:()=>Promise.resolve(null)}));const assets={};for(const name of['astronauta-armado','cabina-integrada']){const b=await readFile(new URL('../assets/runtime/models/'+name+'.glb',import.meta.url));assets[name]=await loader.parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');}return{T,make:()=>createWalkableCabin(assets)};})();return cameraFixture;
+}
+test('standing FP looks through the real window while seated FP keeps its approved framing',async()=>{
+ const {T,make}=await cameras(),cabin=make(),c=create({aboard:true});
+ for(const aspect of[1.6,390/844]){const seated=cabin.cameraPose(c.state,{firstPerson:true,aspect});assert.deepEqual(seated.position.toArray(),[0,1.38,1.08+(aspect<.85?.34:.06)]);assert.equal(seated.fov,aspect<.85?96:70);}
+ c.stand();step(c,3);cabin.update(0,c.state,{firstPerson:true});cabin.group.updateMatrixWorld(true);
+ const glass=cabin.dashboard.getObjectByName('Central_transparent_cockpit_glass'),center=new T.Box3().setFromObject(glass).getCenter(new T.Vector3());
+ for(const aspect of[1.6,390/844]){const view=cabin.cameraPose(c.state,{firstPerson:true,aspect}),camera=new T.PerspectiveCamera(view.fov,aspect,view.near,100);assert.equal(view.position.x,c.state.position.x);assert.equal(view.position.y,1.69);camera.position.copy(cabin.group.localToWorld(view.position.clone()));camera.lookAt(cabin.group.localToWorld(view.target.clone()));camera.updateMatrixWorld(true);const ndc=center.clone().project(camera);assert(Math.abs(ndc.x)<.04&&Math.abs(ndc.y)<.04,`standing window must be centered: ${ndc.toArray()}`);const ray=new T.Raycaster();ray.setFromCamera(new T.Vector2(),camera);assert(ray.intersectObject(glass,true).length>0,'standing center ray must pass through glass');}
+ cabin.dispose();
+});
+test('third-person camera remains continuous when the same pose changes cabin mode',async()=>{
+ const {make}=await cameras(),cabin=make();
+ for(const aspect of[1.6,390/844])for(const pose of[0,.25,.5,.75,1]){let previous;for(const mode of['entering','standing','sitting','piloting','rising','exiting']){const state={mode,pose,position:{x:.74*(1-pose),y:-.31*pose,z:1.26-.18*pose}},view=cabin.cameraPose(state,{firstPerson:false,aspect});if(previous){assert(previous.position.distanceTo(view.position)<1e-9,'mode switch must not teleport the camera');assert(previous.target.distanceTo(view.target)<1e-9);}previous=view;}}
+ cabin.dispose();
+});
+test('portrait pilot camera frames the window from the station rather than displaying its outer silhouette',async()=>{
+ const {T,make}=await cameras(),cabin=make(),c=create({aboard:true}),aspect=390/844;cabin.update(0,c.state);cabin.group.updateMatrixWorld(true);const view=cabin.cameraPose(c.state,{firstPerson:false,aspect}),camera=new T.PerspectiveCamera(view.fov,aspect,view.near,100);camera.position.copy(cabin.group.localToWorld(view.position.clone()));camera.lookAt(cabin.group.localToWorld(view.target.clone()));camera.updateMatrixWorld(true);const glass=cabin.dashboard.getObjectByName('Central_transparent_cockpit_glass'),bounds=new T.Box3().setFromObject(glass),left=new T.Vector3(bounds.min.x,(bounds.min.y+bounds.max.y)/2,bounds.min.z).project(camera),right=new T.Vector3(bounds.max.x,(bounds.min.y+bounds.max.y)/2,bounds.min.z).project(camera);assert(right.x-left.x>1.2,'window must occupy at least 60% of the portrait width');const ray=new T.Raycaster();ray.setFromCamera(new T.Vector2(0,.9),camera);assert(ray.intersectObject(cabin.dashboard,true).some(hit=>hit.object!==glass),'upper frame should end on existing cabin surfaces');cabin.dispose();
+});
+
+test('approach and seat blend keep the camera outside the pilot and the forward sightline clear',async()=>{
+ const {T,make}=await cameras(),cabin=make(),c=create(),ray=new T.Raycaster(),body=cabin.rig.body[0];c.enter({autoSeat:true});
+ for(let frame=0;frame<48;frame++){if(frame===24)c.stand();c.update(.1);cabin.update(0,c.state,{firstPerson:false,reducedMotion:true});cabin.group.updateMatrixWorld(true);body.skeleton.update();body.computeBoundingBox();const bounds=body.boundingBox.clone().applyMatrix4(body.matrixWorld);
+  for(const aspect of[1.6,390/844]){const view=cabin.cameraPose(c.state,{firstPerson:false,aspect}),camera=new T.PerspectiveCamera(view.fov,aspect,view.near,100);camera.position.copy(cabin.group.localToWorld(view.position.clone()));camera.lookAt(cabin.group.localToWorld(view.target.clone()));camera.updateMatrixWorld(true);assert(bounds.distanceToPoint(camera.position)>.20,`camera must not pass through pilot: ${c.state.mode}/${c.state.pose}`);ray.setFromCamera(new T.Vector2(),camera);assert.equal(ray.intersectObject(body,false).length,0,`pilot must not cover the forward sightline: ${c.state.mode}/${c.state.pose}`);}
+ }
+ cabin.dispose();
+});

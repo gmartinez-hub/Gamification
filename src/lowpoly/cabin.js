@@ -115,9 +115,20 @@ export function createWalkableCabin(assets){
  let disposed=false;
  let lastState={mode:'piloting',position:{...CABIN_LAYOUT.seat},pose:1,yaw:0,speed:0,walkPhase:0};
  function cameraPose(state=lastState,{firstPerson=true,aspect=1.6,lookYaw=0,lookPitch=0}={}){
-  const p=state.position;
-  if(firstPerson){const portrait=aspect<.85,position=V(p.x,p.y+1.69,p.z+(portrait?.34:.06));const direction=V(-Math.sin(lookYaw)*Math.cos(lookPitch),Math.sin(lookPitch)-state.pose*.12,-Math.cos(lookYaw)*Math.cos(lookPitch));return{position,target:position.clone().add(direction),fov:portrait?96:70,near:.018};}
-  const portrait=aspect<.85,side=state.mode==='standing'?-1:1,position=portrait?V(side*2.20,2.70,4.70):V(side*1.55,2.10,3.20),target=V(p.x*.4,1.0,.20);return{position,target,fov:portrait?82:61,near:.025};
+  const p=state.position,portrait=aspect<.85,seated=THREE.MathUtils.smoothstep(state.pose,0,1),windowCenter=V(-.0036,1.3116,-.3186);
+  if(firstPerson){
+   // Keep the approved seated view; the standing eye turns toward the real
+   // window instead of inheriting the flight camera's direction.
+   const position=V(p.x,p.y+1.69,p.z+.06+(portrait?.28*seated:0));
+   const direction=windowCenter.clone().sub(position).normalize().lerp(V(0,-.12,-1).normalize(),seated).normalize();
+   const yaw=Math.atan2(-direction.x,-direction.z)+THREE.MathUtils.clamp(lookYaw,-.65,.65),pitch=Math.asin(direction.y)+THREE.MathUtils.clamp(lookPitch,-.35,.25);
+   direction.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
+   return{position,target:position.clone().add(direction),fov:portrait?78+18*seated:70,near:.018};
+  }
+  // A close shoulder view stays inside the dashboard framing. Drive it from
+  // the continuous physical pose, so entering/sitting/rising cannot jump sides.
+  const position=V(p.x-.60,1.68+.14*(1-seated),p.z+.97),target=windowCenter;
+  return{position,target,fov:portrait?64+6*(1-seated):58,near:.025};
  }
  return{group,pilot:pilot.group,rig:pilot,anchors,layout:CABIN_LAYOUT,dashboard,
   update(dt,state,{firstPerson=false,reducedMotion=false}={}){lastState=state;group.visible=state.mode!=='eva';pilot.update(dt,state,{firstPerson,reducedMotion});for(const arm of folding){arm.rotation.z=-(1-state.pose)*.80;arm.position.y=.91-(1-state.pose)*.18;}},

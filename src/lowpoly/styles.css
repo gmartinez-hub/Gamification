@@ -5,6 +5,10 @@
 .sound-settings input{width:100%;accent-color:var(--cyan);min-height:36px;touch-action:pan-y}
 .save-status{color:var(--cyan);font-size:10px;line-height:1.5}
 .sound-invite{font-size:10px!important;color:var(--cyan);background:#0c2530aa;border-color:#9be7dc40;min-height:32px;padding:3px 8px;margin-left:auto;pointer-events:auto}
+.objective-label[data-kind=small]{color:#a4fff0;border-color:#65e9e1b3;box-shadow:0 0 12px #65e9e12e}
+.objective-label[data-kind=large]{color:#ffe1a3;border-color:#ffbd66b3;box-shadow:0 0 12px #ffbd662e}
+.objective-label[data-kind=hazard]{color:#ffb7a5;border-color:#ef886c99}
+.objective-label[data-kind=breakable]{color:#bac6ce;border-color:#a3afb866}
 /* Game surfaces capture gestures; help text and links retain native selection. */
 #scene,.hud{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 @media(hover:hover) and (pointer:fine){button:hover{background:#234049;border-color:#8bcdc8}button:disabled:hover{background:#101f2dd9;border-color:var(--line)}.primary-button:hover{background:#bcf7e8}}

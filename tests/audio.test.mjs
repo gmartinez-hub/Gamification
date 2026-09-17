@@ -240,3 +240,16 @@ test('audio retry requests only absent samples and preserves decoded cues',async
  const before=requested.length;missing=false;assert.equal(await audio.unlock(),true);assert.deepEqual(requested.slice(before),['small_asteroid_hit_03.wav']);assert.equal(audio.play('smallHit'),true);
  const allLoaded=requested.length;await audio.unlock();assert.equal(requested.length,allLoaded);assert.equal(boundary.active().filter(s=>s.loop).length,6);audio.dispose();
 });
+
+test('explicit audio unlock selects the iOS playback session before creating the graph',async t=>{
+ const boundary=audioBoundary(t),previous=Object.getOwnPropertyDescriptor(globalThis,'navigator'),changes=[];
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{audioSession:{set type(value){changes.push({value,contexts:boundary.contexts.length});}}}});
+ t.after(()=>{if(previous)Object.defineProperty(globalThis,'navigator',previous);else delete globalThis.navigator;});
+ const audio=createExpeditionAudio();audio.setEnabled(true);assert.deepEqual(changes,[],'enabling preference alone must not claim an audio session');
+ assert.equal(await audio.unlock(),true);assert.deepEqual(changes[0],{value:'playback',contexts:0});audio.dispose();
+});
+test('an unavailable audio-session policy cannot block standard Web Audio activation',async t=>{
+ audioBoundary(t);const previous=Object.getOwnPropertyDescriptor(globalThis,'navigator');Object.defineProperty(globalThis,'navigator',{configurable:true,value:{audioSession:{set type(value){throw new Error('Unsupported session');}}}});
+ t.after(()=>{if(previous)Object.defineProperty(globalThis,'navigator',previous);else delete globalThis.navigator;});
+ const audio=createExpeditionAudio();audio.setEnabled(true);assert.equal(await audio.unlock(),true);assert.equal(audio.play('ui'),true);audio.dispose();
+});

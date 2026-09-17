@@ -283,6 +283,10 @@ export function createExpeditionAudio() {
     // suspended the context while a previous unlock is still decoding WAVs.
     return (async () => {
       try {
+        // Safari's default ambient session can remain inaudible with the iOS
+        // silent switch enabled even while AudioContext reports running. Claim
+        // playback only inside the user's enabled unlock gesture.
+        ignore(() => { if (globalThis.navigator?.audioSession) globalThis.navigator.audioSession.type = 'playback'; });
         if (!context && !createGraph()) return false;
         if (context.state !== 'running') await context.resume();
         // Share only in-flight work. A later gesture may retry missing samples

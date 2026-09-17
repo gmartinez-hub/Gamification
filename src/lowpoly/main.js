@@ -97,7 +97,7 @@ const gemPickupOrigin=new THREE.Vector3(),gemPickupRotation=new THREE.Quaternion
 await world.prepareBiome(state.layout);
 world.load(state.layout);
 const audio = createExpeditionAudio();
-let soundEnabled = settings.soundEnabled;
+let soundEnabled = settings.soundEnabled, soundReady = false;
 audio.setEnabled(soundEnabled); audio.setVolumes({ effects: settings.effectsVolume, ambience: settings.ambienceVolume });
 let paused = false, inspecting = false, firstPerson = settings.firstPerson, userActionEpoch=0;
 let mobileAction = { action: 'none', disabled: true };
@@ -123,7 +123,7 @@ let collisionActor = flight.actor, hazardWarning = null, controlWasLocked = fals
 const transitEntry = new THREE.Vector3();
 const viewFrustum = new THREE.Frustum(), viewProjection = new THREE.Matrix4(), respawnSphere = new THREE.Sphere();
 let actionProtectedFrame = false, slowAudioActive = false, nextStageReady = false;
-let interiorView = !!saved, cabinLook = 0, previousCompanionCabin = false;
+let interiorView = !!saved, cabinLook = 0, cabinLookPitch = 0, previousCompanionCabin = false;
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), pointerStart = new THREE.Vector2();
 const tetherPositions = new Float32Array(25 * 3);
 const tetherGeometry = new THREE.BufferGeometry();
@@ -201,7 +201,11 @@ function targetNext() {
   selectedId = targets[(index + 1) % targets.length].id;
   play('target');
 }
-function ensureTarget() {
+function ensureTarget(discovered=[]) {
+  if(!combat.shot&&selectedTarget()?.kind!==state.phase){
+    const required=validTargets().filter(target=>target.kind===state.phase&&discovered.includes(target.id)).sort((a,b)=>a.position.distanceToSquared(flight.position)-b.position.distanceToSquared(flight.position))[0];
+    if(required)selectedId=required.id;
+  }
   if (!selectedTarget()) selectedId = validTargets().sort((a,b)=>(a.kind===state.phase?0:1)-(b.kind===state.phase?0:1)||a.position.distanceToSquared(flight.position)-b.position.distanceToSquared(flight.position))[0]?.id||null;
 }
 function objective() {
@@ -212,7 +216,7 @@ function objective() {
       return { position: flight.shipPosition, label: state.phase === 'large' ? 'NAVE · ABORDAR' : 'SALIR COMO ASTRONAUTA', stop: 0 };
     }
     const target = selectedTarget();
-    if(target)return{position:target.position,label:`${{small:'OBJETIVO EVA',large:'NÚCLEO',hazard:'PELIGRO · OPCIONAL',breakable:'MINERAL · OPCIONAL'}[target.kind]} · ${Math.round(target.position.distanceTo(flight.position))} m`,stop:10};
+    if(target)return{position:target.position,kind:target.kind,label:`${{small:'EVA · CUENTA PARA AVANZAR',large:'NAVE · CUENTA PARA AVANZAR',hazard:'PELIGRO · NO SUMA',breakable:'OPCIONAL · NO SUMA'}[target.kind]} · ${Math.round(target.position.distanceTo(flight.position))} m`,stop:10};
     if(hintUntil>time){const spec=state.layout[state.phase].find(t=>!state.destroyed.includes(t.id));if(spec)return {position:spec.approach||state.layout.regions[spec.region],label:'REGIÓN DE BÚSQUEDA',stop:0};}
   }
   if (state.phase === 'gem') return { position: world.gem.position, label: 'GEMA · RECUPERAR', stop: flight.actor === 'ship' ? 10 : 1.7 };
@@ -254,7 +258,7 @@ function navigate() {
 function toggleCabin(){
  if(paused||combat.shot||gemSequence.active||flight.actor!=='ship'||time<assemblyUntil)return;
  if(!cabin){const epoch=userActionEpoch,requestSeed=state.seed;void prepareView('cabin').then(ok=>{if(ok&&epoch===userActionEpoch&&requestSeed===state.seed)toggleCabin();});return;}
- interiorView=true;controls.clear();
+ interiorView=true;cabinLook=0;cabinLookPitch=0;controls.clear();
  if(cabinController.canPilot){cabinController.stand();say('Estabilizo la nave. Podés levantarte del puesto.');}
  else if(cabinController.canSit){cabinController.sit();play('cabinSeat');}
  else notify('Acercate al asiento para pilotear.');
@@ -322,7 +326,7 @@ async function setView() {
   saveProgress();
   if (flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
   else if (firstPerson) { orbit = astronaut.group.rotation.y; elevation = 0; }
-  cabinLook=0;
+  cabinLook=0;cabinLookPitch=0;
   notify(cabinActive()?firstPerson?'Cabina · Primera persona':'Cabina · Tercera persona':firstPerson?'Visor · Primera persona':'Vista exterior');
 }
 function setInspect(value) {
@@ -343,19 +347,30 @@ function setPaused(value) {
   $('pauseButton').setAttribute('aria-pressed', String(value));
   $('pauseButton').setAttribute('aria-label', value ? 'Continuar' : 'Pausar');
   audio.setPaused(value || document.hidden);
-  if (!value && soundEnabled && !document.hidden) void audio.unlock();
+  if (!value && soundEnabled && !document.hidden) void resumeSound();
 }
 async function toggleSound() {
-  soundEnabled = !soundEnabled;
-  $('soundButton').setAttribute('aria-pressed', String(soundEnabled));
-  $('soundButton').setAttribute('aria-label', soundEnabled ? 'Silenciar sonido' : 'Activar sonido');
+  soundEnabled = !soundEnabled || !soundReady;
   audio.setEnabled(soundEnabled); saveProgress();
-  $('mobileSoundInvite').hidden = soundEnabled;
+  if(!soundEnabled)soundReady=false;
+  updateSoundUI();
   if (soundEnabled) {
-    const ready = await audio.unlock();
-    if (!ready) notify('El sonido se activará al continuar la expedición.');
-    else play('ui');
+    const ready = await resumeSound();
+    if (!ready) notify('Tocá ♪ Sonido para reintentar la activación.');
+    else {play('ui');notify('Sonido activo');}
   }
+}
+function updateSoundUI(){
+  const active=soundEnabled&&soundReady,label=active?'Silenciar sonido':'Activar sonido';
+  for(const id of ['soundButton','mobileSoundInvite']){
+    $(id).setAttribute('aria-pressed',String(active));$(id).setAttribute('aria-label',label);
+  }
+  $('mobileSoundInvite').hidden=false;
+  $('mobileSoundInvite').textContent=active?'♪ Activo':'♪ Sonido';
+}
+async function resumeSound(){
+  const ready=await audio.unlock();
+  soundReady=ready&&soundEnabled;updateSoundUI();return soundReady;
 }
 async function resetExpedition() {
   setPaused(true);
@@ -397,7 +412,10 @@ for (const [id, key] of [['effectsVolume', 'effectsVolume'], ['ambienceVolume', 
     audio.setVolumes({ effects: settings.effectsVolume, ambience: settings.ambienceVolume }); saveProgress();
   });
 }
-const unlockSound = () => { if (soundEnabled) void audio.unlock(); };
+const unlockSound = event => {
+  if(event.target?.closest?.('#soundButton, #mobileSoundInvite, #mobileSoundButton'))return;
+  if(soundEnabled&&!paused)void resumeSound();
+};
 document.addEventListener('pointerdown', unlockSound, { capture: true, passive: true });
 document.addEventListener('keydown', unlockSound, { capture: true });
 let wasPausedBeforeHelp = false;
@@ -433,7 +451,7 @@ $('mobileDeployButton').onclick = () => fromFlightMenu(deploy);
 $('mobileViewButton').onclick = () => fromFlightMenu(setView);
 $('mobileQuickViewButton').onclick = () => { setView(); updateHUD(); };
 $('mobileInspectButton').onclick = () => fromFlightMenu(() => setInspect(!inspecting));
-$('mobileSoundButton').onclick = async () => { await toggleSound(); updateHUD(); };
+$('mobileSoundButton').onclick = () => fromFlightMenu(toggleSound);
 $('mobileHelpButton').onclick = () => fromFlightMenu(() => $('helpButton').click());
 $('mobileRestartButton').onclick = () => fromFlightMenu(resetExpedition);
 $('mobileZoomIn').onclick = () => fromFlightMenu(() => $('zoomIn').click());
@@ -501,7 +519,7 @@ function updateFlight(dt, input) {
   if(flight.actor!==previousActor){
     previousActor=flight.actor;controls.clear();navigating=false;
     if(flight.actor==='ship'){
-      orbit=flight.shipYaw;elevation=-flight.shipPitch;cabinLook=0;interiorView=true;
+      orbit=flight.shipYaw;elevation=-flight.shipPitch;cabinLook=0;cabinLookPitch=0;interiorView=true;
       cabinController.enter({autoSeat:true});void prepareView('cabin');
       notify('A bordo · Cable recogido');say('Al puesto de mando.');play('return',.65);
     }
@@ -526,7 +544,7 @@ function updateCinematic(dt){
   if(state.phase==='complete'){
    notify('Tres gemas. Una nave completa. Expedición terminada.',8);say('Lo logramos juntos.');play('complete');triggerBurst(flight.shipPosition,'attach');
   }else{
-   world.load(state.layout);flight.reset({aboard:true});flight.setStage(state.moduleStage);cabinController.reset({aboard:true});previousActor='ship';interiorView=true;cabinLook=0;
+   world.load(state.layout);flight.reset({aboard:true});flight.setStage(state.moduleStage);cabinController.reset({aboard:true});previousActor='ship';interiorView=true;cabinLook=0;cabinLookPitch=0;
    orbit=-.9;elevation=.28;pendingModule=state.moduleStage;attachAt=time+.65;assemblyUntil=time+3.4;arrivalVeilUntil=time+.6;
    cameraTarget.copy(flight.shipPosition).add(new THREE.Vector3(0,.3,0));
    const fit=Math.max(1,.78/camera.aspect);
@@ -685,7 +703,7 @@ function updateActors(dt, input) {
 }
 function updateCamera(dt) {
   if(cabinActive()&&cabin){
-    const pose=cabin.cameraPose(cabinController.state,{firstPerson,aspect:camera.aspect,lookYaw:cabinController.canPilot?0:cabinLook-cabinController.state.yaw,lookPitch:cabinController.canPilot?0:-elevation});
+    const pose=cabin.cameraPose(cabinController.state,{firstPerson,aspect:camera.aspect,lookYaw:cabinController.canPilot?0:cabinLook-cabinController.state.yaw,lookPitch:cabinController.canPilot?0:cabinLookPitch});
     camera.position.copy(cabin.group.localToWorld(pose.position.clone()));camera.lookAt(cabin.group.localToWorld(pose.target.clone()));camera.fov=pose.fov;camera.near=pose.near;camera.updateProjectionMatrix();return;
   }
   const baseFov = visorActive() ? flight.actor === 'ship' ? 57 : 72 : 52;
@@ -724,8 +742,8 @@ function updateCamera(dt) {
 function updateMissionUI() {
   const content = {
     scan: ['Todo empieza <br/>con una señal.', 'Buscá el pulso de la baliza y acercate con el astronauta. El cable mantiene tu conexión con la nave.', 'Consultar rumbo'],
-    small: ['Abrir un camino.', 'Destruí tres asteroides con el astronauta. Seleccioná un objetivo y acercate para mejorar el disparo.', 'Consultar región'],
-    large: ['La fuerza <br/>de tu nave.', 'Volvé y abordá para activar el cañón. Los núcleos grandes guardan la energía del sector.', 'Consultar región'],
+    small: ['Abrir un camino.', 'Buscá los tres asteroides con pulso cian. Se destruyen con el astronauta y cuentan para avanzar; las rocas opcionales no suman.', 'Consultar región'],
+    large: ['La fuerza <br/>de tu nave.', 'Los núcleos con pulso dorado cuentan para avanzar. Abordá y usá el cañón de la nave.', 'Consultar región'],
     gem: ['Una conexión <br/>más.', 'Recuperá la gema con el astronauta. Si está lejos, acercá primero la nave y después salí.', 'Ubicar la gema'],
     return: ['El siguiente <br/>horizonte.', 'La gema viaja con vos. Regreso, abordaje y transición al próximo sector en curso.', 'Regreso en curso…'],
     transit: ['Pieza por pieza.', 'Preparando el próximo bioma y el acople de tu nave.', 'En tránsito…'],
@@ -755,7 +773,7 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
       cabinMode:cabinController.inside&&!cabinController.canPilot?cabinController.state.mode:null, canSit:cabinController.canSit, sequence:gemSequence.active,targetKind:selectedTarget()?.kind,
       actionDistance, targetDistance: distance, weaponRange: WEAPON_RANGE[flight.actor], chance });
   const titles = {
-    scan: 'Escaneá la baliza', small: 'Destruí los asteroides',
+    scan: 'Escaneá la baliza', small: 'Asteroides EVA · pulso cian',
     large: flight.actor === 'astronaut' ? 'Volvé a la nave' : 'Despejá los núcleos',
     gem: 'Recuperá la gema', return: 'Gema recuperada · Regreso automático',
     transit: 'Viajando al próximo sector', complete: 'Expedición completa',
@@ -799,8 +817,8 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
   $('mobileQuickViewButton').disabled = paused || locked || state.phase === 'complete';
   $('mobileInspectButton').textContent = inspecting ? 'Volver a explorar' : 'Inspeccionar nave';
   $('mobileInspectButton').disabled = !!combat.shot || gemSequence.active || locked;
-  $('mobileSoundButton').textContent = soundEnabled ? 'Silenciar sonido' : 'Activar sonido';
-  $('mobileSoundButton').setAttribute('aria-pressed', String(soundEnabled));
+  $('mobileSoundButton').textContent = soundEnabled&&soundReady ? 'Silenciar sonido' : 'Activar sonido';
+  $('mobileSoundButton').setAttribute('aria-pressed', String(soundEnabled&&soundReady));
 }
 function updateHUD() {
   updateMissionUI();
@@ -845,19 +863,21 @@ function updateHUD() {
   $('lockLabel').textContent = combat.shot ? combat.shot.phase === 'lock' ? 'FIJANDO OBJETIVO' : 'DISPARO' : '';
   const label = $('objectiveLabel');
   label.hidden = !obj || inspecting || !!combat.shot || ['transit', 'complete'].includes(state.phase);
+  label.dataset.kind=obj?.kind||'';
   if (obj && !label.hidden) {
     projected.copy(obj.position).add(new THREE.Vector3(0, 2, 0)).project(camera);
     const behind = projected.z > 1 || projected.z < -1;
     const rawX = (projected.x + 1) * innerWidth / 2, rawY = (1 - projected.y) * innerHeight / 2;
     temp.copy(obj.position).sub(camera.position).applyQuaternion(camera.quaternion.clone().invert());
-    const x = THREE.MathUtils.clamp(behind ? temp.x < 0 ? 90 : innerWidth - 90 : rawX, 90, innerWidth - 90);
     const minY = compactHUD.matches ? innerHeight < 500 ? 85 : 140 : 115;
     const maxY = Math.max(minY + 20, innerHeight - 190);
     const y = THREE.MathUtils.clamp(behind ? (minY + maxY) / 2 : rawY, minY, maxY);
-    label.style.left = `${x}px`; label.style.top = `${y}px`;
     const outside = behind || Math.abs(projected.x) > .9 || Math.abs(projected.y) > .85;
     const arrow = behind ? temp.x < 0 ? '← ' : '→ ' : outside ? projected.x < -.9 ? '← ' : projected.x > .9 ? '→ ' : projected.y > 0 ? '↑ ' : '↓ ' : '◇ ';
     label.textContent = `${arrow}${obj.label}${['scan', 'gem'].includes(state.phase) ? ` · ${Math.round(flight.position.distanceTo(obj.position))} m` : ''}`;
+    const inset=Math.min(innerWidth/2,label.offsetWidth/2+12);
+    const x=THREE.MathUtils.clamp(behind?temp.x<0?inset:innerWidth-inset:rawX,inset,innerWidth-inset);
+    label.style.left = `${x}px`; label.style.top = `${y}px`;
   }
   const inside=cabinController.inside&&!forcedExterior();
   for(const id of ['cabinButton','mobileCabinButton']){$(id).hidden=!inside;$(id).textContent=cabinController.canPilot?'Pararse':'Sentarse';$(id).disabled=paused||gemSequence.active||(!cabinController.canPilot&&!cabinController.canSit);}
@@ -884,9 +904,7 @@ function handlePhaseChange() {
   updateMissionUI();
 }
 ship.setStage(state.moduleStage, false); camera.position.set(12, 9, 27); updateMissionUI();
-$('soundButton').setAttribute('aria-pressed', String(soundEnabled));
-$('soundButton').setAttribute('aria-label', soundEnabled ? 'Silenciar sonido' : 'Activar sonido');
-$('mobileSoundInvite').hidden = soundEnabled;
+updateSoundUI();
 saveProgress();
 if (saved) notify(saved.complete ? 'Tu expedición está completa · Podés inspeccionar la nave' : `Continuamos en ${state.layout.name.split(' · ')[0]} · Progreso recuperado`, 6);
 else notify('Arrastrá para mirar · Explorá con empuje e inercia',6);
@@ -903,12 +921,23 @@ function animate(now) {
     if(['gem','return','transit'].includes(state.phase)||gemSequence.active)void prepareNextStage();
     if(!cabin&&!viewLoad&&(state.phase==='small'||flight.actor==='ship'||['returning','boarding'].includes(gemSequence.phase)))void prepareView('cabin');
     if(!combat.shot&&!gemSequence.active){
-      if(cabinController.inside&&!cabinController.canPilot)cabinLook-=input.lookX*.005;
-      else orbit-=input.lookX*.005;
-      elevation=THREE.MathUtils.clamp(elevation+input.lookY*.004,-1.1,1.1);
+      if(cabinController.inside&&!cabinController.canPilot){
+        cabinLook-=input.lookX*.005;
+        cabinLookPitch=THREE.MathUtils.clamp(cabinLookPitch-input.lookY*.004,-1.1,1.1);
+      }else{
+        orbit-=input.lookX*.005;
+        elevation=THREE.MathUtils.clamp(elevation+input.lookY*.004,-1.1,1.1);
+      }
     }
     world.sync(state,worldTime,{reducedMotion,scanning,optionalState:mission.optionalState});
-    if(!gemSequence.active&&!inspecting){const found=mission.discover(flight.position,38);if(found.length){ensureTarget();saveProgress();if(!combat.shot)say('Contacto cercano. Ya podés identificar su función y acercarte.');}}
+    if(!gemSequence.active&&!inspecting){const found=mission.discover(flight.position,38);if(found.length){
+      ensureTarget(found);saveProgress();
+      if(!combat.shot){
+        const required=world.targets.some(target=>found.includes(target.id)&&target.kind===state.phase);
+        if(required)say(state.phase==='small'?'Pulso cian: ese asteroide cuenta. Acercá la nave y salí con el astronauta.':'Pulso dorado: ese núcleo cuenta. Destruilo con el cañón de la nave.');
+        else if(time>subtitleUntil)say('Rocas opcionales: no suman al objetivo. Podés destruirlas o seguir explorando.');
+      }
+    }}
     ensureTarget();
     previousPosition.copy(flight.position);previousQuaternion.copy(flight.shipQuaternion);collisionActor=flight.actor;
     updateFlight(worldDt,input);updateScan(dt);updateCombat(dt,worldDt);handlePhaseChange();ensureTarget();updateCinematic(dt);
@@ -931,7 +960,7 @@ function animate(now) {
     camera.updateMatrixWorld();viewProjection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);viewFrustum.setFromProjectionMatrix(viewProjection);
     mission.updatePopulations(worldTime,{playerPosition:flight.position,isVisible:(p,r)=>{respawnSphere.center.copy(p);respawnSphere.radius=r;return viewFrustum.intersectsSphere(respawnSphere);}});
     const target=selectedTarget();selection.visible=!!target&&!inspecting&&!gemSequence.active&&!cabinActive();
-    if(target){selection.position.copy(target.position);selection.quaternion.copy(camera.quaternion);selection.scale.setScalar(target.radius*1.2);}
+    if(target){selection.position.copy(target.position);selection.quaternion.copy(camera.quaternion);selection.scale.setScalar(target.radius*1.2);selection.material.color.setHex(target.kind==='small'?0x65e9e1:target.kind==='large'?0xffbd66:target.kind==='hazard'?0xef886c:0xa3afb8);}
     effects.update(worldTime,camera,{reducedMotion,travel:state.phase==='transit'?Math.min(1,gemSequence.age/1.2):0,velocity:flight.velocity});
     if(time>toastUntil)$('toast').classList.remove('visible');if(time>subtitleUntil)$('companionSubtitle').hidden=true;
     const soundActive=!paused&&!inspecting&&state.phase!=='complete';

@@ -20,6 +20,23 @@ function assetFixture() {
 const layout = () => createExpedition(620).state.layout;
 const firstMesh = object => { let found; object.traverse(part => { if (!found && part.isMesh) found = part; }); return found; };
 
+test('mission surfaces pulse only after discovery and preserve wrapped shading without lighting optional rocks',()=>{
+ const mission=createExpedition(620),world=createSectorWorld(new THREE.Scene(),{assets:assetFixture().assets});world.load(mission.state.layout);
+ const required=world.targets.filter(t=>t.kind==='small'),optional=world.targets.find(t=>t.kind==='breakable');
+ const material=firstMesh(required[1].object.userData.body).material,other=firstMesh(optional.object.userData.body).material;
+ const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',fragmentShader:'#include <common>\n#include <map_fragment>\n#include <roughnessmap_fragment>'};
+ material.onBeforeCompile(shader,{});assert(shader.uniforms.rockSurface,'highlight must retain the wrapped surface shader');
+ const optionalColor=other.emissive.clone(),optionalIntensity=other.emissiveIntensity;
+ const state={...mission.state,phase:'small',discovered:[],destroyed:[]};world.sync(state,1);
+ const emission=()=>new THREE.Vector3().fromArray(material.emissive.toArray()).multiplyScalar(material.emissiveIntensity);
+ const before=emission();
+ state.discovered=[required[1].id];world.sync(state,1);
+ assert(emission().distanceTo(before)>.1,'discovered mandatory target must visibly separate from the rocks');
+ assert(other.emissive.equals(optionalColor));assert.equal(other.emissiveIntensity,optionalIntensity);
+ world.sync({...state,phase:'large'},1);assert(emission().distanceTo(before)<1e-6,'completed EVA phase must stop highlighting');
+ world.dispose();
+});
+
 test('imported asteroid surfaces share geometry and remain inside their gameplay collision spheres', () => {
   const fixture = assetFixture(), world = createSectorWorld(new THREE.Scene(), { assets: fixture.assets });
   world.load(layout());

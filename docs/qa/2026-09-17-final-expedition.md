@@ -45,3 +45,16 @@ Browser QA ran on this Mac in Chrome/Metal and Playwright WebKit, with desktop a
 - Independent review of root integration and compact fracture preparation found one P2: a pending exit could run after a failed download or pause. The fix checks readiness and revalidates the action epoch, seed, actor and guards; eight regressions execute the actual production functions. Review resolved with no remaining actionable P0/P1/P2 in its covered changes.
 - Final WebKit pickup captures verify the same 28cm relic, left palm upward and +14cm center offset in first/third person and portrait; right weapon hand unchanged. Cabin FP/TP seated/standing and retained roof were checked with the real GLB.
 - Publication target is the existing `https://gamification-murex.vercel.app/`; the production alias is updated only after these checks. Deployment identity and public smoke results are preserved in the local release evidence.
+
+## User playtest follow-up
+
+The final preview exposed three small usability issues, followed by an EVA projectile visibility report. The correction stays limited to these areas:
+
+- Cabin cameras now frame the pilot from a close shoulder view and point the standing first-person eye at the actual window. Seated first-person framing is retained. Look inside the cabin is relative to the ship instead of reusing its flight pitch. Desktop and portrait captures cover entering, sitting, rising, standing and camera cycling with the original models.
+- Discovered mission rocks have a subtle cyan/gold rim pulse, retaining source geometry, maps and mineral shading. Labels explicitly distinguish progression targets from optional rocks and stay within the portrait viewport. New mission discoveries take selection priority without interrupting a shot or overriding ordinary manual selection. Exploration distances and progression counts are unchanged.
+- Activating audio from settings closes the paused menu before unlocking playback. The compact sound control remains visible, reports successful activation and permits retry. Safari's playback audio session is requested on enabled unlock where supported. Real-page Chromium and WebKit checks measured nonzero output for direct/menu activation and mute/reactivation, without page/network errors. This does not certify physical speaker output on an iPhone.
+- EVA projectile presentation keeps the original projectile and scale, adds a compact glow and stronger trail, and replaces the large muzzle fragments that obscured the shot with small sparks. The actual scene was inspected against the planet background. Flight, accuracy, damage and ship effects remain unchanged; before/after evidence is in `projectile-eva-after-qa/`.
+
+Visual reports and source hashes are stored under `cabin-portrait-camera-qa/`, `objective-cue-qa/` and `audio-recovery-qa/` in the ignored QA directory. The preview URL is immutable; the corrected public release uses the stable production domain.
+
+Final follow-up checks: `npm test` **197 passed, 0 failed, 0 skipped**; all five changed JavaScript modules passed syntax checks, and `git diff --check` is clean. Focused independent review found no new actionable P1/P2 in selection, surface-material ownership or audio activation. Public release evidence is recorded after promotion.

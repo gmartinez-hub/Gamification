@@ -55,3 +55,16 @@ test('late atlas completion cannot double-dispose already released texture owner
  t.mock.method(THREE.TextureLoader.prototype,'load',(url,onLoad)=>{const texture=new THREE.Texture();const index=textures.length;counts[index]=0;texture.addEventListener('dispose',()=>counts[index]++);textures.push(texture);callbacks.push(()=>onLoad(texture));return texture;});
  const fx=effects.createEffects(new THREE.Scene());fx.dispose();callbacks.forEach(fn=>fn());assert.deepEqual(counts,[1,1,1]);
 });
+test('EVA shot gains a compact luminous flight cue without changing the shared projectile or ship visuals',()=>{
+ const geometry=new THREE.BoxGeometry(.08,.08,.24),material=new THREE.MeshStandardMaterial(),templates={createProjectile(){return new THREE.Mesh(geometry,material)}};
+ const eva=effects.createProjectileVisual(templates,'astronaut'),ship=effects.createProjectileVisual(templates,'ship');
+ const cue=eva.group.getObjectByName('eva-projectile-glow');assert.ok(cue,'EVA needs an additive cue visible around the dark original body');assert.equal(ship.group.getObjectByName('eva-projectile-glow'),undefined);
+ eva.update(new THREE.Vector3(1,2,3),new THREE.Vector3(0,0,-1),.016);assert.ok(cue.position.distanceTo(eva.model.position)<1e-8);assert.ok(cue.scale.x>=.18&&cue.scale.x<=.3);assert.equal(eva.model.geometry,geometry);assert.equal(eva.model.material,material);
+ assert.ok(eva.group.getObjectByName('projectile-world-trail').material.size>=.06);assert.equal(ship.group.getObjectByName('projectile-world-trail').material.size,.11);
+ let disposed=0;cue.material.map.addEventListener('dispose',()=>disposed++);eva.dispose();eva.dispose();assert.equal(disposed,1);ship.dispose();
+});
+test('EVA muzzle flash never throws mineral chunks or opaque-sized dust across the first-person sightline',()=>{
+ const scene=new THREE.Scene(),fx=effects.createEffects(scene);fx.burst(new THREE.Vector3(),'evaMuzzle',0);fx.update(.05);
+ const slot=scene.getObjectByName('legacy-atlas-effects').children.find(o=>o.visible);assert.equal(slot.getObjectByName('mineral-fragments').count,0);const dust=slot.getObjectByName('impact-dust');assert.ok(dust.material.size<=.02);
+ const p=dust.geometry.attributes.position;for(let i=0;i<p.count;i++)assert.ok(new THREE.Vector3().fromBufferAttribute(p,i).length()<.1);fx.dispose();
+});

@@ -584,6 +584,27 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       body.castShadow = true; body.receiveShadow = true;
     }
     body.rotation.set(random() * 2, random() * 2, random() * 2);
+    // A discovered mission rock carries a small surface pulse; optional rocks
+    // keep their original mineral appearance and all meshes retain their maps.
+    const missionSurfaces=[];
+    if(kind==='small'||kind==='large')body.traverse(part=>{
+      if(!part.isMesh)return;
+      const adapt=source=>{
+        if(!source.emissive)return source;
+        const material=own(source.clone());
+        material.onBeforeCompile=(shader,renderer)=>{
+          source.onBeforeCompile(shader,renderer);
+          shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+            float missionRim=pow(1.0-abs(dot(normalize(vViewPosition),normal)),2.0);
+            totalEmissiveRadiance*=0.10+0.90*missionRim;`);
+        };
+        material.customProgramCacheKey=()=>source.customProgramCacheKey()+'-mission-rim-v1';
+        missionSurfaces.push({material,color:source.emissive.clone(),intensity:source.emissiveIntensity});
+        return material;
+      };
+      part.material=Array.isArray(part.material)?part.material.map(adapt):adapt(part.material);
+    });
+    object.userData.missionSurfaces=missionSurfaces;
     // The imported surface itself defines the target: no floating ore pieces or
     // decorative circles extend beyond the unchanged collision sphere.
     object.traverse(part => { part.userData.id = spec.id; part.userData.targetId = spec.id; part.userData.kind = kind; });
@@ -742,6 +763,11 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       record.generation=optional?.generation || 0;
       object.visible=!destroyed.has(record.id) && !optional?.destroyed && (kind!=='large'||largeVisible);
       object.userData.active=object.visible && (kind==='hazard'||kind==='breakable'||kind===state.phase);
+      const identified=object.visible&&kind===state.phase&&state.discovered?.includes(record.id);
+      for(const {material,color,intensity}of object.userData.missionSurfaces||[]){
+        material.emissive.copy(color);material.emissiveIntensity=intensity;
+        if(identified){material.emissive.setHex(kind==='large'?0xffbd66:0x65e9e1);material.emissiveIntensity=.18+(reducedMotion?.07:.14*(.5+.5*Math.sin(time*2.2+phase)));}
+      }
     }
     materials.cyan.emissiveIntensity = state.phase === 'small' ? 0.85 : 0.15;
     materials.cyanLine.opacity = state.phase === 'small' ? 0.6 : 0.18;

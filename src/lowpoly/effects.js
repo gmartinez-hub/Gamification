@@ -3,7 +3,7 @@ import * as THREE from '../../vendor/three.module.js';
 const NO_OPTIONS = Object.freeze({});
 const ATLAS_FILES = Object.freeze({ scan: 'scan-atlas.png', ship: 'ship-impact.png', eva: 'eva-impact.png' });
 const EFFECTS = Object.freeze({
-  evaMuzzle: { atlas:'eva', columns:4, rows:4, duration:.16, scale:.32, color:0xb6f5ff, opacity:.85, rings:0, radius:.2, fragments:5, speed:.6 },
+  evaMuzzle: { atlas:'eva', columns:4, rows:4, duration:.19, scale:.48, color:0xb6f5ff, opacity:.95, rings:0, radius:.2, fragments:0, speed:.6 },
   shipMuzzle: { atlas:'ship', columns:4, rows:4, duration:.24, scale:.85, color:0xadeeff, opacity:.85, rings:0, radius:.4, fragments:9, speed:1.1 },
   scan: { atlas:'scan', columns:4, rows:1, duration:1.1, scale:2.3, color:0xa5ffe8, opacity:.55, rings:0, radius:2.2, fragments:10, speed:.7 },
   eva: { atlas:'eva', columns:4, rows:4, duration:.9, scale:2.0, color:0xb6f5ff, opacity:.72, rings:0, radius:2.2, fragments:14, speed:2.5 },
@@ -105,8 +105,8 @@ export function createEffects(scene) {
     slot.fragmentMaterial.color.setHex(kind==='ship'||kind==='attach'?0xbc8f6a:kind==='eva'?0x829599:config.color);
     slot.fragmentMaterial.emissive.setHex(config.color);slot.fragmentMaterial.emissiveIntensity=kind==='ship'||kind==='eva'?.13:.75;
     slot.waves.count=0;slot.fragments.count=config.fragments;
-    slot.dustMaterial.size=['collect','gem'].includes(kind)?.025:.14;
-    slot.dustMaterial.color.setHex(['collect','gem'].includes(kind)?config.color:0xb99c89);
+    slot.dustMaterial.size=kind==='evaMuzzle'?.015:['collect','gem'].includes(kind)?.025:.14;
+    slot.dustMaterial.color.setHex(['collect','gem','evaMuzzle'].includes(kind)?config.color:0xb99c89);
   }
   function enqueue(position,kind,time,options=NO_OPTIONS,target=null) {
     kind=kind==='impact'?'eva':kind==='travel'?'warp':kind;
@@ -185,7 +185,7 @@ export function createEffects(scene) {
       slot.dustMaterial.opacity=(reduced?.12:.36)*Math.sin(Math.PI*Math.min(1,progress*1.6))*fade;
       const dustPositions=slot.dustGeometry.attributes.position;
       for(let i=0;i<64;i++){
-        const angle=i*2.399963,y=1-2*(i+.5)/64,r=Math.sqrt(1-y*y),spread=(['collect','gem'].includes(slot.kind)?.12+progress*.12:.3+age*c.speed*.65)*(1+i%3*.14);
+        const angle=i*2.399963,y=1-2*(i+.5)/64,r=Math.sqrt(1-y*y),spread=(slot.kind==='evaMuzzle'?.025+age*.25:['collect','gem'].includes(slot.kind)?.12+progress*.12:.3+age*c.speed*.65)*(1+i%3*.14);
         dustPositions.setXYZ(i,Math.cos(angle)*r*spread,y*spread,Math.sin(angle)*r*spread);
       }dustPositions.needsUpdate=true;
       slot.waveMaterial.opacity=0;
@@ -232,10 +232,23 @@ export function createEffects(scene) {
 export function createProjectileVisual(templates,actor='astronaut') {
   const group=new THREE.Group();group.name='projectile-visual-'+actor;group.visible=false;
   const model=templates.createProjectile(actor);group.add(model);
+  // A compact optical cue keeps the original narrow round readable head-on.
+  // This belongs only to EVA; source geometry, scale and ship visuals are unchanged.
+  let glow=null;
+  if(actor==='astronaut'){
+    const pixels=new Uint8Array(32*32*4);
+    for(let y=0;y<32;y++)for(let x=0;x<32;x++){
+      const radius=Math.hypot((x-15.5)/15.5,(y-15.5)/15.5),i=(y*32+x)*4;
+      const alpha=Math.max(0,1-radius);pixels[i]=175;pixels[i+1]=244;pixels[i+2]=255;pixels[i+3]=Math.round(255*alpha*alpha);
+    }
+    const texture=new THREE.DataTexture(pixels,32,32);texture.magFilter=THREE.LinearFilter;texture.minFilter=THREE.LinearFilter;texture.needsUpdate=true;
+    glow=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,color:0xd5ffff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:true,toneMapped:false}));
+    glow.name='eva-projectile-glow';glow.scale.setScalar(.24);group.add(glow);
+  }
   const positions=new Float32Array(48*3),alpha=new Float32Array(48),ages=new Float32Array(48).fill(1),geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   geometry.setAttribute('particleAlpha',new THREE.BufferAttribute(alpha,1));
-  const material=new THREE.PointsMaterial({color:0x9cefff,size:actor==='ship'?.11:.025,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+  const material=new THREE.PointsMaterial({color:0x9cefff,size:actor==='ship'?.11:.07,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
   material.onBeforeCompile=shader=>{
     shader.vertexShader='attribute float particleAlpha; varying float gzTrailAlpha;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ngzTrailAlpha=particleAlpha;');
@@ -253,6 +266,7 @@ export function createProjectileVisual(templates,actor='astronaut') {
     if(disposed||!finitePoint(position)||!finitePoint(direction)||!Number.isFinite(dt)||dt<0)return false;
     if(!visible){reset();return true;}group.visible=true;
     model.position.copy(position);aim.copy(direction);if(aim.lengthSq()>1e-8)model.quaternion.setFromUnitVectors(forward,aim.normalize());
+    if(glow){glow.position.copy(position);glow.material.opacity=.95;glow.scale.setScalar(.24);}
     light.position.copy(position);light.intensity=(actor==='ship'?1.5:.2)*THREE.MathUtils.clamp(intensity,0,2);
     for(let i=0;i<48;i++)ages[i]+=dt;
     if(!started){previous.copy(position);emit(position);started=true;}
@@ -263,6 +277,6 @@ export function createProjectileVisual(templates,actor='astronaut') {
     for(let i=0;i<48;i++)alpha[i]=Math.max(0,1-ages[i]/.28);
     geometry.attributes.position.needsUpdate=true;geometry.attributes.particleAlpha.needsUpdate=true;return true;
   }
-  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();geometry.dispose();material.dispose();}
+  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();geometry.dispose();material.dispose();if(glow){glow.material.map.dispose();glow.material.dispose();}}
   reset();return {group,model,update,reset,dispose};
 }
