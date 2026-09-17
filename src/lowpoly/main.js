@@ -1,16 +1,23 @@
 import * as THREE from '../../vendor/three.module.js';
-import { usesMobileAssets } from './asset-loading.js';
+import { usesMobileAssets, loadModelSet } from './asset-loading.js';
 import { loadActorAssets, createAssetShip, createAssetAstronaut, createAssetCompanion, createAssetVisor } from './asset-actors.js';
 import { createSectorWorld, loadWorldAssets } from './sector-world.js';
-import { createExpedition, createRandom, aimChance } from './expedition.js';
-import { createFlight, EVA_CENTER_Y, EVA_RADIUS } from './flight.js';
+import { createExpedition } from './expedition.js';
+import { EVA_CENTER_Y, EVA_RADIUS } from './flight.js';
 import { createControls } from './controls.js';
 import { getMobileAction } from './mobile-actions.js';
-import { createCombat, WEAPON_RANGE } from './combat.js';
+import { createVehicles } from './vehicles.js';
+import { createBallistics, assistAim, aimConvergence } from './ballistics.js';
+import { createEncounters } from './encounters.js';
+import { createBikeActor } from './bike-actor.js';
+import { createAlienActor } from './enemy-actors.js';
+import { createEnemyShip } from './enemy-ship.js';
+import { createShotVisuals } from './shot-visuals.js';
+const WEAPON_RANGE = {astronaut:42,bike:42,ship:85};
 import { shipPoint, shipCollisionSpheres, shipFrameRadius } from './spatial.js';
 import { sweptSphereContact, closestApproach } from './hazards.js';
 import { createPresentation, createReflectionEnvironment } from './presentation.js';
-import { createEffects, createProjectileVisual } from './effects.js';
+import { createEffects } from './effects.js';
 import { loadMissionAssets, createMissionAssetTemplates } from './mission-assets.js';
 import { createCabinController } from './cabin-controller.js';
 import { createWalkableCabin } from './cabin.js';
@@ -73,7 +80,10 @@ try { actorAssets = await loadActorAssets((done,total) => { $('loading').querySe
 catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo completar la descarga de los modelos. Recargá para volver a intentar.'; throw error; }
 const ship = createAssetShip(actorAssets), astronaut = createAssetAstronaut(actorAssets), companion = createAssetCompanion(actorAssets);
 scene.add(ship.group, astronaut.group, companion.group, camera);
-const cabinController = createCabinController({aboard:!!saved});
+$('loading').querySelector('p').textContent='Preparando la moto y su piloto…';
+const bikeAssets=await loadModelSet([['bike','bike'],['riderClips','bike-rider']],{mobile:mobileGPU,directory:'encounter-models'});
+const bike=createBikeActor(bikeAssets,actorAssets['astronauta-armado']);scene.add(bike.group);
+const cabinController = createCabinController({aboard:!!saved&&saved.shipDiscovered!==false});
 const cabinRoot = new THREE.Group(); scene.add(cabinRoot);
 let cabin = null, visor = actorAssets['astronauta-brazos-armado'] ? createAssetVisor(actorAssets) : null;
 if (visor) camera.add(visor.group);
@@ -82,11 +92,36 @@ let viewLoad = null, viewRetryAt = 0;
 const eventLight = new THREE.PointLight(0x7deaff, 0, 26, 2); scene.add(eventLight);
 let eventLightUntil = 0;
 const presentation = createPresentation(renderer);
-const flight = createFlight();
-if (saved) flight.reset({ aboard: true });
+const flight = createVehicles();
+if (saved) flight.reset({ aboard: saved.shipDiscovered!==false, shipDiscovered:saved.shipDiscovered!==false });
 flight.setStage(state.moduleStage);
-let shotRandom = createRandom(`${state.seed}:combat`);
-const combat = createCombat(() => shotRandom());
+const ballistics=createBallistics({capacity:48});
+const combat={cooldown:0,shot:null,reset(){this.cooldown=0;ballistics.reset();pendingShot=null;},chanceFor(){return 1;}};
+const encounters=createEncounters({seed:state.seed,sector:state.sector,completedIds:state.destroyed});
+let enemyAssets=null,enemyLoad=null,enemyRetryAt=0;
+const enemyActors=new Map();
+async function prepareEnemies(){
+  if(enemyAssets||enemyLoad||performance.now()<enemyRetryAt)return;
+  enemyLoad=loadModelSet([['alien','alien'],['alienShip','alien-ship']],{mobile:mobileGPU,directory:'encounter-models'});
+  try{enemyAssets=await enemyLoad;}catch(error){enemyRetryAt=performance.now()+5000;console.warn('Encounter assets pending; will retry',error);}
+  finally{enemyLoad=null;}
+}
+function clearEnemies(){for(const actor of enemyActors.values())actor.dispose();enemyActors.clear();}
+function syncEnemyActors(dt){
+  const live=new Set(encounters.entities.map(e=>e.id));
+  for(const[id,actor]of enemyActors)if(!live.has(id)){actor.dispose();enemyActors.delete(id);}
+  for(const entity of encounters.entities){
+    let actor=enemyActors.get(entity.id);
+    if(!actor&&enemyAssets){
+      actor=entity.kind==='alien'?createAlienActor(enemyAssets.alien):createEnemyShip(enemyAssets.alienShip);enemyActors.set(entity.id,actor);scene.add(actor.group);
+      if(entity.kind==='alien')actor.chargeRocks=[actor.clawLeft,actor.clawRight].map(socket=>{const rock=world.createRockProjectile(.28);socket.add(rock);rock.visible=false;return rock;});
+    }
+    if(!actor)continue;
+    actor.group.position.copy(entity.position);
+    actor.group.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),new THREE.Vector3().copy(entity.forward).normalize());
+    actor.update(worldTime,entity,{dt,reducedMotion});for(const rock of actor.chargeRocks||[]){rock.visible=entity.charge>.06;rock.scale.setScalar(.28*Math.max(.1,entity.charge));rock.rotation.y=worldTime*3;}actor.group.updateMatrixWorld(true);
+  }
+}
 const world = createSectorWorld(scene, { assetLoader: () => loadWorldAssets({ mobile: mobileGPU }) });
 $('loading').querySelector('p').textContent = 'Preparando baliza, minerales y biomas…';
 try { await world.loadAssets(); } catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo descargar el escenario. Recargá para volver a intentar.'; throw error; }
@@ -99,13 +134,13 @@ world.load(state.layout);
 const audio = createExpeditionAudio();
 let soundEnabled = settings.soundEnabled, soundReady = false;
 audio.setEnabled(soundEnabled); audio.setVolumes({ effects: settings.effectsVolume, ambience: settings.ambienceVolume });
-let paused = false, inspecting = false, firstPerson = settings.firstPerson, userActionEpoch=0;
+let paused = false, inspecting = false, firstPerson = saved ? settings.firstPerson : false, userActionEpoch=0;
 let mobileAction = { action: 'none', disabled: true };
 let viewBeforeInspect = null;
 let flightMenuOpen = false, wasPausedBeforeMenu = false;
 const compactHUD = matchMedia('(pointer: coarse), (max-width: 700px)');
 let worldTime = 0, time = 0, subtitleUntil = 0, hintUntil = 0, lastSaveAt = 0, lastFrame = performance.now(), toastUntil = 0, damageUntil = 0, invulnerableUntil = 0;
-let orbit = firstPerson ? 0 : -.9, elevation = firstPerson ? 0 : .28, zoom = 1, targetZoom = 1;
+let orbit = flight.actor==='bike'?.615:firstPerson ? 0 : -.9, elevation = flight.actor==='bike'?.19:firstPerson ? 0 : .28, zoom = 1, targetZoom = 1;
 let selectedId = null, navigating = false, scanProgress = state.scanProgress || 0, scanning = false;
 let health = 100, assemblyUntil = 0, transitStart = 0;
 let pendingModule = 0, attachAt = 0, arrivalVeilUntil = 0;
@@ -123,7 +158,7 @@ let collisionActor = flight.actor, hazardWarning = null, controlWasLocked = fals
 const transitEntry = new THREE.Vector3();
 const viewFrustum = new THREE.Frustum(), viewProjection = new THREE.Matrix4(), respawnSphere = new THREE.Sphere();
 let actionProtectedFrame = false, slowAudioActive = false, nextStageReady = false;
-let interiorView = !!saved, cabinLook = 0, cabinLookPitch = 0, previousCompanionCabin = false;
+let interiorView = !!saved&&saved.shipDiscovered!==false, cabinLook = 0, cabinLookPitch = 0, previousCompanionCabin = false;
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2(), pointerStart = new THREE.Vector2();
 const tetherPositions = new Float32Array(25 * 3);
 const tetherGeometry = new THREE.BufferGeometry();
@@ -132,8 +167,10 @@ const tether = new THREE.Line(tetherGeometry, new THREE.LineBasicMaterial({ colo
 tether.frustumCulled = false; scene.add(tether);
 const selection = new THREE.Mesh(new THREE.TorusGeometry(1, .022, 4, 48), new THREE.MeshBasicMaterial({ color: 0xc0efde, transparent: true, opacity: .8, depthWrite: false }));
 scene.add(selection);
-const projectiles = {astronaut:createProjectileVisual(missionModels,'astronaut'),ship:createProjectileVisual(missionModels,'ship')};
-for (const projectile of Object.values(projectiles)) scene.add(projectile.group);
+const shotVisuals=createShotVisuals(scene,missionModels,world);
+let pendingShot=null;
+let aimAssistId=null,lastShotAt=-100,shotProtectedUntil=0,lastEnemyWarning=-100;
+let shipWasDiscovered=flight.shipDiscovered;
 const effects = createEffects(scene);
 const destruction = createDestruction(scene);
 for(const record of world.targets) destruction.prepare(record);
@@ -174,7 +211,7 @@ function say(message) { $('companionMessage').textContent=message; $('companionS
 function play(id, volume = 1) { if (soundEnabled && !paused) audio.play(id, { volume }); }
 function saveProgress() {
   settings.firstPerson = firstPerson; settings.soundEnabled = soundEnabled;
-  const ok = checkpoint.save(state, settings);
+  const ok = checkpoint.save({...state,shipDiscovered:flight.shipDiscovered}, settings);
   if ($('saveStatus')) $('saveStatus').textContent = ok ? `Guardado · ${state.layout.name.split(' · ')[0]}${state.gems ? ` · ${state.gems} gema${state.gems === 1 ? '' : 's'}` : ''}` : 'Guardado no disponible en este navegador';
 }
 function illuminate(position, color = 0x7deaff, duration = .7) {
@@ -182,12 +219,12 @@ function illuminate(position, color = 0x7deaff, duration = .7) {
   eventLightUntil = time + duration;
 }
 function blocked() { return paused || inspecting || gemSequence.active || state.phase === 'transit' || time < assemblyUntil || (cabinController.inside && !cabinController.canPilot); }
-function protectedAction(){return actionProtectedFrame || !!combat.shot || scanning || gemSequence.active || time<assemblyUntil || state.phase==='transit';}
+function protectedAction(){return actionProtectedFrame || time<shotProtectedUntil || scanning || gemSequence.active || time<assemblyUntil || state.phase==='transit';}
 function cabinActive(){return cabinController.inside && (interiorView || !cabinController.canPilot) && !forcedExterior();}
 function forcedExterior() { return inspecting || time < assemblyUntil || state.phase === 'transit' || state.phase === 'complete'; }
 function visorActive() { return firstPerson && !forcedExterior() && (flight.actor!=='ship'||interiorView); }
 function validTargets() { return world.targets.filter(target => target.object.visible && state.discovered.includes(target.id) && !state.destroyed.includes(target.id) && !mission.optionalState(target.id)?.destroyed && (target.kind===state.phase || ['hazard','breakable'].includes(target.kind))); }
-function correctWeapon(target){return target && (['hazard','breakable'].includes(target.kind) || flight.actor===(target.kind==='small'?'astronaut':'ship'));}
+function correctWeapon(target,actor=flight.actor){return target && (['hazard','breakable','alien','alienShip'].includes(target.kind) || (target.kind==='small'?actor!=='ship':actor==='ship'));}
 function pathBlocked(target,origin){
   const segment=new THREE.Vector3().subVectors(target.position,origin),length=segment.length();if(length<.01)return false;segment.divideScalar(length);
   return world.targets.some(other=>{if(other.id===target.id||!other.object.visible)return false;const offset=new THREE.Vector3().subVectors(other.position,origin),t=offset.dot(segment);return t>.2&&t<length-target.radius && offset.addScaledVector(segment,-t).length()<other.radius*.88;});
@@ -209,10 +246,11 @@ function ensureTarget(discovered=[]) {
   if (!selectedTarget()) selectedId = validTargets().sort((a,b)=>(a.kind===state.phase?0:1)-(b.kind===state.phase?0:1)||a.position.distanceToSquared(flight.position)-b.position.distanceToSquared(flight.position))[0]?.id||null;
 }
 function objective() {
-  if (flight.returning) return { position: flight.dockPosition, label: 'REGRESO · NAVE', stop: 0 };
+  if(!flight.shipDiscovered)return {position:flight.shipPosition,label:'SEÑAL DE TU NAVE',kind:'ship',stop:0};
+  if (flight.returning) return { position: flight.dockPosition, label: flight.base==='bike'?'REGRESO · MOTO':'REGRESO · NAVE', stop: 0 };
   if (state.phase==='scan' && (hintUntil>time || flight.position.distanceTo(world.beacon.position)<24)) return {position:world.beacon.position,label:'BALIZA · ESCANEAR',stop:2.5};
   if (state.phase === 'small' || state.phase === 'large') {
-    if (state.phase === 'large' && flight.actor === 'astronaut') {
+    if (state.phase === 'large' && flight.actor !== 'ship') {
       return { position: flight.shipPosition, label: state.phase === 'large' ? 'NAVE · ABORDAR' : 'SALIR COMO ASTRONAUTA', stop: 0 };
     }
     const target = selectedTarget();
@@ -226,12 +264,23 @@ function returnToShip() {
   if (blocked() || combat.shot || state.phase === 'complete') return;
   if (flight.returnToShip()) {
     navigating = false; scanning = false; controls.clear();
-    say('Volvemos al acceso de la nave. Recojo el cable al abordar.');
+    say(flight.base==='bike'?'Volvemos a la moto. Recojo el cable al montar.':'Volvemos al acceso de la nave. Recojo el cable al abordar.');
     notify('Regreso asistido · Recogiendo cable');
     play('return');
   }
 }
+function mountBike(){
+  if(blocked()||flight.returning)return;
+  if(flight.mountBike()){
+    cabinController.reset({aboard:false});interiorView=false;controls.clear();navigating=false;scanning=false;
+    say('Moto lista. Tenés impulso y el arma del traje a mano.');play('evaExit');
+  }else notify('Acercate a la moto para montar.');
+}
 async function deploy() {
+ if(flight.actor==='bike'&&!blocked()&&!flight.returning){
+   if(!await prepareView('visor')||flight.actor!=='bike'||blocked())return;
+   flight.deploy();previousActor=flight.actor;controls.clear();navigating=false;scanning=false;say('Cable conectado a la moto. Podés explorar alrededor.');play('evaExit');return;
+ }
  const epoch=userActionEpoch,requestSeed=state.seed;
  const allowed=()=>epoch===userActionEpoch&&requestSeed===state.seed&&!paused&&!inspecting&&!combat.shot&&!gemSequence.active&&time>=assemblyUntil&&!['complete','transit'].includes(state.phase)&&flight.actor==='ship';
  if(!allowed())return;
@@ -252,6 +301,7 @@ function navigate() {
  if(state.phase==='complete'){void resetExpedition();return;}
  if(inspecting)setInspect(false);
  hintUntil=time+14;stopNavigation();
+ if(!flight.shipDiscovered){say('Ahí está la señal de nuestra nave. Usá el impulso de la moto para acercarte.');notify('Buscá la nave · La moto tiene boost',4);return;}
  say(state.phase==='scan'?'La señal está cerca del punto de partida. Buscá su pulso cian.':'Marcamos una región de búsqueda. Pilotá hasta allí y explorá con el astronauta.');
  notify('Rumbo orientativo · El movimiento sigue en tus manos',4);
 }
@@ -267,7 +317,8 @@ function interact() {
   if(paused||inspecting)return;
   if(cabinController.inside && !cabinController.canPilot && !gemSequence.active){if(cabinController.canSit){cabinController.sit();play('cabinSeat');}return;}
   if (blocked() || flight.returning || combat.shot) return;
-  if (flight.actor !== 'astronaut') { notify('Salí de la nave para interactuar.'); return; }
+  if(!flight.shipDiscovered){notify('Encontrá primero tu nave.');return;}
+  if (flight.actor !== 'astronaut') { notify(flight.actor==='bike'?'Bajá de la moto para interactuar.':'Salí de la nave para interactuar.'); return; }
   if (state.phase === 'scan') {
     if (flight.position.distanceTo(world.beacon.position) > 3.8) { notify('Acercate a menos de 4 m de la baliza.'); return; }
     scanning = !scanning; navigating = false;
@@ -276,6 +327,7 @@ function interact() {
   } else if (state.phase === 'gem') {
     if (flight.position.distanceTo(world.gem.position) > 3) { notify('Acercate a menos de 3 m de la gema.'); return; }
     if (mission.collectGem()) {
+      encounters.retreat();ballistics.reset();shotVisuals.reset();
       navigating = false;
       if (effects.collect) effects.collect(world.gem.position, ()=>carriedGem.position, worldTime);
       else triggerBurst(new THREE.Vector3().copy(state.layout.gem),'gem');
@@ -289,26 +341,63 @@ function interact() {
     }
   }
 }
-function fire() {
-  if (blocked() || flight.returning || combat.shot) return;
-  const target = selectedTarget();
-  if (!target) { notify('Acercate a las rocas para identificar un blanco.'); return; }
-  const required = target.kind === 'small' ? 'astronaut' : 'ship';
-  if (!correctWeapon(target)) { notify(required === 'ship' ? 'Este núcleo requiere el cañón de la nave. Volvé a abordar.' : 'Los asteroides pequeños requieren el arma del astronauta.'); return; }
-  const distance = flight.position.distanceTo(target.position);
-  if (distance > WEAPON_RANGE[flight.actor]) { notify('Fuera de alcance. Acercate antes de disparar.'); return; }
-  const origin=(flight.actor==='ship'?ship.muzzle:visorActive()&&visor?visor.muzzle:astronaut.muzzle).getWorldPosition(new THREE.Vector3());
-  if(pathBlocked(target,origin)){notify('Línea de tiro obstruida · Cambiá de posición');play('interrupted');return;}
-  const chance = aimChance({ actor: flight.actor, distance, sector: state.sector, speed: flight.velocity.length() });
-  if (combat.start({ id: target.id, actor: flight.actor, kind: target.kind, distance, chance, origin, discovered:state.discovered.includes(target.id) })) {
-    if (flight.actor === 'ship') {
-      temp.subVectors(target.position, flight.shipPosition).normalize();
-      forward.set(0, 0, -1).applyQuaternion(flight.shipQuaternion);
-      combat.shot.lockTime = Math.max(1.6, forward.angleTo(temp) / (65 * Math.PI / 180 * (reducedMotion?1:.4)) + 1.5);
+function combatTargets(){
+  const targets=world.targets.filter(t=>t.object.visible&&!state.destroyed.includes(t.id)&&!mission.optionalState(t.id)?.destroyed).map(t=>({
+    id:t.id,position:t.position,previousPosition:t.previousPosition,radius:t.radius*.9,side:'neutral',blocking:true,
+    damageable:['hazard','breakable'].includes(t.kind)||(t.kind===state.phase&&state.discovered.includes(t.id)),
+  }));
+  for(const e of encounters.entities){
+    const quaternion=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,-1),new THREE.Vector3().copy(e.forward));
+    for(const [z,y,radius]of e.kind==='alienShip'?[[0,0,6.5],[-7,0,3.8],[7,0,3.8]]:[[0,1.4,1.15]]){
+      const offset=new THREE.Vector3(0,y,z).applyQuaternion(quaternion);
+      targets.push({id:e.id,position:new THREE.Vector3().copy(e.position).add(offset),previousPosition:new THREE.Vector3().copy(e.previousPosition).add(offset),velocity:new THREE.Vector3().copy(e.velocity),radius,side:'enemy',blocking:false});
     }
-    navigating = false; scanning = false; controls.clear();projectiles[flight.actor].reset();
-    play('target');
   }
+  const spheres=flight.actor==='ship'?shipCollisionSpheres(state.moduleStage):[{center:{x:0,y:flight.actor==='bike'?.85:.85,z:0},radius:flight.actor==='bike'?1.15:.65},{center:{x:0,y:1.6,z:0},radius:.36}];
+  for(const sphere of spheres){
+    const offset=new THREE.Vector3().copy(sphere.center),prior=offset.clone();
+    if(flight.actor==='ship'){offset.applyQuaternion(flight.shipQuaternion);prior.applyQuaternion(previousQuaternion);}
+    targets.push({id:'player',position:offset.add(flight.position),previousPosition:prior.add(previousPosition),radius:sphere.radius,side:'player',blocking:false,protected:protectedAction()||time<invulnerableUntil});
+  }
+  return targets;
+}
+function aimRay(ndc=pointer.set(0,0)){
+  camera.updateMatrixWorld();raycaster.setFromCamera(ndc,camera);
+  return {origin:raycaster.ray.origin.clone(),direction:raycaster.ray.direction.clone()};
+}
+function fire(ndc){
+  if(blocked()||flight.returning||combat.cooldown>0||pendingShot||state.phase==='complete')return;
+  lastShotAt=time;
+  pendingShot={actor:flight.actor,ndc:ndc?.isVector2?ndc.clone():null,due:time+(flight.actor==='ship'?.04:.25)};
+  combat.cooldown=flight.actor==='ship'?.76:.59;
+}
+function emitShot(ndc){
+  if(blocked()||flight.returning||state.phase==='complete')return;
+  const weapon=flight.actor==='ship'?'ship':'astronaut';
+  const projectileSpeed=weapon==='ship'?48:28;
+  const mount=flight.actor==='ship'?ship.muzzle:flight.actor==='bike'?bike.muzzle:visorActive()&&visor?visor.muzzle:astronaut.muzzle;
+  mount.updateWorldMatrix(true,false);const origin=mount.getWorldPosition(new THREE.Vector3());
+  const ray=aimRay(ndc?.isVector2?ndc:undefined),bodies=combatTargets();
+  const assist=assistAim({...ray,targets:bodies,maxDistance:WEAPON_RANGE[flight.actor]+15,coneAngle:THREE.MathUtils.degToRad(6),strength:.5});
+  const assistedBody=assist.targetId&&bodies.find(body=>body.id===assist.targetId&&body.side==='enemy');
+  let destination;
+  if(assistedBody?.velocity){
+    const distance=ray.origin.distanceTo(assistedBody.position),leadTime=Math.min(1.2,distance/projectileSpeed);
+    const leadPoint=assistedBody.position.clone().addScaledVector(assistedBody.velocity,leadTime);
+    const leadDirection=leadPoint.clone().sub(ray.origin).normalize();
+    const blockers=bodies.filter(body=>body.id!==assist.targetId);
+    const obstruction=aimConvergence({origin:ray.origin,direction:leadDirection,targets:blockers,maxDistance:distance});
+    destination=new THREE.Vector3().copy(obstruction.targetId?obstruction.point:leadPoint);
+  }else{
+    const convergence=aimConvergence({origin:ray.origin,direction:assist.direction,targets:bodies,maxDistance:WEAPON_RANGE[flight.actor]+camera.position.distanceTo(flight.position)});
+    destination=new THREE.Vector3().copy(convergence.point);
+  }
+  const heading=destination.sub(origin).normalize();
+  const shot=ballistics.fire({owner:'player',kind:'energy',origin,direction:heading,speed:projectileSpeed,radius:weapon==='ship'?.24:.13,damage:weapon==='ship'?60:25,maxDistance:WEAPON_RANGE[flight.actor]});
+  if(!shot)return;
+  shot.weapon=weapon;combat.cooldown=weapon==='ship'?.72:.34;lastShotAt=time;shotProtectedUntil=time+.10;scanning=false;
+  if(visorActive()&&flight.actor==='astronaut')visor?.kick();
+  illuminate(origin,weapon==='ship'?0xffbd75:0x80e8ff,.18);triggerBurst(origin,weapon==='ship'?'shipMuzzle':'evaMuzzle',{velocity:flight.velocity});play(weapon==='ship'?'shipFire':'evaFire');
 }
 function triggerBurst(position,kind='scan',options={}){effects.burst(position,kind,worldTime,options);}
 async function setView() {
@@ -325,7 +414,7 @@ async function setView() {
   }else firstPerson=wasInspecting||!firstPerson;
   saveProgress();
   if (flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
-  else if (firstPerson) { orbit = astronaut.group.rotation.y; elevation = 0; }
+  else if (firstPerson) { orbit = flight.actor==='bike'?flight.shipYaw:astronaut.group.rotation.y; elevation = flight.actor==='bike'?.12:0; }
   cabinLook=0;cabinLookPitch=0;
   notify(cabinActive()?firstPerson?'Cabina · Primera persona':'Cabina · Tercera persona':firstPerson?'Visor · Primera persona':'Vista exterior');
 }
@@ -377,12 +466,12 @@ async function resetExpedition() {
   try{await world.prepareBiome('nereida');}catch{notify('No se pudo preparar la expedición. Volvé a intentar.');return;}
   const randomSeed = crypto.getRandomValues(new Uint32Array(1))[0];
   mission.reset(randomSeed); flight.reset(); flight.setStage(1); combat.reset(); world.load(state.layout); ship.setStage(1, false);
-  shotRandom = createRandom(`${state.seed}:combat`);
+  encounters.reset({seed:state.seed,sector:state.sector});clearEnemies();shipWasDiscovered=false;bike.reset();
   momentClock.clearMoments();slowAudioActive=false;gemSequence.reset();carriedGem.visible=false;effects.reset();destruction.reset();ship.reset();astronaut.reset();companion.reset();cabinController.reset({aboard:false});interiorView=false;nextStageReady=false;hintUntil=0;
-  for(const shot of Object.values(projectiles))shot.reset();
-  paused = false; inspecting = false; firstPerson = settings.firstPerson; navigating = false; scanning = false; scanProgress = 0;
+  shotVisuals.reset();
+  paused = false; inspecting = false; firstPerson = false; navigating = false; scanning = false; scanProgress = 0;
   selectedId = null; health = 100; assemblyUntil = 0; pendingModule = 0; arrivalVeilUntil = 0; invulnerableUntil = time + 2; damageUntil = 0;
-  previousPhase = state.phase; previousActor = flight.actor; orbit = firstPerson ? 0 : -.9; elevation = firstPerson ? 0 : .28; targetZoom = 1;
+  previousPhase = state.phase; previousActor = flight.actor; orbit = .615; elevation = .19;companion.group.position.copy(flight.position).add(new THREE.Vector3(1.8,1.6,.7)); targetZoom = 1;
   document.body.classList.remove('inspecting'); document.querySelector('.mission-panel').inert = false;
   $('inspectButton').setAttribute('aria-pressed', 'false'); $('inspectButton').textContent = 'Inspeccionar nave ↗';
   controls.clear(); setPaused(false); updateMissionUI();
@@ -392,9 +481,10 @@ async function resetExpedition() {
 }
 const controls = createControls(canvas, { onAction: interact, onFire: fire, onTarget: targetNext, onView: setView,
   onPause: () => { if (!$('helpDialog').open) setPaused(!paused); }, onReturn: returnToShip, onDeploy: deploy,
-  onNavigate: navigate, onCabin: toggleCabin, onInspect: () => setInspect(!inspecting) });
+  onBike:mountBike, onNavigate: navigate, onCabin: toggleCabin, onInspect: () => setInspect(!inspecting) });
 $('missionButton').onclick = navigate; $('interactButton').onclick = interact; $('fireButton').onclick = fire;
 $('targetButton').onclick = targetNext; $('astronautButton').onclick = deploy; $('shipButton').onclick = returnToShip;
+$('bikeButton').onclick=mountBike;$('mobileBikeButton').onclick=()=>fromFlightMenu(mountBike);$('mobileRideButton').onclick=mountBike;$('mobileDismountButton').onclick=deploy;$('mobileFreeFireButton').onclick=()=>fire();
 $('cabinButton').onclick=toggleCabin; $('mobileCabinButton').onclick=toggleCabin;
 $('cinematicSkip').onclick=()=>gemSequence.skip();
 $('touchLayout').value=settings.touchLayout; $('touchLayout').onchange=()=>{controls.clear();settings.touchLayout=$('touchLayout').value;document.body.dataset.touchLayout=settings.touchLayout;saveProgress();};
@@ -441,7 +531,7 @@ $('closeFlightMenu').onclick = closeFlightMenu;
 $('flightMenu').addEventListener('close', finishFlightMenuClose);
 $('mobileActionButton').onclick = () => {
   if (mobileAction.disabled) return;
-  const actions = { cabin:toggleCabin, navigate, return: returnToShip, deploy, interact, fire, restart: resetExpedition, inspect: () => setInspect(false) };
+  const actions = { bike:mountBike, cabin:toggleCabin, navigate, return: returnToShip, deploy, interact, fire, restart: resetExpedition, inspect: () => setInspect(false) };
   actions[mobileAction.action]?.(); updateHUD();
 };
 $('mobileTargetButton').onclick = () => { targetNext(); updateHUD(); };
@@ -463,11 +553,9 @@ window.addEventListener('pagehide', saveProgress);
 canvas.addEventListener('wheel', event => { event.preventDefault(); if (!paused) targetZoom = THREE.MathUtils.clamp(targetZoom + event.deltaY * .0007, .6, 1.6); }, { passive: false });
 canvas.addEventListener('pointerdown', event => pointerStart.set(event.clientX, event.clientY));
 canvas.addEventListener('pointerup', event => {
-  if (blocked() || combat.shot || pointerStart.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 6) return;
-  pointer.set(event.clientX / innerWidth * 2 - 1, 1 - event.clientY / innerHeight * 2);
-  raycaster.setFromCamera(pointer, camera);
-  const hit = raycaster.intersectObjects(validTargets().map(target => target.object), true)[0];
-  if (hit) { let object = hit.object; while (object && !object.userData.targetId) object = object.parent; if (object) selectedId = object.userData.targetId; }
+  if(blocked()||event.button!==0||pointerStart.distanceTo(new THREE.Vector2(event.clientX,event.clientY))>6)return;
+  if(event.pointerType==='touch')return;
+  fire();
 });
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
@@ -500,7 +588,7 @@ function updateFlight(dt, input) {
   const interiorHold=cabinController.inside&&(!cabinController.canPilot||!cabin);
   const manual=input.x||input.y||input.z;
   if(manual&&!combat.shot&&!flight.returning&&!gemSequence.active&&!interiorHold){scanning=false;
-    if(flight.actor==='ship')forward.set(0,0,-1).applyQuaternion(flight.shipQuaternion);
+    if(flight.actor!=='astronaut')forward.set(0,0,-1).applyQuaternion(flight.vehicleQuaternion);
     else{camera.getWorldDirection(forward);if(!visorActive())forward.y=0;forward.normalize();}
     if(forward.lengthSq()<.1)forward.set(0,0,-1);right.crossVectors(forward,up).normalize();
     direction.addScaledVector(right,input.x).addScaledVector(forward,-input.z).addScaledVector(up,input.y);if(direction.lengthSq()>1)direction.normalize();
@@ -533,23 +621,23 @@ function updateTransit(dt){
 }
 function updateCinematic(dt){
  const event=gemSequence.update(dt,{aboard:flight.actor==='ship',seated:!!cabin&&cabinController.canPilot,ready:nextStageReady,reducedMotion});
- if(event==='return'){flight.returnToShip();scanning=false;controls.clear();play('return');}
+ if(event==='return'){flight.returnToShip({automatic:true});scanning=false;controls.clear();play('return');}
  if(event==='travel'&&mission.enterCorridor('ship')){
   transitStart=time;transitEntry.copy(flight.shipPosition);controls.clear();play('transit');triggerBurst(flight.shipPosition,'warp');say('Siguiente horizonte. Preparando el viaje.');saveProgress();
  }
  if(event==='arrive'){
   mission.finishTransit();combat.reset();selectedId=null;navigating=false;scanning=false;scanProgress=0;
-  for(const visual of Object.values(projectiles))visual.reset();effects.reset();destruction.reset();ship.reset();astronaut.reset();companion.reset();
+  shotVisuals.reset();clearEnemies();encounters.reset({seed:state.seed,sector:state.sector});effects.reset();destruction.reset();ship.reset();astronaut.reset();companion.reset();
   flight.velocity.set(0,0,0);flight.thrust.set(0,0,0);
   if(state.phase==='complete'){
    notify('Tres gemas. Una nave completa. Expedición terminada.',8);say('Lo logramos juntos.');play('complete');triggerBurst(flight.shipPosition,'attach');
   }else{
-   world.load(state.layout);flight.reset({aboard:true});flight.setStage(state.moduleStage);cabinController.reset({aboard:true});previousActor='ship';interiorView=true;cabinLook=0;cabinLookPitch=0;
+   world.load(state.layout);flight.reset({aboard:true});flight.setStage(state.moduleStage);flight.parkBike();cabinController.reset({aboard:true});previousActor='ship';interiorView=true;cabinLook=0;cabinLookPitch=0;
    orbit=-.9;elevation=.28;pendingModule=state.moduleStage;attachAt=time+.65;assemblyUntil=time+3.4;arrivalVeilUntil=time+.6;
    cameraTarget.copy(flight.shipPosition).add(new THREE.Vector3(0,.3,0));
    const fit=Math.max(1,.78/camera.aspect);
    camera.position.set(Math.sin(orbit)*Math.cos(.48),Math.sin(.48),Math.cos(orbit)*Math.cos(.48)).multiplyScalar((shipFrameRadius(state.moduleStage)*2.8+5)*zoom*fit).add(cameraTarget);camera.lookAt(cameraTarget);
-   health=Math.min(100,health+25);notify(state.moduleStage===2?'HÁBITAT ACOPLADO · Vesper':'PROPULSIÓN ACOPLADA · Umbra',5);say('Nuevo módulo. Otro sector para descubrir.');
+   flight.health.ship=Math.min(100,flight.health.ship+25);health=flight.integrity;notify(state.moduleStage===2?'HÁBITAT ACOPLADO · Vesper':'PROPULSIÓN ACOPLADA · Umbra',5);say('Nuevo módulo. Otro sector para descubrir.');
   }
   nextStageReady=false;saveProgress();
  }
@@ -572,36 +660,63 @@ function updateScan(dt) {
     say('La baliza señala tres regiones. Acercá la nave y exploremos cada una.');
   }
 }
-function updateCombat(dt,worldDt){
- const shot=combat.shot;let occluded=false;
- for(const [actor,visual]of Object.entries(projectiles))if(!shot||shot.actor!==actor||shot.elapsed<shot.lockTime)visual.reset();
- if(shot){
-  const target=world.targets.find(item=>item.id===shot.id);
-  if(!target||!target.object.visible)occluded=true;
-  else{
-   const mount=shot.actor==='ship'?ship.muzzle:visorActive()&&visor?visor.muzzle:astronaut.muzzle;
-   mount.updateWorldMatrix(true,false);const origin=shot.elapsed<shot.lockTime?mount.getWorldPosition(new THREE.Vector3()):new THREE.Vector3().copy(shot.origin);
-   occluded=pathBlocked(target,origin);
-   if(!occluded&&shot.elapsed<shot.lockTime&&shot.elapsed+dt>=shot.lockTime){
-    if(shot.actor==='astronaut'&&visorActive())visor?.kick();
-    Object.assign(shot.origin,{x:origin.x,y:origin.y,z:origin.z});illuminate(origin,shot.actor==='ship'?0xffbd75:0x80e8ff,.18);triggerBurst(origin,shot.actor==='ship'?'shipMuzzle':'evaMuzzle',{velocity:flight.velocity});play(shot.actor==='ship'?'shipFire':'evaFire');
-   }
-   if(!occluded&&shot.elapsed>=shot.lockTime){
-    const progress=Math.min(1,(shot.elapsed-shot.lockTime)/shot.travelTime),destination=target.position.clone();if(!shot.hit)destination.add(new THREE.Vector3(target.radius+2,1,0));
-    const start=new THREE.Vector3().copy(shot.origin),position=start.clone().lerp(destination,progress),heading=destination.sub(start).normalize();projectiles[shot.actor].update(position,heading,worldDt,{visible:true,intensity:shot.actor==='ship'?1.5:1});
-   }
+function damagePlayer(amount,position){
+  if(protectedAction()||time<invulnerableUntil)return;
+  const down=flight.damage(amount);health=flight.integrity;invulnerableUntil=time+.65;damageUntil=time+.4;
+  play('damage');triggerBurst(new THREE.Vector3().copy(position),'impact',{velocity:flight.velocity});
+  if(down){
+    flight.recover();health=flight.integrity;invulnerableUntil=time+10;
+    combat.reset();shotVisuals.reset();encounters.retreat();clearEnemies();
+    // Retreating enemies may leave; new required kills may start fresh encounters.
+    encounters.reset({seed:state.seed,sector:state.sector,completedIds:state.destroyed});
+    cabinController.reset({aboard:flight.actor==='ship'});interiorView=flight.actor==='ship';previousActor=flight.actor;
+    orbit=flight.shipYaw;elevation=-flight.shipPitch;controls.clear();scanning=false;
+    notify('Recuperación de emergencia · Tu progreso se conserva',5);say('Te recupero. El camino que despejamos sigue abierto.');play('rescue');saveProgress();
   }
- }
- const result=combat.update(dt,{blocked:occluded});
- if(!result)return;
- if(result.interrupted){notify('Línea de tiro interrumpida · Cambiá de posición');play('interrupted');return;}
- const target=world.targets.find(item=>item.id===result.id);
- if(result.hit&&target){
-   const optional=mission.optionalState(result.id);let destroyed=false;
-   if(optional){const damage=mission.damageOptional(result.id,result.actor,worldTime);destroyed=!!damage?.destroyed;if(!destroyed){triggerBurst(target.position,'impact',{velocity:target.velocity});play('smallBreak',.55);notify('Impacto · La roca resiste',2);}}
-   else destroyed=mission.hit(result.id,result.actor,target.position);
-   if(destroyed){destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,result.actor==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(result.actor==='ship'?'ship':'impact');illuminate(target.position,result.actor==='ship'?0xffbb78:0x7deaff,result.actor==='ship'?1:.45);play(result.actor==='ship'?'largeBreak':'smallBreak');notify(optional?'Roca despejada':result.actor==='ship'?'Núcleo destruido':'Asteroide fragmentado',2);saveProgress();}
- }else{notify('Disparo fallido · Acercate y estabilizate',3);}
+}
+function updateCombat(dt,worldDt){
+  combat.cooldown=Math.max(0,combat.cooldown-dt);
+  if(pendingShot&&time>=pendingShot.due){const queued=pendingShot;pendingShot=null;if(queued.actor===flight.actor)emitShot(queued.ndc);}
+  if(enemyAssets){
+    const center=flight.position.clone().add(new THREE.Vector3(0,flight.actor==='astronaut'?1:flight.actor==='bike'?1.2:0,0));
+    const events=encounters.update(worldDt,{playerPosition:center,protected:scanning||gemSequence.active||time<invulnerableUntil||time<assemblyUntil,retreat:gemSequence.active||state.phase==='complete'});
+    syncEnemyActors(worldDt);
+    for(const event of events){
+      if(event.type==='warning'&&event.reason==='arrival'&&time-lastEnemyWarning>4){lastEnemyWarning=time;say(event.kind==='alienShip'?'Contacto en movimiento. Podés enfrentarlo o dejarlo atrás.':'Cuidado: se aproxima otro visitante.');play('warning');}
+      if(event.type!=='fire')continue;
+      const actor=enemyActors.get(event.id),mount=event.kind==='alien'?event.claw==='left'?actor?.clawLeft:actor?.clawRight:actor?.muzzle;
+      const origin=mount?mount.getWorldPosition(new THREE.Vector3()):new THREE.Vector3().copy(event.origin);
+      const direction=center.clone().sub(origin).normalize();
+      const shot=ballistics.fire({...event, id:undefined,kind:event.projectileKind,origin,direction});
+      if(shot){shot.weapon=event.kind==='alienShip'?'ship':'rock';triggerBurst(origin,event.kind==='alienShip'?'shipMuzzle':'evaMuzzle');play(event.kind==='alienShip'?'shipFire':'evaFire',.35);}
+    }
+  }
+  const shots=new Map(ballistics.projectiles.map(p=>[p.id,p]));
+  const hits=ballistics.update(worldDt,combatTargets());
+  for(const hit of hits){
+    if(hit.targetId==='player'){damagePlayer(hit.damage,hit.position);continue;}
+    if(hit.owner!=='player')continue;
+    const enemy=encounters.damage(hit.targetId,hit.damage);
+    if(enemy){
+      const point=new THREE.Vector3().copy(hit.position);triggerBurst(point,enemy.destroyed?(enemy.entity.kind==='alienShip'?'ship':'eva'):'impact',{velocity:enemy.entity.velocity});
+      play(enemy.destroyed?'largeBreak':'smallBreak',.65);illuminate(point,0xff9977,enemy.destroyed?.9:.2);
+      if(enemy.destroyed){momentClock.moment('impact');notify(enemy.entity.kind==='alienShip'?'Nave hostil destruida':'Amenaza neutralizada',2);}
+      continue;
+    }
+    const target=world.targets.find(t=>t.id===hit.targetId),weapon=shots.get(hit.projectileId)?.weapon||'astronaut';
+    if(!target)continue;
+    if(!correctWeapon(target,weapon)){triggerBurst(new THREE.Vector3().copy(hit.position),'impact');notify(target.kind==='large'?'El núcleo resiste. Necesitás el cañón de la nave.':'Usá el arma del traje para este asteroide.',2);continue;}
+    const optional=mission.optionalState(target.id);let destroyed=false;
+    if(optional){destroyed=!!mission.damageOptional(target.id,weapon,worldTime)?.destroyed;}
+    else destroyed=mission.hit(target.id,weapon,target.position);
+    if(destroyed){
+      destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,weapon==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(weapon==='ship'?'ship':'impact');
+      illuminate(target.position,weapon==='ship'?0xffbb78:0x7deaff,weapon==='ship'?1:.45);play(weapon==='ship'?'largeBreak':'smallBreak');
+      if(!optional)encounters.trigger({id:target.id,position:target.position,playerPosition:flight.position});
+      notify(optional?'Roca despejada':weapon==='ship'?'Núcleo destruido':'Asteroide fragmentado',2);saveProgress();
+    }else{triggerBurst(new THREE.Vector3().copy(hit.position),'impact',{velocity:target.velocity});play('smallBreak',.5);}
+  }
+  shotVisuals.update(ballistics.projectiles,worldDt);
 }
 function updateHazards() {
   hazardWarning = null;
@@ -630,19 +745,18 @@ function updateHazards() {
       stopNavigation(); scanning = false;
       if (time < invulnerableUntil) break;
       const impact = Math.round(THREE.MathUtils.clamp(12 + relativeVelocity.length() * 2.5, 15, 38));
-      health = Math.max(0, health - impact); invulnerableUntil = time + 2; damageUntil = time + .4;
-      play('damage');triggerBurst(colliderEnd,'impact',{velocity:flight.velocity});
-      notify(`Impacto · Integridad ${health}%`, 2);
-      if (health === 0) {
-        health = 100; invulnerableUntil = time + 12;
-        if (flight.actor === 'astronaut') flight.returnToShip();
-        else flight.shipPosition.add(new THREE.Vector3(0, 4, 0));
-        notify('Rescate de emergencia · Integridad restablecida', 5); say('Te recupero. Seguimos juntos.');
-        play('rescue');
-      }
+      damagePlayer(impact,colliderEnd);
       break;
     }
   }
+  if(flight.actor==='bike'||flight.actor==='astronaut'&&flight.base==='bike'){
+    for(const sphere of shipCollisionSpheres(state.moduleStage)){
+      const center=new THREE.Vector3().copy(sphere.center).applyQuaternion(flight.shipQuaternion).add(flight.shipPosition);
+      const offset=flight.position.clone().add(new THREE.Vector3(0,.85,0)).sub(center),distance=offset.length(),radius=sphere.radius+(flight.actor==='bike'?1.15:EVA_RADIUS);
+      if(distance<radius){if(distance<.001)offset.set(1,0,0);else offset.divideScalar(distance);flight.applyImpact(offset,radius-distance);}
+    }
+  }
+
   for(const rock of world.targets){
     if(rock.kind==='hazard'||!rock.object.visible||state.destroyed.includes(rock.id)||mission.optionalState(rock.id)?.destroyed)continue;
     const center=flight.position.clone().add(new THREE.Vector3(0,flight.actor==='astronaut'?EVA_CENTER_Y:0,0));
@@ -656,13 +770,15 @@ function updateActors(dt, input) {
   if (pendingModule && time >= attachAt) { attachJoint = ship.group.getObjectByName(pendingModule === 2 ? 'habitat-front-seal' : 'engine-front-seal'); ship.setStage(pendingModule, !reducedMotion); pendingModule = 0; attachFlashAt = time + (reducedMotion ? .01 : 2.2); }
   ship.group.position.copy(flight.shipPosition); ship.group.quaternion.copy(flight.shipQuaternion);
   astronaut.group.position.copy(flight.astronautPosition);
+  bike.group.position.copy(flight.bikePosition);bike.group.quaternion.copy(flight.bikeQuaternion);
+  bike.group.visible=state.phase!=='transit'&&!cabinActive();
+  bike.update(worldTime,{dt,velocity:flight.actor==='bike'?flight.velocity:new THREE.Vector3(),acceleration:flight.actor==='bike'?flight.thrust:new THREE.Vector3(),boost:input.boost,braking:flight.braking,aiming:time-lastShotAt<1.5||!!aimAssistId,mounted:flight.actor==='bike',firstPerson:visorActive(),reducedMotion});
   if (flight.actor === 'astronaut') {
     if (combat.shot && selectedTarget()) temp.subVectors(selectedTarget().position, flight.position);
-    else if (visorActive()) temp.set(-Math.sin(orbit), 0, -Math.cos(orbit));
-    else temp.copy(flight.velocity);
+    else temp.set(-Math.sin(orbit), 0, -Math.cos(orbit));
     if (temp.lengthSq() > .05) {
       const heading = Math.atan2(-temp.x, -temp.z);
-      astronaut.group.rotation.y += Math.atan2(Math.sin(heading - astronaut.group.rotation.y), Math.cos(heading - astronaut.group.rotation.y)) * Math.min(1, dt * 5);
+      astronaut.group.rotation.y += Math.atan2(Math.sin(heading - astronaut.group.rotation.y), Math.cos(heading - astronaut.group.rotation.y)) * Math.min(1, dt * (time-lastShotAt<1.5||aimAssistId?12:5));
     }
   }
   const frozen=inspecting||time<assemblyUntil||state.phase==='complete';
@@ -672,11 +788,11 @@ function updateActors(dt, input) {
   if(attachJoint&&time>=attachFlashAt){attachJoint.updateWorldMatrix(true,false);const point=attachJoint.getWorldPosition(new THREE.Vector3());triggerBurst(point,'attach');illuminate(point,0x9deee6,1.3);play('moduleAttach');attachJoint=null;}
   astronaut.group.visible=flight.actor==='astronaut'&&!visorActive();
   const carrying=['suspension','returning'].includes(gemSequence.phase)&&flight.actor==='astronaut';
-  astronaut.update(worldTime,{dt,aiming:!!combat.shot,interacting:scanning||carrying,acceleration:flight.actor==='astronaut'&&!frozen?flight.thrust:new THREE.Vector3(),maxAcceleration:flight.braking?7:4,velocity:flight.actor==='astronaut'?flight.velocity:new THREE.Vector3(),braking:!frozen&&flight.braking,boost:input.boost,reducedMotion});
+  astronaut.update(worldTime,{dt,aiming:time-lastShotAt<1.5||!!aimAssistId,interacting:scanning||carrying,acceleration:flight.actor==='astronaut'&&!frozen?flight.thrust:new THREE.Vector3(),maxAcceleration:flight.braking?7:4,velocity:flight.actor==='astronaut'?flight.velocity:new THREE.Vector3(),braking:!frozen&&flight.braking,boost:input.boost,reducedMotion});
   collectionPalm=carrying?poseHeldLeftHand(astronaut.group):null;
   cabinRoot.position.copy(flight.shipPosition);cabinRoot.quaternion.copy(flight.shipQuaternion);
   if(cabin){cabin.update(dt,cabinController.state,{firstPerson:visorActive(),reducedMotion});cabin.group.visible=cabinActive();cabinRoot.updateMatrixWorld(true);}
-  if(visor){visor.group.visible=flight.actor==='astronaut'&&visorActive();visor.update(worldTime,{speed:reducedMotion?0:flight.velocity.length(),aiming:!!combat.shot,interacting:scanning||gemSequence.phase==='suspension',braking:flight.braking,aspect:camera.aspect});}
+  if(visor){visor.group.visible=flight.actor==='astronaut'&&visorActive();visor.update(worldTime,{speed:reducedMotion?0:flight.velocity.length(),aiming:time-lastShotAt<1.5||!!aimAssistId,interacting:scanning||gemSequence.phase==='suspension',braking:flight.braking,aspect:camera.aspect});}
   let companionState=gemSequence.active?'travel':scanning?'scan':hazardWarning?'danger':state.phase==='gem'?'gem':'idle';
   const robotInside=flight.actor==='ship';
   if(robotInside!==previousCompanionCabin){companion.reset();previousCompanionCabin=robotInside;}
@@ -685,12 +801,12 @@ function updateActors(dt, input) {
     cabin.anchors.companion.getWorldPosition(temp);companion.group.position.copy(temp);companion.group.quaternion.copy(flight.shipQuaternion);
     companion.update(worldTime,{dt,state:'cabin',moving:0,reducedMotion});
   }else{
-    temp.set(1.8,1.6,.7).applyQuaternion(astronaut.group.quaternion).add(flight.position);
-    companion.update(worldTime,{dt,targetPosition:temp,targetQuaternion:astronaut.group.quaternion,state:companionState,reducedMotion});
+    temp.set(1.8,1.6,.7).applyQuaternion(flight.actor==='bike'?flight.bikeQuaternion:astronaut.group.quaternion).add(flight.position);
+    companion.update(worldTime,{dt,targetPosition:temp,targetVelocity:flight.velocity,targetQuaternion:flight.actor==='bike'?flight.bikeQuaternion:astronaut.group.quaternion,state:companionState,reducedMotion});
   }
   tether.visible = flight.actor === 'astronaut';
   if (tether.visible) {
-    const a = ship.tether.getWorldPosition(new THREE.Vector3()), b = flight.astronautPosition;
+    const a = (flight.base==='bike'?bike.tether:ship.tether).getWorldPosition(new THREE.Vector3()), b = flight.astronautPosition;
     for (let i = 0; i < 25; i++) {
       const t = i / 24; const slack = Math.sin(t * Math.PI) * (1 - flight.tension) * Math.min(1.2, flight.tetherLength * .08);
       tetherPositions[i * 3] = a.x + (b.x - a.x) * t;
@@ -706,7 +822,7 @@ function updateCamera(dt) {
     const pose=cabin.cameraPose(cabinController.state,{firstPerson,aspect:camera.aspect,lookYaw:cabinController.canPilot?0:cabinLook-cabinController.state.yaw,lookPitch:cabinController.canPilot?0:cabinLookPitch});
     camera.position.copy(cabin.group.localToWorld(pose.position.clone()));camera.lookAt(cabin.group.localToWorld(pose.target.clone()));camera.fov=pose.fov;camera.near=pose.near;camera.updateProjectionMatrix();return;
   }
-  const baseFov = visorActive() ? flight.actor === 'ship' ? 57 : 72 : 52;
+  const baseFov = visorActive() ? flight.actor==='bike'?(camera.aspect<1?94:84):flight.actor === 'ship' ? 57 : 72 : 52;
   const pulse = reducedMotion ? 0 : Math.sin(Math.min(1, Math.max(0, eventLightUntil-time)/1.4)*Math.PI)*1.5;
   const warp = !reducedMotion && state.phase === 'transit' ? Math.sin(Math.min(1,(time-transitStart)/5)*Math.PI)*12 : 0;
   const driftFov = reducedMotion || combat.shot || scanning ? 0 : Math.min(1.8,flight.velocity.length()*.12);
@@ -716,33 +832,39 @@ function updateCamera(dt) {
   const focusShip = forcedExterior();
   const focus = focusShip ? flight.shipPosition : flight.position;
   const smoothing = reducedMotion ? 1 : 1 - Math.exp(-dt * 5);
-  cameraTarget.copy(focus).add(new THREE.Vector3(0, flight.actor === 'astronaut' && !focusShip ? .9 : .3, 0));
+  cameraTarget.copy(focus).add(new THREE.Vector3(0, !focusShip && flight.actor==='bike' ? 1.25 : flight.actor === 'astronaut' && !focusShip ? .9 : .3, 0));
   if (visorActive()) {
     if (flight.actor === 'ship') {
       shipPoint('eye', flight.shipPosition, flight.shipQuaternion, camera.position);
       camera.quaternion.copy(flight.shipQuaternion);
     } else {
-      camera.position.copy(flight.astronautPosition).add(new THREE.Vector3(0, 1.69, 0));
+      if(flight.actor==='bike'){bike.eye.updateWorldMatrix(true,false);bike.eye.getWorldPosition(camera.position);camera.position.add(new THREE.Vector3(0,0,.12).applyQuaternion(flight.bikeQuaternion));}
+      else camera.position.copy(flight.astronautPosition).add(new THREE.Vector3(0, 1.69, 0));
       if (combat.shot && selectedTarget()) lookTarget.copy(selectedTarget().position);
       else lookTarget.copy(camera.position).add(new THREE.Vector3(-Math.sin(orbit) * Math.cos(elevation), -Math.sin(elevation), -Math.cos(orbit) * Math.cos(elevation)).multiplyScalar(20));
       camera.lookAt(lookTarget);
     }
   } else {
     const portrait = Math.max(1, .78 / camera.aspect);
-    const distance = (focusShip || flight.actor === 'ship' ? shipFrameRadius(state.moduleStage) * 2.8 + 5 : 7.5) * zoom * portrait;
+    const distance = (focusShip || flight.actor === 'ship' ? shipFrameRadius(state.moduleStage) * 2.8 + 5 : flight.actor==='bike'?6.5:7.5) * zoom * portrait;
     const angle = focusShip ? .42 : flight.actor === 'ship' ? .27 - flight.shipPitch * .45 : elevation;
     const revealOrbit = !reducedMotion && time < assemblyUntil ? Math.sin(Math.max(0,3.4-(assemblyUntil-time))/3.4*Math.PI)*.28 : 0;
     const heading = (flight.actor === 'ship' && !focusShip ? flight.shipYaw : orbit) + revealOrbit;
     cameraPosition.set(Math.sin(heading) * Math.cos(angle), Math.sin(angle), Math.cos(heading) * Math.cos(angle)).multiplyScalar(distance).add(cameraTarget);
-    camera.position.lerp(cameraPosition, smoothing); camera.lookAt(cameraTarget);
+    if(!focusShip){
+      const aimDirection=new THREE.Vector3(-Math.sin(orbit)*Math.cos(elevation),-Math.sin(elevation),-Math.cos(orbit)*Math.cos(elevation));
+      const shoulder=new THREE.Vector3().crossVectors(aimDirection,up).normalize().multiplyScalar(flight.actor==='ship'?1.1:.5);
+      cameraPosition.copy(cameraTarget).addScaledVector(aimDirection,-distance).addScaledVector(up,flight.actor==='ship'?3:1.2).add(shoulder);
+      camera.position.lerp(cameraPosition,smoothing);camera.lookAt(lookTarget.copy(camera.position).addScaledVector(aimDirection,30));
+    }else{camera.position.lerp(cameraPosition,smoothing);camera.lookAt(cameraTarget);}
   }
   const leanTarget = reducedMotion || combat.shot || scanning || forcedExterior() ? 0 : THREE.MathUtils.clamp(-flight.thrust.x*.004,-.012,.012);
   cameraLean = THREE.MathUtils.damp(cameraLean,leanTarget,4,dt); camera.rotateZ(cameraLean);
 }
 function updateMissionUI() {
-  const content = {
-    scan: ['Todo empieza <br/>con una señal.', 'Buscá el pulso de la baliza y acercate con el astronauta. El cable mantiene tu conexión con la nave.', 'Consultar rumbo'],
-    small: ['Abrir un camino.', 'Explorá las tres regiones y buscá los asteroides de brillo cian. Acercá la nave y salí a despejar el paso.', 'Consultar región'],
+  const content = !flight.shipDiscovered ? ['Una nave <br/>por encontrar.','Nóma detecta nuestra nave cerca de aquí. Explorá con la moto; usá el impulso para cubrir distancia.','Buscar la nave'] : {
+    scan: ['Todo empieza <br/>con una señal.', 'Buscá el pulso de la baliza y bajá para escanear. Podés explorar con la moto o tu nave.', 'Consultar rumbo'],
+    small: ['Abrir un camino.', 'Explorá las regiones y buscá el brillo cian. Podés disparar desde la moto o con el traje. No estamos solos en este sector.', 'Consultar región'],
     large: ['La fuerza <br/>de tu nave.', 'Buscá el brillo dorado de los núcleos. Volvé a bordo y abrí paso con el cañón.', 'Consultar región'],
     gem: ['Una conexión <br/>más.', 'Recuperá la gema con el astronauta. Si está lejos, acercá primero la nave y después salí.', 'Ubicar la gema'],
     return: ['El siguiente <br/>horizonte.', 'La gema viaja con vos. Volvemos a bordo hacia el siguiente horizonte.', 'Regreso en curso…'],
@@ -771,6 +893,7 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
     : getMobileAction({ phase: state.phase, actor: flight.actor, navigating, returning: flight.returning,
       scanning, shotActive: !!combat.shot, cooldown: combat.cooldown, blocked: blocked(), assemblyLocked,
       cabinMode:cabinController.inside&&!cabinController.canPilot?cabinController.state.mode:null, canSit:cabinController.canSit, sequence:gemSequence.active,targetKind:selectedTarget()?.kind,
+      shipDiscovered:flight.shipDiscovered,canBoardShip:flight.canBoardShip,base:flight.base,freeAim:true,
       actionDistance, targetDistance: distance, weaponRange: WEAPON_RANGE[flight.actor], chance });
   const titles = {
     scan: 'Escaneá la baliza', small: 'Asteroides EVA · pulso cian',
@@ -779,14 +902,14 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
     transit: 'Viajando al próximo sector', complete: 'Expedición completa',
   };
   $('mobileSector').textContent = `${state.layout.name.split(' · ')[0]} · ${String(state.sector + 1).padStart(2, '0')} / 03`;
-  $('mobileObjective').textContent = cabinActive()&&!cabinController.canPilot?'Puesto de mando':inspecting ? 'Inspección de la nave' : assemblyLocked ? 'Ensamblando tu nave' : titles[state.phase];
+  $('mobileObjective').textContent = !flight.shipDiscovered?'Encontrá tu nave':cabinActive()&&!cabinController.canPilot?'Puesto de mando':inspecting ? 'Inspección de la nave' : assemblyLocked ? 'Ensamblando tu nave' : titles[state.phase];
   $('mobileProgress').textContent = total && !inspecting ? `${done} / ${total}` : '';
   $('mobileHealth').textContent = `♡ ${health}%`;
   $('mobileHealth').setAttribute('aria-label', `Integridad: ${health}%`);
   $('mobileHealth').classList.toggle('danger', health <= 50);
-  $('mobileCable').textContent = flight.actor === 'astronaut' ? `Cable ${Math.round(flight.tetherLength)} / 26 m` : 'A bordo';
+  $('mobileCable').textContent = flight.actor === 'astronaut' ? `Cable ${Math.round(flight.tetherLength)} / 26 m` : flight.actor==='bike'?'Moto · Boost disponible':'A bordo';
   $('mobileCable').classList.toggle('danger', flight.tension > .8);
-  $('mobileActionLabel').textContent = mobileAction.label + (mobileAction.action === 'fire' && !mobileAction.disabled ? ` · ${Math.round(chance * 100)}%` : '');
+  $('mobileActionLabel').textContent = mobileAction.label;
   $('mobileActionButton').disabled = mobileAction.disabled;
   $('mobileActionButton').title = mobileAction.hint || '';
   $('mobileActionButton').dataset.action = mobileAction.action;
@@ -825,8 +948,9 @@ function updateHUD() {
   const target = selectedTarget(), obj = objective();
   const distance = target ? flight.position.distanceTo(target.position) : Infinity;
   const weaponReady=correctWeapon(target);
-  const chance = target ? combat.chanceFor({ id: target.id, actor: flight.actor, chance: aimChance({ actor: flight.actor, distance, sector: state.sector, speed: flight.velocity.length() }) }) : 0;
-  $('fireButton').disabled = blocked() || flight.returning || !weaponReady || distance > WEAPON_RANGE[flight.actor] || !!combat.shot || combat.cooldown > 0;
+  health=flight.integrity;
+  const chance=1;
+  $('fireButton').disabled = blocked() || flight.returning || combat.cooldown > 0;
   $('targetButton').disabled = blocked() || !!combat.shot || !validTargets().length;
   $('astronautButton').disabled = paused || gemSequence.active || inspecting || flight.actor === 'astronaut' || !!combat.shot || state.phase === 'complete';
   $('shipButton').disabled = blocked() || flight.actor === 'ship' || flight.returning || !!combat.shot || state.phase === 'complete';
@@ -838,11 +962,11 @@ function updateHUD() {
   const total = ['small', 'large'].includes(state.phase) ? state.layout[state.phase].length : 0;
   const done = total ? state.layout[state.phase].filter(item => state.destroyed.includes(item.id)).length : 0;
   updateMobileHUD({ distance, actionDistance, chance, done, total });
-  $('targetReadout').textContent = combat.shot ? `${combat.shot.phase === 'lock' ? 'ESTABILIZANDO' : 'PROYECTIL EN VUELO'} · ${combat.shot.actor === 'ship' ? 'CAÑÓN' : 'EVA'}` : target ? `${done}/${total} · ${Math.round(distance)} m · ${weaponReady ? `${Math.round(chance * 100)}% ACIERTO${distance > WEAPON_RANGE[flight.actor] ? ' · FUERA DE ALCANCE' : ''}` : state.phase === 'large' ? 'REQUIERE NAVE' : 'REQUIERE ASTRONAUTA'}` : state.phase === 'scan' ? 'SEÑAL DE BALIZA · ACERCATE' : state.phase === 'complete' ? `EXPEDICIÓN COMPLETA · ${state.gems} GEMAS` : state.phase === 'return' ? 'GEMA → REGRESO → VIAJE' : 'EXPLORACIÓN EN TRES DIMENSIONES';
+  $('targetReadout').textContent = combat.cooldown>0?'RECARGANDO':aimAssistId?'BLANCO EN MIRA · DISPARO LIBRE':flight.actor==='bike'?'MOTO · F PARA DISPARAR · SHIFT IMPULSO':'MIRA LIBRE · ARRASTRÁ PARA ORIENTAR';
   $('healthValue').textContent = `${health}%`; $('healthBar').style.width = `${health}%`;
   $('healthBar').parentElement.parentElement.classList.toggle('danger', health <= 50);
-  $('cableTitle').textContent = flight.actor === 'astronaut' ? 'CABLE' : 'PILOTO';
-  $('cableValue').textContent = flight.actor === 'astronaut' ? `${Math.round(flight.tetherLength)} / 26 m` : 'A BORDO';
+  $('cableTitle').textContent = flight.actor === 'astronaut' ? 'CABLE' : flight.actor==='bike'?'MOTO':'PILOTO';
+  $('cableValue').textContent = flight.actor === 'astronaut' ? `${Math.round(flight.tetherLength)} / 26 m` : flight.actor==='bike'?'MONTADO':'A BORDO';
   $('cableBar').style.width = `${flight.actor === 'astronaut' ? flight.tetherLength / 26 * 100 : 100}%`;
   $('cableBar').parentElement.parentElement.classList.toggle('danger', flight.tension > .8);
   $('motionReadout').textContent = flight.braking ? 'ESTABILIZANDO' : flight.thrust.length() > .12 ? 'PROPULSORES' : flight.velocity.length() > .15 ? 'DERIVA' : 'ESTABLE';
@@ -858,9 +982,18 @@ function updateHUD() {
   $('missionHint').textContent=flight.tension>.8?'Cable cerca del límite. Abordá y acercá la nave.':'Explorá las regiones · Acercate para descubrir objetivos.';
   $('viewButton').disabled = paused || time < assemblyUntil || state.phase === 'transit' || state.phase === 'complete';
   $('viewButton').textContent = cabinActive()?`Vista: cabina ${firstPerson?'1ª':'3ª'}`:visorActive()?'Vista: visor':'Vista: exterior'; $('viewButton').setAttribute('aria-pressed', String(visorActive()));
+  document.body.classList.toggle('free-aim',!blocked()&&!flight.returning&&state.phase!=='complete');
   document.body.classList.toggle('first-person', visorActive()); document.body.classList.toggle('aiming', !!combat.shot); document.body.classList.toggle('damage', time < damageUntil);
   $('cockpitFrame').hidden = !(visorActive() && flight.actor === 'ship');
-  $('lockLabel').textContent = combat.shot ? combat.shot.phase === 'lock' ? 'FIJANDO OBJETIVO' : 'DISPARO' : '';
+  const aimEnemy=encounters.entities.find(e=>e.id===aimAssistId);
+  $('lockLabel').textContent=aimEnemy?`${aimEnemy.kind==='alienShip'?'NAVE HOSTIL':'VISITANTE'} · ${Math.ceil(aimEnemy.health/aimEnemy.maxHealth*100)}%`:aimAssistId?'BLANCO EN MIRA':'';
+  $('reticle').classList.toggle('has-target',!!aimAssistId);
+  $('bikeButton').disabled=blocked()||flight.returning||!flight.canMountBike;
+  $('mobileBikeButton').disabled=gemSequence.active||!flight.canMountBike;
+  $('mobileRideButton').hidden=flight.actor==='bike'||!flight.canMountBike;
+  $('mobileRideButton').disabled=blocked()||flight.returning;
+  $('mobileDismountButton').hidden=flight.actor!=='bike'||mobileAction.action==='deploy';$('mobileDismountButton').disabled=blocked()||flight.returning;
+  $('mobileFreeFireButton').hidden=gemSequence.active||state.phase==='complete';$('mobileFreeFireButton').disabled=blocked()||flight.returning||combat.cooldown>0;
   const label = $('objectiveLabel');
   label.hidden = !obj || inspecting || !!combat.shot || ['transit', 'complete'].includes(state.phase);
   label.dataset.kind=obj?.kind||'';
@@ -892,9 +1025,10 @@ function updateHUD() {
   canvas.dataset.tether = flight.tetherLength.toFixed(2); canvas.dataset.health = String(health);
   canvas.dataset.view = cabinActive()?(firstPerson?'cabina-primera':'cabina-tercera'):visorActive()?'visor':'exterior';
   canvas.dataset.quality = qualityScale.toFixed(2);
-  canvas.dataset.models = 'final-expedition-originals-v3'; canvas.dataset.triangles = String(renderer.info.render.triangles);
+  canvas.dataset.enemies=String(encounters.entities.length);canvas.dataset.projectiles=String(ballistics.projectiles.length);canvas.dataset.shipDiscovered=String(flight.shipDiscovered);
+  canvas.dataset.models = 'bike-encounters-originals-v1'; canvas.dataset.triangles = String(renderer.info.render.triangles);
   canvas.dataset.navigating = String(navigating); canvas.dataset.scanning = String(scanning);
-  canvas.dataset.shot = combat.shot?.phase || ''; canvas.dataset.ready = 'true';
+  canvas.dataset.shot = ballistics.projectiles.some(p=>p.owner==='player')?'flight':''; canvas.dataset.ready = 'true';
 }
 function handlePhaseChange() {
   if (state.phase === previousPhase) return;
@@ -903,12 +1037,12 @@ function handlePhaseChange() {
   if (state.phase === 'gem') { say('La gema está libre. Acercá la nave y salí para recuperarla.'); notify('Energía liberada · Gema localizada', 5); play('gemReveal'); triggerBurst(new THREE.Vector3().copy(state.layout.gem),'gem'); }
   updateMissionUI();
 }
-ship.setStage(state.moduleStage, false); camera.position.set(12, 9, 27); updateMissionUI();
+ship.setStage(state.moduleStage, false); companion.group.position.copy(flight.position).add(new THREE.Vector3(1.8,1.6,.7));camera.position.set(12, 9, 27); updateMissionUI();
 updateSoundUI();
 saveProgress();
 if (saved) notify(saved.complete ? 'Tu expedición está completa · Podés inspeccionar la nave' : `Continuamos en ${state.layout.name.split(' · ')[0]} · Progreso recuperado`, 6);
-else notify('Arrastrá para mirar · Explorá con empuje e inercia',6);
-if(saved)void prepareView('cabin');
+else {notify('Arrastrá para orientar · Shift / ⟫ activa el boost',6);say('Moto lista. Busquemos nuestra nave.');}
+if(saved&&flight.shipDiscovered)void prepareView('cabin');
 if(state.phase==='return')gemSequence.start({aboard:true});
 function animate(now) {
   const realDelta = Math.max(0, (now - lastFrame) / 1000);
@@ -917,7 +1051,9 @@ function animate(now) {
   const dt=tick.dt,worldDt=tick.worldDt;time=tick.time;worldTime=tick.worldTime;
   const input=controls.sample();
   if(!paused){
-    actionProtectedFrame=!!combat.shot||scanning||gemSequence.active;
+    actionProtectedFrame=scanning||gemSequence.active;
+    if(time>3||state.phase!=='scan')void prepareEnemies();
+    if(flight.shipDiscovered&&!shipWasDiscovered){shipWasDiscovered=true;say('Encontramos la nave. Podés abordarla o seguir con la moto.');notify('Nave localizada · Ya podés elegir vehículo',5);saveProgress();}
     if(['gem','return','transit'].includes(state.phase)||gemSequence.active)void prepareNextStage();
     if(!cabin&&!viewLoad&&(state.phase==='small'||flight.actor==='ship'||['returning','boarding'].includes(gemSequence.phase)))void prepareView('cabin');
     if(!combat.shot&&!gemSequence.active){
@@ -930,7 +1066,7 @@ function animate(now) {
       }
     }
     world.sync(state,worldTime,{reducedMotion,scanning,optionalState:mission.optionalState});
-    if(!gemSequence.active&&!inspecting){const found=mission.discover(flight.position,38);if(found.length){
+    if(flight.shipDiscovered&&!gemSequence.active&&!inspecting){const found=mission.discover(flight.position,38);if(found.length){
       ensureTarget(found);saveProgress();
       if(!combat.shot){
         const required=world.targets.some(target=>found.includes(target.id)&&target.kind===state.phase);
@@ -941,6 +1077,7 @@ function animate(now) {
     previousPosition.copy(flight.position);previousQuaternion.copy(flight.shipQuaternion);collisionActor=flight.actor;
     updateFlight(worldDt,input);updateScan(dt);updateCombat(dt,worldDt);handlePhaseChange();ensureTarget();updateCinematic(dt);
     updateHazards();updateActors(worldDt,input);updateCamera(dt,input);
+    const aim=aimRay();aimAssistId=assistAim({...aim,targets:combatTargets(),maxDistance:WEAPON_RANGE[flight.actor],coneAngle:THREE.MathUtils.degToRad(4),strength:.32}).targetId;
     carriedGem.visible=['suspension','returning'].includes(gemSequence.phase)&&flight.actor==='astronaut';
     interactionArm.update(worldTime,{interacting:flight.actor==='astronaut'&&visorActive()&&(scanning||carriedGem.visible),reducedMotion,aspect:camera.aspect});
     if(carriedGem.visible){
@@ -963,7 +1100,7 @@ function animate(now) {
     effects.update(worldTime,camera,{reducedMotion,travel:state.phase==='transit'?Math.min(1,gemSequence.age/1.2):0,velocity:flight.velocity});
     if(time>toastUntil)$('toast').classList.remove('visible');if(time>subtitleUntil)$('companionSubtitle').hidden=true;
     const soundActive=!paused&&!inspecting&&state.phase!=='complete';
-    audio.update({actor:flight.actor,thrust:soundActive?flight.thrust.length()/(flight.actor==='ship'?3:4):0,boost:soundActive&&(input.boost||state.phase==='transit'),braking:soundActive&&flight.braking,biome:state.layout.biomeId,firstPerson:visorActive(),time,aiming:!!combat.shot||scanning,relic:state.phase==='gem'});
+    audio.update({actor:flight.actor==='bike'?'ship':flight.actor,thrust:soundActive?flight.thrust.length()/(flight.actor==='ship'?3:flight.actor==='bike'?9:4):0,boost:soundActive&&(input.boost||state.phase==='transit'),braking:soundActive&&flight.braking,biome:state.layout.biomeId,firstPerson:visorActive(),time,aiming:!!combat.shot||scanning,relic:state.phase==='gem'});
     if(tick.scale<.99&&!slowAudioActive){play('slowEnter');slowAudioActive=true;}else if(tick.scale>=.99&&slowAudioActive){play('slowExit');slowAudioActive=false;}
     if(!settings.introSeen&&time>tutorialUntil){settings.introSeen=true;saveProgress();}
   }

@@ -7,6 +7,7 @@ export function validCheckpoint(value) {
     Number.isInteger(value.sector) && value.sector >= 0 && value.sector <= 2 &&
     typeof value.gemRecovered === 'boolean' && typeof value.complete === 'boolean' &&
     (value.version === undefined || [1,2].includes(value.version)) &&
+    (value.shipDiscovered === undefined || typeof value.shipDiscovered === 'boolean') &&
     (value.scanned === undefined || typeof value.scanned === 'boolean') &&
     (value.scanProgress === undefined || Number.isFinite(value.scanProgress) && value.scanProgress >= 0 && value.scanProgress <= 1) &&
     ['destroyed','discovered'].every(key => value[key] === undefined || Array.isArray(value[key]) && value[key].length <= 64 && value[key].every(id=>typeof id === 'string' && id.length < 100)) &&
@@ -26,7 +27,9 @@ function settingsFrom(value) {
 }
 
 function partialFrom(record) {
-  return {scanned: record.scanned === true, scanProgress: record.scanProgress ?? 0,
+  // Older expeditions already began at the ship; keep them out of the new motorcycle introduction.
+  return {shipDiscovered: record.shipDiscovered === undefined ? true : record.shipDiscovered,
+    scanned: record.scanned === true, scanProgress: record.scanProgress ?? 0,
     destroyed: [...(record.destroyed || [])], discovered: [...(record.discovered || [])],
     lastCorePosition: record.lastCorePosition ? {...record.lastCorePosition} : null};
 }

@@ -837,5 +837,11 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     currentLayout = undefined;
   }
 
-  return { loadAssets, prepareBiome, setMissionAssets, load, sync, targets, beacon, gem, gate, hazards, decoration, skyScene, skyCamera, updateSky, lighting, dispose };
+  function createRockProjectile(radius=.28) {
+    if(!assetTemplates)return null;
+    const rock=assetTemplates.base.clone(true);rock.name='claw-mineral-projectile';rock.scale.setScalar(radius);
+    rock.traverse(part=>{if(part.isMesh){part.material=materials.coatings[2];part.castShadow=false;part.receiveShadow=false;}});
+    return rock;
+  }
+  return { createRockProjectile, loadAssets, prepareBiome, setMissionAssets, load, sync, targets, beacon, gem, gate, hazards, decoration, skyScene, skyCamera, updateSky, lighting, dispose };
 }

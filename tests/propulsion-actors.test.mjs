@@ -41,6 +41,12 @@ test('companion follows a supplied side slot with damped motion, propels and res
  assert(companion.exhaust.history.activeCount>0);
  companion.reset();assert.equal(companion.exhaust.history.activeCount,0);companion.dispose();
 });
+test('companion keeps its formation beside a fast boosting bike',()=>{
+ const companion=createAssetCompanion({robot:{scene:new Group()}}),target=new Vector3(1.8,1.6,0),velocity=new Vector3(0,0,-25);
+ companion.group.position.copy(target);
+ for(let frame=0;frame<1200;frame++){target.addScaledVector(velocity,1/60);companion.update(frame/60,{dt:1/60,targetPosition:target,targetVelocity:velocity});}
+ assert(companion.group.position.distanceTo(target)<1.5,'Nóma must not be stranded at its old 3 m/s cap');companion.dispose();
+});
 test('reset extinguishes volumes and lights immediately and disposing twice releases owned ports once',()=>{
  const ship=fixture();ship.setStage(3,false);ship.update(1,{thrust:1,dt:.05});
  const engine=ship.modules[2].children.find(o=>o.name.startsWith('plasma-engine-'));assert(engine.visible);

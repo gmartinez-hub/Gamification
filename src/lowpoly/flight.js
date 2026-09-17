@@ -15,7 +15,13 @@ const angleDifference = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const finiteVector = vector => vector && ['x', 'y', 'z'].every(axis => Number.isFinite(vector[axis]));
 
 /** World-space translation and independent inertial ship heading. Positive pitch looks up. */
-export function createFlight() {
+export function createFlight({ vehicleProfile = PROFILES.ship, anchors: customAnchors = null,
+  collisionSpheres = shipCollisionSpheres, frameRadius = shipFrameRadius, turnRate = 65 } = {}) {
+  const profiles = { ...PROFILES, ship: vehicleProfile };
+  function vehiclePoint(name, position, quaternion, target) {
+    if (!customAnchors) return shipPoint(name, position, quaternion, target);
+    return target.copy(customAnchors[name]).applyQuaternion(quaternion).add(position);
+  }
   const shipPosition = new Vector3(0, 0, 10), astronautPosition = new Vector3();
   const velocity = new Vector3(), thrust = new Vector3(), shipQuaternion = new Quaternion();
   const dock = new Vector3(), tether = new Vector3(), desiredVelocity = new Vector3();
@@ -30,8 +36,8 @@ export function createFlight() {
   const hullQuaternion = new Quaternion();
 
   function anchors() {
-    shipPoint('dock', shipPosition, shipQuaternion, dock);
-    shipPoint('tether', shipPosition, shipQuaternion, tether);
+    vehiclePoint('dock', shipPosition, shipQuaternion, dock);
+    vehiclePoint('tether', shipPosition, shipQuaternion, tether);
   }
   function toWorld(point) { return point.clone().applyQuaternion(shipQuaternion).add(shipPosition).sub(EVA_CENTER); }
   function withinWorld(point) { return ['x', 'y', 'z'].every(axis => point[axis] >= WORLD_MIN[axis] && point[axis] <= WORLD_MAX[axis]); }
@@ -40,7 +46,7 @@ export function createFlight() {
     if (hullStage === stage && hullQuaternion.equals(shipQuaternion)) return hullEnvelopes;
     hullStage = stage; hullQuaternion.copy(shipQuaternion);
     const helmetOffset = new Vector3(0, 1.58 - EVA_CENTER_Y, 0).applyQuaternion(shipQuaternion.clone().invert());
-    hullEnvelopes = shipCollisionSpheres(stage).flatMap(sphere => [
+    hullEnvelopes = collisionSpheres(stage).flatMap(sphere => [
       { center: new Vector3().copy(sphere.center), radius: sphere.radius + EVA_RADIUS },
       { center: new Vector3().copy(sphere.center).sub(helmetOffset), radius: sphere.radius + .36 },
     ]);
@@ -158,7 +164,7 @@ export function createFlight() {
         pitchTarget = clamp(Math.asin(clamp(navigationDelta.y / navigationDelta.length(), -1, 1)), -1.1, 1.1);
       }
     }
-    const maximumRate = 65 * Math.PI / 180, acceleration = 120 * Math.PI / 180;
+    const maximumRate = turnRate * Math.PI / 180, acceleration = 120 * Math.PI / 180;
     const yawError = angleDifference(yawTarget, yaw), pitchError = pitchTarget - pitch;
     function targetRate(error) { return Math.sign(error) * Math.min(maximumRate, Math.abs(error) * 3, Math.sqrt(2 * acceleration * Math.abs(error)) * .8); }
     yawRate = approach(yawRate, targetRate(yawError), acceleration * dt);
@@ -204,7 +210,7 @@ export function createFlight() {
       actor = aboard ? 'ship' : 'astronaut'; returning = false; braking = false; arrived = false;
       stage = 1; yaw = 0; pitch = 0; yawRate = 0; pitchRate = 0; yawTarget = 0; pitchTarget = 0;
       shipQuaternion.identity(); shipPosition.set(0, 0, 10); velocity.set(0, 0, 0); thrust.set(0, 0, 0);
-      anchors(); shipPoint(aboard ? 'dock' : 'eva', shipPosition, shipQuaternion, astronautPosition);
+      anchors(); vehiclePoint(aboard ? 'dock' : 'eva', shipPosition, shipQuaternion, astronautPosition);
       returnPath = []; navigationPath = []; navigationKey = null;
     },
     deploy() {
@@ -212,8 +218,18 @@ export function createFlight() {
       // A vessel becomes a stationary EVA base, with its pilot exiting through the actual hatch.
       actor = 'astronaut'; returning = false; arrived = false; velocity.set(0, 0, 0); thrust.set(0, 0, 0);
       yawRate = 0; pitchRate = 0; yawTarget = yaw; pitchTarget = pitch;
-      shipPoint('eva', shipPosition, shipQuaternion, astronautPosition); limitWorld(astronautPosition); resolveHull();
+      vehiclePoint('eva', shipPosition, shipQuaternion, astronautPosition); limitWorld(astronautPosition); resolveHull();
       navigationKey = null; return true;
+    },
+    /** Transfer an EVA pilot between nearby vehicle anchors without moving the pilot. */
+    adoptEVA(position) {
+      if (!finiteVector(position)) return false;
+      anchors();
+      if (new Vector3().copy(position).add(EVA_CENTER).distanceTo(tether) > TETHER_MAX) return false;
+      actor = 'astronaut'; astronautPosition.copy(position); returning = false;
+      velocity.set(0,0,0); thrust.set(0,0,0); navigationKey = null; returnPath = [];
+      limitWorld(astronautPosition); resolveHull(); limitTether();
+      return true;
     },
     returnToShip() {
       if (actor !== 'astronaut' || returning) return false;
@@ -247,7 +263,7 @@ export function createFlight() {
         if (returning) returnPath = exteriorPath(dock);
         navigationKey = null;
       } else {
-        limitWorld(shipPosition, shipFrameRadius(stage)); anchors(); astronautPosition.copy(dock);
+        limitWorld(shipPosition, frameRadius(stage)); anchors(); astronautPosition.copy(dock);
       }
       return true;
     },
@@ -268,7 +284,7 @@ export function createFlight() {
       let remaining = Math.min(dt, .25);
       while (remaining > 1e-8) {
         const step = Math.min(remaining, 1 / 120); remaining -= step;
-        const profile = PROFILES[actor];
+        const profile = profiles[actor];
         steer(step, options); anchors();
         previousVelocity.copy(velocity); thrust.set(0, 0, 0);
         let acceleration = profile.acceleration, powered = true;
@@ -311,7 +327,7 @@ export function createFlight() {
         if (actor === 'astronaut') {
           cableForce(step); limitWorld(astronautPosition); resolveHull(); limitTether();
         } else {
-          limitWorld(shipPosition, shipFrameRadius(stage)); anchors(); astronautPosition.copy(dock);
+          limitWorld(shipPosition, frameRadius(stage)); anchors(); astronautPosition.copy(dock);
         }
       }
     },

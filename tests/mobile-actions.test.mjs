@@ -38,3 +38,10 @@ test('reload and cooldown cannot expose an invalid shot',()=>{
  assert.equal(getMobileAction(snapshot({phase:'complete'})).action,'restart');
  assert.equal(getMobileAction(snapshot({phase:'complete',blocked:true})).disabled,true);
 });
+test('free aiming leaves a separate fire button and nearby actions usable from bike',()=>{
+  assert.equal(getMobileAction({phase:'scan',actor:'bike',freeAim:true,shipDiscovered:false}).label,'Encontrar la nave');
+  assert.equal(getMobileAction({phase:'scan',actor:'bike',freeAim:true,actionDistance:10}).action,'deploy');
+  assert.equal(getMobileAction({phase:'small',actor:'bike',freeAim:true,canBoardShip:true}).action,'return');
+  assert.equal(getMobileAction({phase:'small',actor:'astronaut',freeAim:true,base:'bike'}).label,'Volver a la moto');
+  assert.equal(getMobileAction({phase:'gem',actor:'astronaut',freeAim:true,actionDistance:2,base:'bike'}).action,'interact');
+});

@@ -7,7 +7,7 @@ const MOVEMENT_KEYS = {
 const ACTION_KEYS = {
   KeyE: 'onAction', KeyF: 'onFire', Tab: 'onTarget', KeyV: 'onView',
   Escape: 'onPause', KeyR: 'onReturn', KeyX: 'onDeploy',
-  KeyG: 'onNavigate', KeyI: 'onInspect', KeyB: 'onCabin',
+  KeyM: 'onBike', KeyG: 'onNavigate', KeyI: 'onInspect', KeyB: 'onCabin',
 };
 
 const MOVES = new Set(['left', 'right', 'forward', 'back', 'up', 'down', 'boost', 'brake']);

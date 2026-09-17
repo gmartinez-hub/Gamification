@@ -1,0 +1,76 @@
+{
+  "description": "Original geometry, animation and image bytes; shared external textures. No decimation or resizing.",
+  "models": [
+    {
+      "file": "bike.glb",
+      "bytes": 5966600,
+      "sourceBytes": 21312336,
+      "sourceHash": "75679af840f6a499438508ba348cdec7c75bbb7f27303dbe25183db7e7c29177",
+      "sourceName": "normalized-bike.glb",
+      "images": [
+        {
+          "uri": "textures/60eeeedc049d3a38258cdf98cc4c5ab320fa19e48321d7a4cc44d1b608947a43.jpg",
+          "bytes": 2932039
+        },
+        {
+          "uri": "textures/8e4d139fe73d98f00dc26b3b8b65b7636f4b26bf59d8a98b7ab28957e573ce45.jpg",
+          "bytes": 1893175
+        },
+        {
+          "uri": "textures/f7115b648c00fd41c7fdc2f53ca7532ffe37767daf392d1393d09b980f75e310.png",
+          "bytes": 2950919
+        }
+      ]
+    },
+    {
+      "file": "bike-rider.glb",
+      "bytes": 257556,
+      "sourceBytes": 219740,
+      "sourceHash": "e7ec39fae1d159726e94906c88ab925fbe92158a398a3956dd0ad176f3e66cc3",
+      "sourceName": "rider-clips.glb",
+      "images": []
+    },
+    {
+      "file": "alien.glb",
+      "bytes": 7075252,
+      "sourceBytes": 22180800,
+      "sourceHash": "8724e4fe50481bb2e315701f1fbbbd29787ebed07b2764c8e40f808600982b43",
+      "sourceName": "alien-rigged.glb",
+      "images": [
+        {
+          "uri": "textures/6e3e86e1303b82893af67ba8fb711da4555058d48824eac0269337739c709d79.png",
+          "bytes": 3346859
+        },
+        {
+          "uri": "textures/04755681f8e457696606d7a36fd5c5d96f647bb683e9297473268da99043f777.jpg",
+          "bytes": 2677482
+        },
+        {
+          "uri": "textures/86231a86a4c5aac3a6968981c47947875332bfe678dd5ca71a4d186a870ff05c.jpg",
+          "bytes": 1768166
+        }
+      ]
+    },
+    {
+      "file": "alien-ship.glb",
+      "bytes": 4961560,
+      "sourceBytes": 17331340,
+      "sourceHash": "533f209bec538ab7c8ce263009c02ffd0b5412d6231a39866ac251a50a09e294",
+      "sourceName": "futuristic spaceship 3d model.glb",
+      "images": [
+        {
+          "uri": "textures/d9c95f9e8f2230ea3d218e5a4f60d92ccd729f8970b2190839e6b30111eebf14.jpg",
+          "bytes": 2322475
+        },
+        {
+          "uri": "textures/3fb1d34b2617c376656c8e698e42ace26541262853b50f025ab86f398eb1dcda.jpg",
+          "bytes": 1767483
+        },
+        {
+          "uri": "textures/72d368ddd365f268b62eaa29d06f9fd3cc8fec68b215f8d0702ec4c6c3123bd9.png",
+          "bytes": 2217741
+        }
+      ]
+    }
+  ]
+}

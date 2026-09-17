@@ -71,3 +71,47 @@ test('touch layout persists without accepting arbitrary CSS states', () => {
  store.save(state,{touchLayout:'arrows'}); assert.equal(store.load().settings.touchLayout,'arrows');
  store.save(state,{touchLayout:'malformed'}); assert.equal(store.load().settings.touchLayout,'joystick');
 });
+
+test('ship discovery persists false for the motorcycle intro and true after finding the ship', () => {
+  const storage=memory(),store=createCheckpointStore(storage),mission=createExpedition(62);
+  assert.equal(store.save({...mission.state,shipDiscovered:false},{}),true);
+  assert.equal(JSON.parse(storage.getItem(CHECKPOINT_KEY)).shipDiscovered,false);
+  assert.equal(store.load().shipDiscovered,false);
+  assert.equal(store.save({...mission.state,shipDiscovered:true},{}),true);
+  assert.equal(store.load().shipDiscovered,true);
+});
+
+test('legacy version 1 and 2 saves resume with their ship already discovered', () => {
+  const storage=memory(),store=createCheckpointStore(storage);
+  for(const version of [1,2]) {
+    storage.setItem(CHECKPOINT_KEY,JSON.stringify({...snapshot,version}));
+    assert.equal(store.load().shipDiscovered,true);
+  }
+});
+
+test('discovery flag round-trips without dropping earned sector progress', () => {
+  const store=createCheckpointStore(memory()),mission=createExpedition(62);
+  const partial={...mission.state,phase:'large',shipDiscovered:true,scanProgress:1,
+    destroyed:['sector-1-small-1','sector-1-small-2','sector-1-small-3'],
+    discovered:['sector-1-small-1','sector-1-large-1'],lastCorePosition:{x:10,y:20,z:-30}};
+  store.save(partial,{});
+  const loaded=store.load();
+  assert.equal(loaded.scanned,true); assert.equal(loaded.scanProgress,1); assert.equal(loaded.shipDiscovered,true);
+  assert.deepEqual(loaded.destroyed,partial.destroyed); assert.deepEqual(loaded.discovered,partial.discovered);
+  assert.deepEqual(loaded.lastCorePosition,partial.lastCorePosition); assert.equal(loaded.gemRecovered,false);
+  store.save({...partial,phase:'return'},{});
+  assert.equal(store.load().gemRecovered,true); assert.deepEqual(store.load().destroyed,partial.destroyed);
+});
+
+test('malformed discovery cannot load or overwrite a valid checkpoint', () => {
+  const storage=memory(),store=createCheckpointStore(storage),state=createExpedition(62).state;
+  store.save({...state,shipDiscovered:false},{});
+  const valid=storage.getItem(CHECKPOINT_KEY);
+  for(const shipDiscovered of [null,0,1,'false',{},[]]) {
+    assert.equal(store.save({...state,shipDiscovered},{}),false);
+    assert.equal(storage.getItem(CHECKPOINT_KEY),valid);
+    storage.setItem(CHECKPOINT_KEY,JSON.stringify({...snapshot,version:2,shipDiscovered}));
+    assert.equal(store.load(),null);
+    storage.setItem(CHECKPOINT_KEY,valid);
+  }
+});

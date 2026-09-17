@@ -221,3 +221,10 @@ body.in-cabin .altitude-pad,body.in-cabin .flight-controls{visibility:hidden}
 
 /* Graphic recovery remains actionable above the ordinary pause screen. */
 .loading.graphics-recovery{z-index:50;background:#080f1e;transition:none}
+
+/* Free aiming keeps one reticle in either camera; actions remain outside the viewport centre. */
+body.free-aim .reticle{display:block;pointer-events:none;width:28px;height:28px;border-color:#ade9df35}
+body.free-aim .reticle:before{left:8px;top:13px}body.free-aim .reticle:after{left:13px;top:8px}
+body.free-aim .reticle.has-target{border-color:#f2c780bd;box-shadow:0 0 12px #e6b77533}
+#mobileFreeFireButton,#mobileDismountButton,#mobileRideButton{min-width:54px;min-height:48px;border-radius:12px;padding:8px;font-size:11px;background:#16333de8}
+#mobileFreeFireButton{border-color:#eab9789c;color:#ffdaaa}

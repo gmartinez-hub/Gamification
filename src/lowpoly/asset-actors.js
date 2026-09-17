@@ -172,7 +172,7 @@ export function createAssetCompanion(assets) {
     update(time,context={}){
       const {moving=0,targetPosition,targetQuaternion,state='idle',reducedMotion=false}=context,dt=frameDelta(time,previous,context.dt);previous=time;group.userData.state=state;
       acceleration.set(0,0,0);
-      if(targetPosition){acceleration.copy(targetPosition).sub(group.position).multiplyScalar(9).addScaledVector(velocity,-6);acceleration.clampLength(0,8);velocity.addScaledVector(acceleration,dt);velocity.clampLength(0,state==='travel'?7:3);group.position.addScaledVector(velocity,dt);}
+      if(targetPosition){const targetVelocity=context.targetVelocity;const speed=targetVelocity?Math.hypot(targetVelocity.x,targetVelocity.y,targetVelocity.z):0;acceleration.copy(targetPosition).sub(group.position).multiplyScalar(9).addScaledVector(velocity,-6);if(targetVelocity)acceleration.addScaledVector(targetVelocity,6);acceleration.clampLength(0,8+speed*.8);velocity.addScaledVector(acceleration,dt);velocity.clampLength(0,Math.max(state==='travel'?7:3,speed+3));group.position.addScaledVector(velocity,dt);}
       if(targetQuaternion)group.quaternion.slerp(targetQuaternion,1-Math.exp(-5*dt));
       localThrottle(group,targetPosition||context.acceleration?{acceleration:context.acceleration||acceleration,maxAcceleration:context.maxAcceleration||8}:context,local);
       updateBodyMotion(visual,local,time,dt,{reducedMotion,strength:.13});
