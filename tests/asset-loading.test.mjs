@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BoxGeometry, Mesh, MeshStandardMaterial, Scene, Texture } from '../vendor/three.module.js';
-import { loadModelSet, releaseModelAssets, usesMobileAssets } from '../src/lowpoly/asset-loading.js';
+import { encounterModelDirectory, loadModelSet, releaseModelAssets, usesMobileAssets } from '../src/lowpoly/asset-loading.js';
 
 const entries = Array.from({ length: 5 }, (_, i) => [String(i), `model-${i}`]);
 test('touch phones and iPad desktop mode choose the mobile bundle; Mac keeps full detail', () => {
@@ -10,6 +10,11 @@ test('touch phones and iPad desktop mode choose the mobile bundle; Mac keeps ful
   assert.equal(usesMobileAssets({ platform: 'MacIntel', maxTouchPoints: 5 }), true);
   assert.equal(usesMobileAssets({ platform: 'MacIntel', maxTouchPoints: 0 }), false);
   assert.equal(usesMobileAssets({ platform: 'Win32', maxTouchPoints: 0 }), false);
+});
+test('encounter models resolve to the bounded mobile package only on mobile GPUs', () => {
+  assert.equal(encounterModelDirectory(true), 'encounter-models-mobile');
+  assert.equal(encounterModelDirectory(false), 'encounter-models');
+  assert.equal(encounterModelDirectory(), 'encounter-models');
 });
 for (const mobile of [true, false]) test(`${mobile ? 'mobile' : 'desktop'} model decoding is bounded and drops parser backing buffers`, async () => {
   let active = 0, maximum = 0;

@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "description": "Mobile encounter package with byte-exact GLBs and high-quality textures bounded to 2048 px.",
+  "sourceDirectory": "encounter-models",
+  "maxTextureDimension": 2048,
+  "encoder": {
+    "name": "sharp",
+    "version": "0.35.4",
+    "jpegQuality": 95,
+    "jpegChromaSubsampling": "4:4:4"
+  },
+  "models": [
+    {
+      "file": "bike.glb",
+      "bytes": 5966600,
+      "sourceHash": "182bf964b0c34b94fd6b14817def37d1ef94ce32c3f11da3d3da4dceff5b24b8",
+      "outputHash": "182bf964b0c34b94fd6b14817def37d1ef94ce32c3f11da3d3da4dceff5b24b8",
+      "byteExact": true,
+      "images": [
+        "textures/60eeeedc049d3a38258cdf98cc4c5ab320fa19e48321d7a4cc44d1b608947a43.jpg",
+        "textures/8e4d139fe73d98f00dc26b3b8b65b7636f4b26bf59d8a98b7ab28957e573ce45.jpg",
+        "textures/f7115b648c00fd41c7fdc2f53ca7532ffe37767daf392d1393d09b980f75e310.png"
+      ]
+    },
+    {
+      "file": "bike-rider.glb",
+      "bytes": 257556,
+      "sourceHash": "0e3e45d47c18b1dcc6e54085fad702bf92a8a850c358b9be80f5223e11274b20",
+      "outputHash": "0e3e45d47c18b1dcc6e54085fad702bf92a8a850c358b9be80f5223e11274b20",
+      "byteExact": true,
+      "images": []
+    },
+    {
+      "file": "alien.glb",
+      "bytes": 7075252,
+      "sourceHash": "2edf292dfb63cf53206991455f74f1be4257a24814009613a999d5c6c0ed1496",
+      "outputHash": "2edf292dfb63cf53206991455f74f1be4257a24814009613a999d5c6c0ed1496",
+      "byteExact": true,
+      "images": [
+        "textures/6e3e86e1303b82893af67ba8fb711da4555058d48824eac0269337739c709d79.png",
+        "textures/04755681f8e457696606d7a36fd5c5d96f647bb683e9297473268da99043f777.jpg",
+        "textures/86231a86a4c5aac3a6968981c47947875332bfe678dd5ca71a4d186a870ff05c.jpg"
+      ]
+    },
+    {
+      "file": "alien-ship.glb",
+      "bytes": 4961560,
+      "sourceHash": "2bcadaaff58bb2618409700451c1ad772e9bd1e76183c572b56572c01f2f4beb",
+      "outputHash": "2bcadaaff58bb2618409700451c1ad772e9bd1e76183c572b56572c01f2f4beb",
+      "byteExact": true,
+      "images": [
+        "textures/d9c95f9e8f2230ea3d218e5a4f60d92ccd729f8970b2190839e6b30111eebf14.jpg",
+        "textures/3fb1d34b2617c376656c8e698e42ace26541262853b50f025ab86f398eb1dcda.jpg",
+        "textures/72d368ddd365f268b62eaa29d06f9fd3cc8fec68b215f8d0702ec4c6c3123bd9.png"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "uri": "textures/04755681f8e457696606d7a36fd5c5d96f647bb683e9297473268da99043f777.jpg",
+      "usedBy": [
+        "alien.glb"
+      ],
+      "format": "jpeg",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 2677482,
+        "hash": "04755681f8e457696606d7a36fd5c5d96f647bb683e9297473268da99043f777"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 949357,
+        "hash": "417c2d87667a5459df423700509978b1a94df60ed4e9f91eff49bb3b40267514"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/3fb1d34b2617c376656c8e698e42ace26541262853b50f025ab86f398eb1dcda.jpg",
+      "usedBy": [
+        "alien-ship.glb"
+      ],
+      "format": "jpeg",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 1767483,
+        "hash": "3fb1d34b2617c376656c8e698e42ace26541262853b50f025ab86f398eb1dcda"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 730208,
+        "hash": "afd2eb46f6a54085ab905072582447360bb0be1cdb50a031e298cdee8c77da1f"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/60eeeedc049d3a38258cdf98cc4c5ab320fa19e48321d7a4cc44d1b608947a43.jpg",
+      "usedBy": [
+        "bike.glb"
+      ],
+      "format": "jpeg",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 2932039,
+        "hash": "60eeeedc049d3a38258cdf98cc4c5ab320fa19e48321d7a4cc44d1b608947a43"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 1004154,
+        "hash": "6feddcbfbe48da71f207895390b530b4a0c77d81f2ba9639f2853972641de433"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/6e3e86e1303b82893af67ba8fb711da4555058d48824eac0269337739c709d79.png",
+      "usedBy": [
+        "alien.glb"
+      ],
+      "format": "png",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 3346859,
+        "hash": "6e3e86e1303b82893af67ba8fb711da4555058d48824eac0269337739c709d79"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 1264790,
+        "hash": "f80dfc9670ebae7dc4cd2b6ef832f1b5458f1ef81434288e7d04bae8d794e135"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/72d368ddd365f268b62eaa29d06f9fd3cc8fec68b215f8d0702ec4c6c3123bd9.png",
+      "usedBy": [
+        "alien-ship.glb"
+      ],
+      "format": "png",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 2217741,
+        "hash": "72d368ddd365f268b62eaa29d06f9fd3cc8fec68b215f8d0702ec4c6c3123bd9"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 867054,
+        "hash": "63f671ac3651bd7f51a3ca5c8e2740998b126e3bcbdb8cad4244618419dd96a1"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/86231a86a4c5aac3a6968981c47947875332bfe678dd5ca71a4d186a870ff05c.jpg",
+      "usedBy": [
+        "alien.glb"
+      ],
+      "format": "jpeg",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 1768166,
+        "hash": "86231a86a4c5aac3a6968981c47947875332bfe678dd5ca71a4d186a870ff05c"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 732502,
+        "hash": "df15a5fce38d574699941928dd4bd878c7fc786b3628b1dfa98eaa2a9f0f5021"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/8e4d139fe73d98f00dc26b3b8b65b7636f4b26bf59d8a98b7ab28957e573ce45.jpg",
+      "usedBy": [
+        "bike.glb"
+      ],
+      "format": "jpeg",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 1893175,
+        "hash": "8e4d139fe73d98f00dc26b3b8b65b7636f4b26bf59d8a98b7ab28957e573ce45"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 830961,
+        "hash": "fa1a39654586e697a50850330208275af8daf60a56f9c51c900a3d19269ae453"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/d9c95f9e8f2230ea3d218e5a4f60d92ccd729f8970b2190839e6b30111eebf14.jpg",
+      "usedBy": [
+        "alien-ship.glb"
+      ],
+      "format": "jpeg",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 2322475,
+        "hash": "d9c95f9e8f2230ea3d218e5a4f60d92ccd729f8970b2190839e6b30111eebf14"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 897916,
+        "hash": "85a0560c132c1f249d0abdf7eddf7e1de24a1edb08c4298e3eb18ec836d064a1"
+      },
+      "resized": true
+    },
+    {
+      "uri": "textures/f7115b648c00fd41c7fdc2f53ca7532ffe37767daf392d1393d09b980f75e310.png",
+      "usedBy": [
+        "bike.glb"
+      ],
+      "format": "png",
+      "source": {
+        "width": 4096,
+        "height": 4096,
+        "bytes": 2950919,
+        "hash": "f7115b648c00fd41c7fdc2f53ca7532ffe37767daf392d1393d09b980f75e310"
+      },
+      "output": {
+        "width": 2048,
+        "height": 2048,
+        "bytes": 1153430,
+        "hash": "2c24294c56b3f6ee955be574698578735097c11f8319a89c12f87a8732963130"
+      },
+      "resized": true
+    }
+  ]
+}

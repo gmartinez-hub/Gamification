@@ -1,5 +1,5 @@
 import * as THREE from '../../vendor/three.module.js';
-import { usesMobileAssets, loadModelSet } from './asset-loading.js';
+import { encounterModelDirectory, usesMobileAssets, loadModelSet } from './asset-loading.js';
 import { loadActorAssets, createAssetShip, createAssetAstronaut, createAssetCompanion, createAssetVisor } from './asset-actors.js';
 import { createSectorWorld, loadWorldAssets } from './sector-world.js';
 import { createExpedition } from './expedition.js';
@@ -81,7 +81,7 @@ catch(error) { $('loading').classList.add('error'); $('loading').querySelector('
 const ship = createAssetShip(actorAssets), astronaut = createAssetAstronaut(actorAssets), companion = createAssetCompanion(actorAssets);
 scene.add(ship.group, astronaut.group, companion.group, camera);
 $('loading').querySelector('p').textContent='Preparando la moto y su piloto…';
-const bikeAssets=await loadModelSet([['bike','bike'],['riderClips','bike-rider']],{mobile:mobileGPU,directory:'encounter-models'});
+const bikeAssets=await loadModelSet([['bike','bike'],['riderClips','bike-rider']],{mobile:mobileGPU,directory:encounterModelDirectory(mobileGPU)});
 const bike=createBikeActor(bikeAssets,actorAssets['astronauta-armado']);scene.add(bike.group);
 const cabinController = createCabinController({aboard:!!saved&&saved.shipDiscovered!==false});
 const cabinRoot = new THREE.Group(); scene.add(cabinRoot);
@@ -98,13 +98,18 @@ flight.setStage(state.moduleStage);
 const ballistics=createBallistics({capacity:48});
 const combat={cooldown:0,shot:null,reset(){this.cooldown=0;ballistics.reset();pendingShot=null;},chanceFor(){return 1;}};
 const encounters=createEncounters({seed:state.seed,sector:state.sector,completedIds:state.destroyed});
-let enemyAssets=null,enemyLoad=null,enemyRetryAt=0;
+const enemyFiles={alien:'alien',alienShip:'alien-ship'};
+const enemyAssets={},enemyLoads=new Map(),enemyRetryAt=new Map();
 const enemyActors=new Map();
-async function prepareEnemies(){
-  if(enemyAssets||enemyLoad||performance.now()<enemyRetryAt)return;
-  enemyLoad=loadModelSet([['alien','alien'],['alienShip','alien-ship']],{mobile:mobileGPU,directory:'encounter-models'});
-  try{enemyAssets=await enemyLoad;}catch(error){enemyRetryAt=performance.now()+5000;console.warn('Encounter assets pending; will retry',error);}
-  finally{enemyLoad=null;}
+async function prepareEnemy(kind){
+  if(!enemyFiles[kind]||enemyAssets[kind])return !!enemyAssets[kind];
+  if(enemyLoads.has(kind))return enemyLoads.get(kind);
+  if(performance.now()<(enemyRetryAt.get(kind)||0))return false;
+  const load=loadModelSet([[kind,enemyFiles[kind]]],{mobile:mobileGPU,directory:encounterModelDirectory(mobileGPU)})
+    .then(records=>{Object.assign(enemyAssets,records);return true;})
+    .catch(error=>{enemyRetryAt.set(kind,performance.now()+5000);console.warn(`${kind} asset pending; will retry`,error);return false;})
+    .finally(()=>enemyLoads.delete(kind));
+  enemyLoads.set(kind,load);return load;
 }
 function clearEnemies(){for(const actor of enemyActors.values())actor.dispose();enemyActors.clear();}
 function syncEnemyActors(dt){
@@ -112,7 +117,8 @@ function syncEnemyActors(dt){
   for(const[id,actor]of enemyActors)if(!live.has(id)){actor.dispose();enemyActors.delete(id);}
   for(const entity of encounters.entities){
     let actor=enemyActors.get(entity.id);
-    if(!actor&&enemyAssets){
+    if(!actor&&!enemyAssets[entity.kind]){void prepareEnemy(entity.kind);continue;}
+    if(!actor){
       actor=entity.kind==='alien'?createAlienActor(enemyAssets.alien):createEnemyShip(enemyAssets.alienShip);enemyActors.set(entity.id,actor);scene.add(actor.group);
       if(entity.kind==='alien')actor.chargeRocks=[actor.clawLeft,actor.clawRight].map(socket=>{const rock=world.createRockProjectile(.28);socket.add(rock);rock.visible=false;return rock;});
     }
@@ -125,9 +131,9 @@ function syncEnemyActors(dt){
 const world = createSectorWorld(scene, { assetLoader: () => loadWorldAssets({ mobile: mobileGPU }) });
 $('loading').querySelector('p').textContent = 'Preparando baliza, minerales y biomas…';
 try { await world.loadAssets(); } catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo descargar el escenario. Recargá para volver a intentar.'; throw error; }
-const missionModels = createMissionAssetTemplates(await loadMissionAssets({ mobile: mobileGPU }));
-world.setMissionAssets(missionModels);
-const carriedGem=missionModels.createGem();carriedGem.visible=false;scene.add(carriedGem);
+let projectileTemplates=null,projectileLoad=null,projectileRetryAt=0,queuedFire=null;
+let gemTemplates=null,gemLoad=null,gemRetryAt=0;
+let carriedGem=new THREE.Group();carriedGem.name='carried-gem-pending';carriedGem.visible=false;scene.add(carriedGem);
 const gemPickupOrigin=new THREE.Vector3(),gemPickupRotation=new THREE.Quaternion();let gemPickupAt=0,collectionPalm=null;
 await world.prepareBiome(state.layout);
 world.load(state.layout);
@@ -167,7 +173,31 @@ const tether = new THREE.Line(tetherGeometry, new THREE.LineBasicMaterial({ colo
 tether.frustumCulled = false; scene.add(tether);
 const selection = new THREE.Mesh(new THREE.TorusGeometry(1, .022, 4, 48), new THREE.MeshBasicMaterial({ color: 0xc0efde, transparent: true, opacity: .8, depthWrite: false }));
 scene.add(selection);
-const shotVisuals=createShotVisuals(scene,missionModels,world);
+let shotVisuals={update(){},reset(){},dispose(){}};
+async function prepareProjectile(){
+  if(projectileTemplates)return true;
+  if(projectileLoad)return projectileLoad;
+  if(performance.now()<projectileRetryAt)return false;
+  projectileLoad=loadMissionAssets({mobile:mobileGPU,only:['projectile']}).then(assets=>{
+    projectileTemplates=createMissionAssetTemplates(assets);
+    shotVisuals.dispose();shotVisuals=createShotVisuals(scene,projectileTemplates,world);
+    return true;
+  }).catch(error=>{projectileRetryAt=performance.now()+5000;console.warn('Projectile asset pending; will retry',error);return false;}).finally(()=>{projectileLoad=null;});
+  return projectileLoad;
+}
+async function prepareGem(){
+  if(gemTemplates)return true;
+  if(gemLoad)return gemLoad;
+  if(performance.now()<gemRetryAt)return false;
+  gemLoad=loadMissionAssets({mobile:mobileGPU,only:['gem']}).then(assets=>{
+    gemTemplates=createMissionAssetTemplates(assets);world.setMissionAssets(gemTemplates);
+    const replacement=gemTemplates.createGem();replacement.visible=carriedGem.visible;
+    replacement.position.copy(carriedGem.position);replacement.quaternion.copy(carriedGem.quaternion);
+    carriedGem.removeFromParent();carriedGem=replacement;scene.add(carriedGem);
+    return true;
+  }).catch(error=>{gemRetryAt=performance.now()+5000;console.warn('Gem asset pending; will retry',error);return false;}).finally(()=>{gemLoad=null;});
+  return gemLoad;
+}
 let pendingShot=null;
 let aimAssistId=null,lastShotAt=-100,shotProtectedUntil=0,lastEnemyWarning=-100;
 let shipWasDiscovered=flight.shipDiscovered;
@@ -326,6 +356,7 @@ function interact() {
     if (scanning) play('scan');
   } else if (state.phase === 'gem') {
     if (flight.position.distanceTo(world.gem.position) > 3) { notify('Acercate a menos de 3 m de la gema.'); return; }
+    if(!gemTemplates){void prepareGem();notify('Estabilizando la gema…',3);return;}
     if (mission.collectGem()) {
       encounters.retreat();ballistics.reset();shotVisuals.reset();
       navigating = false;
@@ -367,6 +398,12 @@ function aimRay(ndc=pointer.set(0,0)){
 }
 function fire(ndc){
   if(blocked()||flight.returning||combat.cooldown>0||pendingShot||state.phase==='complete')return;
+  if(!projectileTemplates){
+    queuedFire=ndc?.isVector2?ndc.clone():new THREE.Vector2(0,0);
+    notify('Preparando el sistema de disparo…',3);
+    void prepareProjectile().then(ready=>{const aim=queuedFire;queuedFire=null;if(ready&&aim)fire(aim);});
+    return;
+  }
   lastShotAt=time;
   pendingShot={actor:flight.actor,ndc:ndc?.isVector2?ndc.clone():null,due:time+(flight.actor==='ship'?.04:.25)};
   combat.cooldown=flight.actor==='ship'?.76:.59;
@@ -677,7 +714,7 @@ function damagePlayer(amount,position){
 function updateCombat(dt,worldDt){
   combat.cooldown=Math.max(0,combat.cooldown-dt);
   if(pendingShot&&time>=pendingShot.due){const queued=pendingShot;pendingShot=null;if(queued.actor===flight.actor)emitShot(queued.ndc);}
-  if(enemyAssets){
+  if(enemyAssets.alienShip){
     const center=flight.position.clone().add(new THREE.Vector3(0,flight.actor==='astronaut'?1:flight.actor==='bike'?1.2:0,0));
     const events=encounters.update(worldDt,{playerPosition:center,protected:scanning||gemSequence.active||time<invulnerableUntil||time<assemblyUntil,retreat:gemSequence.active||state.phase==='complete'});
     syncEnemyActors(worldDt);
@@ -712,7 +749,7 @@ function updateCombat(dt,worldDt){
     if(destroyed){
       destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,weapon==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(weapon==='ship'?'ship':'impact');
       illuminate(target.position,weapon==='ship'?0xffbb78:0x7deaff,weapon==='ship'?1:.45);play(weapon==='ship'?'largeBreak':'smallBreak');
-      if(!optional&&encounters.trigger({id:target.id,position:target.position,playerPosition:flight.position}))void prepareEnemies();
+      if(!optional&&encounters.trigger({id:target.id,position:target.position,playerPosition:flight.position}))void prepareEnemy('alienShip');
       notify(optional?'Roca despejada':weapon==='ship'?'Núcleo destruido':'Asteroide fragmentado',2);saveProgress();
     }else{triggerBurst(new THREE.Vector3().copy(hit.position),'impact',{velocity:target.velocity});play('smallBreak',.5);}
   }
@@ -1033,7 +1070,7 @@ function updateHUD() {
 function handlePhaseChange() {
   if (state.phase === previousPhase) return;
   previousPhase = state.phase; navigating = false; selectedId = null;
-  if (state.phase === 'large') { say('Campo despejado. Volvé a la nave: estos núcleos requieren su cañón.'); notify('Paso despejado · Volvé a la nave',5); }
+  if (state.phase === 'large') { void prepareGem();say('Campo despejado. Volvé a la nave: estos núcleos requieren su cañón.'); notify('Paso despejado · Volvé a la nave',5); }
   if (state.phase === 'gem') { say('La gema está libre. Acercá la nave y salí para recuperarla.'); notify('Energía liberada · Gema localizada', 5); play('gemReveal'); triggerBurst(new THREE.Vector3().copy(state.layout.gem),'gem'); }
   updateMissionUI();
 }
@@ -1042,7 +1079,8 @@ updateSoundUI();
 saveProgress();
 if (saved) notify(saved.complete ? 'Tu expedición está completa · Podés inspeccionar la nave' : `Continuamos en ${state.layout.name.split(' · ')[0]} · Progreso recuperado`, 6);
 else {notify('Arrastrá para orientar · Shift / ⟫ activa el boost',6);say('Moto lista. Busquemos nuestra nave.');}
-if(saved&&flight.shipDiscovered)void prepareView('cabin');
+if(saved&&flight.shipDiscovered){void prepareView('cabin');void prepareProjectile();}
+if(['large','gem','return','transit','complete'].includes(state.phase))void prepareGem();
 if(state.phase==='return')gemSequence.start({aboard:true});
 function animate(now) {
   const realDelta = Math.max(0, (now - lastFrame) / 1000);
@@ -1052,8 +1090,8 @@ function animate(now) {
   const input=controls.sample();
   if(!paused){
     actionProtectedFrame=scanning||gemSequence.active;
-    if(encounters.pending)void prepareEnemies();
-    if(flight.shipDiscovered&&!shipWasDiscovered){shipWasDiscovered=true;say('Encontramos la nave. Podés abordarla o seguir con la moto.');notify('Nave localizada · Ya podés elegir vehículo',5);saveProgress();}
+    if(encounters.pending)void prepareEnemy('alienShip');
+    if(flight.shipDiscovered&&!shipWasDiscovered){shipWasDiscovered=true;void prepareProjectile();say('Encontramos la nave. Podés abordarla o seguir con la moto.');notify('Nave localizada · Ya podés elegir vehículo',5);saveProgress();}
     if(['gem','return','transit'].includes(state.phase)||gemSequence.active)void prepareNextStage();
     if(!cabin&&!viewLoad&&(state.phase==='small'||flight.actor==='ship'||['returning','boarding'].includes(gemSequence.phase)))void prepareView('cabin');
     if(!combat.shot&&!gemSequence.active){

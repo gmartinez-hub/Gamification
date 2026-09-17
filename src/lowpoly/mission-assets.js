@@ -1,8 +1,12 @@
 import * as THREE from '../../vendor/three.module.js';
 import { loadModelSet, releaseModelAssets } from './asset-loading.js';
 
-export async function loadMissionAssets(options = {}) {
-  return loadModelSet([['gem','gema'],['projectile','proyectil']], { ...options, directory:'mission-models' });
+const MISSION_FILES = { gem:'gema', projectile:'proyectil' };
+
+export async function loadMissionAssets({ only = Object.keys(MISSION_FILES), ...options } = {}) {
+  const names=[...new Set(only)];
+  for(const name of names) if(!MISSION_FILES[name]) throw new Error('Unknown mission asset: '+name);
+  return loadModelSet(names.map(name=>[name,MISSION_FILES[name]]), { ...options, directory:'mission-models' });
 }
 
 // The source crystal and its metallic setting share one atlas. This chromatic
@@ -75,7 +79,8 @@ export function createMissionAssetTemplates(assets) {
     root.userData.sourceLength=bounds.getSize(new THREE.Vector3())[kind==='gem'?'y':'x'];
     return root;
   }
-  const gem=template(assets.gem,'gem'), projectile=template(assets.projectile,'projectile');
+  const gem=assets.gem?template(assets.gem,'gem'):null;
+  const projectile=assets.projectile?template(assets.projectile,'projectile'):null;
   function instantiate(source,name,length) {
     const group=source.clone(true); group.name=name;
     group.scale.setScalar(length/source.userData.sourceLength);
@@ -85,8 +90,8 @@ export function createMissionAssetTemplates(assets) {
   return {
     // One physical scale in the world and on the open palm; collection never
     // shrinks the relic to make a first-person framing work.
-    createGem:()=>instantiate(gem,'aether-shard',.28),
-    createProjectile:(actor='astronaut')=>instantiate(projectile,'aethercore-'+actor,actor==='ship'?1.6875:.36),
+    createGem:()=>{if(!gem)throw new Error('Gem model is not loaded.');return instantiate(gem,'aether-shard',.28);},
+    createProjectile:(actor='astronaut')=>{if(!projectile)throw new Error('Projectile model is not loaded.');return instantiate(projectile,'aethercore-'+actor,actor==='ship'?1.6875:.36);},
     dispose(){ for(const material of materials) material.dispose(); materials.clear(); releaseModelAssets(assets); },
   };
 }

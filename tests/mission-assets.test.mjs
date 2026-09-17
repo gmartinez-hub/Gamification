@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
-import { createMissionAssetTemplates } from '../src/lowpoly/mission-assets.js';
+import { createMissionAssetTemplates, loadMissionAssets } from '../src/lowpoly/mission-assets.js';
 
 function source(width,height,depth) {
   const scene = new THREE.Group();
@@ -34,4 +34,22 @@ test('gem template fits a handheld scale and copies retain source geometry witho
   assert.equal(gem.scene.children[0].material, material);
   assert.equal(group.children[0].children[0].geometry,gem.scene.children[0].geometry);
   assert.equal(material.isMeshStandardMaterial,true);
+});
+
+test('mission models may be streamed independently without requesting the hidden companion asset', async () => {
+  const urls=[];
+  const loader={async loadAsync(url){urls.push(url);return source(1,1,1);}};
+  const projectile=await loadMissionAssets({only:['projectile'],loader,mobile:true});
+  assert.deepEqual(Object.keys(projectile),['projectile']);
+  assert.equal(urls.length,1);
+  assert.match(urls[0],/mission-models\/proyectil\.glb$/);
+  const templates=createMissionAssetTemplates(projectile);
+  assert.doesNotThrow(()=>templates.createProjectile('astronaut'));
+  assert.throws(()=>templates.createGem(),/gem model is not loaded/i);
+});
+
+test('an unknown staged mission model is rejected before network work starts', async () => {
+  let calls=0;
+  await assert.rejects(loadMissionAssets({only:['unknown'],loader:{async loadAsync(){calls++;}}}),/Unknown mission asset/);
+  assert.equal(calls,0);
 });

@@ -64,6 +64,10 @@ export function usesMobileAssets({ coarsePointer = false, userAgent = '', platfo
     || (/Mac/i.test(platform) && maxTouchPoints > 1);
 }
 
+export function encounterModelDirectory(mobile = false) {
+  return mobile ? 'encounter-models-mobile' : 'encounter-models';
+}
+
 export function releaseModelAssets(assets) {
   if (releasedBundles.has(assets)) return;
   releasedBundles.add(assets);
