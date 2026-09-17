@@ -30,7 +30,7 @@ export function createCombat(random = Math.random) {
       if (!((actor === 'astronaut' && kind === 'small') || (actor === 'ship' && kind === 'large') || ['hazard', 'breakable'].includes(kind))) return false;
       const assisted = chanceFor({ id, actor, chance }) === 1;
       shot = { id, actor, assisted, elapsed: 0, lockTime: actor === 'ship' ? 1.6 : 1.05,
-        travelTime: actor === 'ship' ? .9 : .55, phase: 'lock',
+        travelTime: actor === 'ship' ? 1.1 : .8, phase: 'lock',
         hit: assisted || random() < chanceFor({ id, actor, chance }), origin: { ...origin } };
       stats.attempts++;
       return true;

@@ -86,7 +86,7 @@ export function createMissionAssetTemplates(assets) {
     // One physical scale in the world and on the open palm; collection never
     // shrinks the relic to make a first-person framing work.
     createGem:()=>instantiate(gem,'aether-shard',.28),
-    createProjectile:(actor='astronaut')=>instantiate(projectile,'aethercore-'+actor,actor==='ship'?1.35:.24),
+    createProjectile:(actor='astronaut')=>instantiate(projectile,'aethercore-'+actor,actor==='ship'?1.6875:.36),
     dispose(){ for(const material of materials) material.dispose(); materials.clear(); releaseModelAssets(assets); },
   };
 }

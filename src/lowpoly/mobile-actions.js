@@ -7,7 +7,7 @@ export function getMobileAction({phase,actor,returning=false,scanning=false,shot
  cabinMode=null,canSit=false,targetKind=null}){
  if(assemblyLocked)return waiting('Ensamblando nave…');
  if(phase==='transit')return waiting('Viajando al próximo sector…');
- if(sequence||phase==='return')return waiting('Gema a bordo · Regreso y viaje');
+ if(sequence||phase==='return')return waiting('Gema recuperada · Próximo horizonte');
  if(cabinMode)return canSit?enabled('cabin','Sentarse y pilotear'):waiting('Preparando el puesto…');
  if(blocked)return waiting('Controles en pausa');
  if(returning)return waiting('Volviendo a la nave…');

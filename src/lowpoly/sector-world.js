@@ -758,7 +758,11 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       const phase=object.userData.driftPhase;
       record.previousPosition.copy(record.position);
       if(record.spec.motion) sampleHazard(record.spec,time,record.position,record.velocity);
-      object.userData.body.rotation.y=phase+time*(kind==='hazard'?.12:.045)*(reducedMotion?.2:1);
+      const body=object.userData.body, spin=record.spec.motion?.spin;
+      object.userData.spinBaseX ??= body.rotation.x;
+      const spinTime=time*(reducedMotion?.2:1);
+      body.rotation.y=phase+spinTime*(spin?.y ?? (kind==='hazard'?.12:.045));
+      body.rotation.x=object.userData.spinBaseX+spinTime*(spin?.x ?? 0);
       const optional=optionalState(record.id);
       record.generation=optional?.generation || 0;
       object.visible=!destroyed.has(record.id) && !optional?.destroyed && (kind!=='large'||largeVisible);
@@ -805,8 +809,9 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     for(const batch of ambientInstances) {
       const transform=new THREE.Object3D();
       batch.userData.forms.forEach((form,index)=>{
-        transform.position.copy(form.position); transform.position.y+=Math.sin(time*.06+form.phase)*.9;
-        transform.rotation.copy(form.rotation); transform.rotation.y+=reducedMotion?0:time*.007;
+        const variation=.5+.5*Math.sin(form.phase*2.3+index*1.7);
+        transform.position.copy(form.position); transform.position.y+=Math.sin(time*(.08+variation*.035)+form.phase)*.9;
+        transform.rotation.copy(form.rotation); transform.rotation.y+=reducedMotion?0:time*(.014+variation*.006)*(index%2?-1:1);
         transform.scale.copy(form.scale); transform.updateMatrix(); batch.setMatrixAt(index,transform.matrix);
       });
       batch.instanceMatrix.needsUpdate=true;

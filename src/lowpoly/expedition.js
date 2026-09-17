@@ -73,20 +73,31 @@ function createLayout(seed, sector) {
     { x: 49 + jitter(9), y: -16 + jitter(5), z: -125 + jitter(8) },
     { x: -35 + jitter(9), y: 28 + jitter(5), z: -211 + jitter(8) },
   ];
-  function motion(index, amplitude = 2) {
-    return { type: ['crossing', 'orbit', 'drift'][index % 3], axis: { x: 1, y: 0, z: 0 },
-      secondary: { x: 0, y: .6, z: .8 }, amplitude, period: amplitude * Math.PI * 2 / 1.25,
+  function motion(index, amplitude = 2, role = 'eva') {
+    // Separate stream preserves every saved layout centre and the original phase draw.
+    const variation = createRandom(`${seed}:motion:${sector}:${role}:${index}`);
+    const normalize = v => { const length = Math.hypot(v.x,v.y,v.z); return {x:v.x/length,y:v.y/length,z:v.z/length}; };
+    const axis = normalize({x:variation()<.5?-1:1,y:(variation()*2-1)*.45,z:(variation()*2-1)*.55});
+    const secondary = {x:0,y:.4+variation()*.6,z:.4+variation()*.6};
+    const dot = axis.x*secondary.x+axis.y*secondary.y+axis.z*secondary.z;
+    secondary.x-=dot*axis.x;secondary.y-=dot*axis.y;secondary.z-=dot*axis.z;
+    const speed = role==='hazard'?1.5*(.96+variation()*.08):1.25*(.94+variation()*.12);
+    const bounds = {eva:[.07,.10],core:[.055,.08],hazard:[.09,.15],breakable:[.065,.12],decoration:[.06,.11]}[role];
+    const signedRate = (min,max) => (min+variation()*(max-min))*(variation()<.5?-1:1);
+    const spin = {x:signedRate(.012,.028),y:signedRate(...bounds)};
+    return { type: ['crossing', 'orbit', 'drift'][index % 3], axis,
+      secondary: normalize(secondary), amplitude, period: amplitude * Math.PI * 2 / speed, spin,
       phase: random() * Math.PI * 2 };
   }
   const small = regions.map((center, index) => ({
     id: `sector-${sector + 1}-small-${index + 1}`, role: 'eva', radius: 1.1 + random() * .5,
     position: { x: center.x + 10, y: center.y + 3, z: center.z - 3 },
-    approach: { ...center }, region: index, motion: motion(index, 1.5),
+    approach: { ...center }, region: index, motion: motion(index, 1.5, 'eva'),
   }));
   const large = regions.slice(0, sector + 1).map((center, index) => ({
     id: `sector-${sector + 1}-large-${index + 1}`, role: 'core', radius: 2.1 + random() * .7,
     position: { x: center.x - 17, y: center.y + 10, z: center.z - 28 },
-    region: index, motion: motion(index + 1, 2),
+    region: index, motion: motion(index + 1, 2, 'core'),
   }));
   const gem = { ...large.at(-1).position };
   const gate = { x: 0, y: 0, z: -56 }, exit = { x: 0, y: 0, z: -80 };
@@ -97,7 +108,7 @@ function createLayout(seed, sector) {
   function population(role, count) {
     return Array.from({length: count}, (_, index) => {
       const radius = 1.25 + random() * 2;
-      const m = motion(index, 4.5 + random() * 2);
+      const m = motion(index, 4.5 + random() * 2, role);
       const region = regions[index % 3];
       // Decoration belongs beyond the playable route's x±220 envelope, never in an EVA window.
       const center = role === 'decoration'

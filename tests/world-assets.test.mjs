@@ -134,6 +134,7 @@ test('world movement is deterministic across construction, includes mission rock
   worlds.forEach(world => world.sync({phase:'small',destroyed:[]}, 10));
   assert.ok(worlds[0].targets[0].position.distanceTo(before) > .5, 'use authored mission trajectory');
   assert.deepEqual(worlds[0].targets.map(r => r.position.toArray()), worlds[1].targets.map(r => r.position.toArray()));
+  assert.deepEqual(worlds[0].targets.map(r => r.object.userData.body.rotation.toArray()), worlds[1].targets.map(r => r.object.userData.body.rotation.toArray()));
   assert.notDeepEqual(dust.geometry.attributes.position.array, dustBefore, 'dust must translate, not only pulse opacity');
   assert.equal(worlds[0].gate.visible, false, 'no corridor during exploration');
   worlds.forEach(world => world.dispose());
@@ -275,4 +276,24 @@ test('large decorative compositions remain entirely beyond the navigable route',
     });
     world.dispose();
   }
+});
+test('seeded role spins are more legible, deterministic and reduced-motion friendly',()=>{
+ const m=createExpedition(620),world=createSectorWorld(new THREE.Scene(),{assets:assetFixture().assets});world.load(m.state.layout);
+ world.sync(m.state,0);const initial=world.targets.map(t=>t.object.userData.body.rotation.clone());world.sync(m.state,1);
+ const rates=world.targets.map((t,i)=>({kind:t.kind,y:t.object.userData.body.rotation.y-initial[i].y,x:t.object.userData.body.rotation.x-initial[i].x}));
+ for(const r of rates){const bounds=r.kind==='small'?[.07,.10]:r.kind==='large'?[.055,.08]:r.kind==='hazard'?[.09,.15]:[.065,.12];assert.ok(Math.abs(r.y)>=bounds[0]-1e-8&&Math.abs(r.y)<=bounds[1]+1e-8);assert.ok(Math.abs(r.x)>=.012-1e-8&&Math.abs(r.x)<=.028+1e-8);}
+ assert.ok(rates.some(r=>r.y<0)&&rates.some(r=>r.y>0));world.sync(m.state,1,{reducedMotion:true});world.targets.forEach((t,i)=>assert.ok(Math.abs((t.object.userData.body.rotation.y-initial[i].y)-rates[i].y*.2)<1e-8));world.dispose();
+});
+
+
+test('distant formations rotate two to three times faster within unchanged spatial bounds',()=>{
+ const scene=new THREE.Scene(),mission=createExpedition(620),world=createSectorWorld(scene,{assets:assetFixture().assets});world.load(mission.state.layout);
+ const batch=scene.getObjectByName('authored-rock-formations'),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),quaternion=new THREE.Quaternion();
+ const rotations=[];world.sync(mission.state,0);
+ for(let i=0;i<batch.count;i++){batch.getMatrixAt(i,matrix);matrix.decompose(position,quaternion,scale);rotations.push(quaternion.clone());}
+ world.sync(mission.state,1);
+ for(let i=0;i<batch.count;i++){batch.getMatrixAt(i,matrix);matrix.decompose(position,quaternion,scale);const angle=quaternion.angleTo(rotations[i]);assert.ok(angle>=.014-1e-5&&angle<=.021+1e-5);assert.ok(Math.abs(position.y-batch.userData.forms[i].position.y)<=.9+1e-5);assert.ok(Math.abs(position.x)>220);}
+ world.sync(mission.state,1,{reducedMotion:true});
+ for(let i=0;i<batch.count;i++){batch.getMatrixAt(i,matrix);matrix.decompose(position,quaternion,scale);assert.ok(quaternion.angleTo(rotations[i])<1e-3);}
+ world.dispose();
 });

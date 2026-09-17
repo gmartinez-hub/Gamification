@@ -28,7 +28,8 @@ test('a hit resolves once, after lock and projectile travel', () => {
   assert.equal(combat.shot.phase, 'lock');
   assert.equal(combat.update(.65), null);
   assert.equal(combat.shot.phase, 'travel');
-  assert.deepEqual(combat.update(.6), { id: 'small-1', actor: 'astronaut', hit: true });
+  assert.equal(combat.update(.55), null, 'the visible projectile must still be travelling before impact');
+  assert.deepEqual(combat.update(.2), { id: 'small-1', actor: 'astronaut', hit: true });
   assert.equal(combat.update(1), null);
   assert.equal(combat.stats.hits, 1);
 });

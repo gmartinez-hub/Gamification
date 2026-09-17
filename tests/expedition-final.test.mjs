@@ -86,3 +86,20 @@ test('population envelopes never overlap; decoration stays outside the traversab
   for(const d of l.decoration)assert.ok(Math.abs(d.position.x)-envelope(d)>220,'decoration outside x±220 traversable bound');
  }
 });
+test('motion calibration preserves saved layouts while hazards gain bounded speed and varied planes',async()=>{
+ const {createHash}=await import('node:crypto');const layouts=[];
+ for(const seed of [0,42,620,712069])for(let sector=0;sector<3;sector++){
+  const m=createExpedition(seed);m.restoreCheckpoint({seed,sector,complete:false,gemRecovered:false});const l=m.state.layout;
+  layouts.push(JSON.parse(JSON.stringify(l,(key,value)=>key==='motion'?{amplitude:value.amplitude,phase:value.phase,type:value.type}:value)));
+  for(const spec of [...l.small,...l.large,...l.hazards,...l.breakables,...l.decoration]){
+   const {axis,secondary,amplitude,period}=spec.motion,speed=amplitude*2*Math.PI/period;
+   assert.ok(Math.abs(Math.hypot(...Object.values(axis))-1)<1e-8);assert.ok(Math.abs(Math.hypot(...Object.values(secondary))-1)<1e-8);
+   assert.ok(Math.abs(axis.x*secondary.x+axis.y*secondary.y+axis.z*secondary.z)<1e-8);
+   if(spec.role==='hazard')assert.ok(speed>=1.44&&speed<=1.56,'hazard base speed increases ~20% without spikes');
+   else assert.ok(speed>=1.175&&speed<=1.325,'nonhazards keep approximately their existing translation speed');
+   for(let i=0;i<80;i++){const p={},v={};sampleHazard(spec,period*i/80,p,v);assert.ok(dist(p,spec.position)<=amplitude*1.5+1e-8);assert.ok(Math.hypot(v.x,v.y,v.z)<=speed*Math.SQRT2+1e-8);}
+  }
+  assert.ok(new Set(l.hazards.map(s=>JSON.stringify(s.motion.axis))).size>3,'hazards must not all share a plane');
+ }
+ assert.equal(createHash('sha256').update(JSON.stringify(layouts)).digest('hex'),'b7dc407aef0ff0904889d457bfd39a8e191af1dbe17d54d9e2444f7aef3c4428','centres, routes, phases, sizes and populations remain byte-identical to pre-calibration layouts');
+});

@@ -233,7 +233,7 @@ export function createProjectileVisual(templates,actor='astronaut') {
   const group=new THREE.Group();group.name='projectile-visual-'+actor;group.visible=false;
   const model=templates.createProjectile(actor);group.add(model);
   // A compact optical cue keeps the original narrow round readable head-on.
-  // This belongs only to EVA; source geometry, scale and ship visuals are unchanged.
+  // The EVA cue tracks the larger round while preserving the source mesh/materials.
   let glow=null;
   if(actor==='astronaut'){
     const pixels=new Uint8Array(32*32*4);
@@ -243,12 +243,12 @@ export function createProjectileVisual(templates,actor='astronaut') {
     }
     const texture=new THREE.DataTexture(pixels,32,32);texture.magFilter=THREE.LinearFilter;texture.minFilter=THREE.LinearFilter;texture.needsUpdate=true;
     glow=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,color:0xd5ffff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:true,toneMapped:false}));
-    glow.name='eva-projectile-glow';glow.scale.setScalar(.24);group.add(glow);
+    glow.name='eva-projectile-glow';glow.scale.setScalar(.36);group.add(glow);
   }
   const positions=new Float32Array(48*3),alpha=new Float32Array(48),ages=new Float32Array(48).fill(1),geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   geometry.setAttribute('particleAlpha',new THREE.BufferAttribute(alpha,1));
-  const material=new THREE.PointsMaterial({color:0x9cefff,size:actor==='ship'?.11:.07,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+  const material=new THREE.PointsMaterial({color:0x9cefff,size:actor==='ship'?.14:.10,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
   material.onBeforeCompile=shader=>{
     shader.vertexShader='attribute float particleAlpha; varying float gzTrailAlpha;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ngzTrailAlpha=particleAlpha;');
@@ -266,7 +266,7 @@ export function createProjectileVisual(templates,actor='astronaut') {
     if(disposed||!finitePoint(position)||!finitePoint(direction)||!Number.isFinite(dt)||dt<0)return false;
     if(!visible){reset();return true;}group.visible=true;
     model.position.copy(position);aim.copy(direction);if(aim.lengthSq()>1e-8)model.quaternion.setFromUnitVectors(forward,aim.normalize());
-    if(glow){glow.position.copy(position);glow.material.opacity=.95;glow.scale.setScalar(.24);}
+    if(glow){glow.position.copy(position);glow.material.opacity=.95;glow.scale.setScalar(.36);}
     light.position.copy(position);light.intensity=(actor==='ship'?1.5:.2)*THREE.MathUtils.clamp(intensity,0,2);
     for(let i=0;i<48;i++)ages[i]+=dt;
     if(!started){previous.copy(position);emit(position);started=true;}
@@ -274,7 +274,7 @@ export function createProjectileVisual(templates,actor='astronaut') {
     const count=Math.min(48,Math.floor(elapsed*90));elapsed-=Math.floor(elapsed*90)/90;
     for(let i=0;i<count;i++){const fraction=(i+1)/Math.max(1,count);sample.lerpVectors(previous,position,fraction);emit(sample,dt*(1-fraction));}
     previous.copy(position);
-    for(let i=0;i<48;i++)alpha[i]=Math.max(0,1-ages[i]/.28);
+    for(let i=0;i<48;i++)alpha[i]=Math.max(0,1-ages[i]/.38);
     geometry.attributes.position.needsUpdate=true;geometry.attributes.particleAlpha.needsUpdate=true;return true;
   }
   function dispose(){if(disposed)return;disposed=true;group.removeFromParent();geometry.dispose();material.dispose();if(glow){glow.material.map.dispose();glow.material.dispose();}}

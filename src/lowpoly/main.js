@@ -216,7 +216,7 @@ function objective() {
       return { position: flight.shipPosition, label: state.phase === 'large' ? 'NAVE · ABORDAR' : 'SALIR COMO ASTRONAUTA', stop: 0 };
     }
     const target = selectedTarget();
-    if(target)return{position:target.position,kind:target.kind,label:`${{small:'EVA · CUENTA PARA AVANZAR',large:'NAVE · CUENTA PARA AVANZAR',hazard:'PELIGRO · NO SUMA',breakable:'OPCIONAL · NO SUMA'}[target.kind]} · ${Math.round(target.position.distanceTo(flight.position))} m`,stop:10};
+    if(target)return{position:target.position,kind:target.kind,label:`${{small:'ASTEROIDE · EVA',large:'NÚCLEO · CAÑÓN',hazard:'ROCA A LA DERIVA',breakable:'ROCA'}[target.kind]} · ${Math.round(target.position.distanceTo(flight.position))} m`,stop:10};
     if(hintUntil>time){const spec=state.layout[state.phase].find(t=>!state.destroyed.includes(t.id));if(spec)return {position:spec.approach||state.layout.regions[spec.region],label:'REGIÓN DE BÚSQUEDA',stop:0};}
   }
   if (state.phase === 'gem') return { position: world.gem.position, label: 'GEMA · RECUPERAR', stop: flight.actor === 'ship' ? 10 : 1.7 };
@@ -284,7 +284,7 @@ function interact() {
       gemPickupOrigin.copy(world.gem.position);gemPickupAt=time;carriedGem.visible=true;
       (world.gem.getObjectByName('aether-shard')||world.gem).getWorldQuaternion(gemPickupRotation);
       gemSequence.start();momentClock.moment('gem');play('slowEnter');controls.clear();
-      notify('Gema recuperada · Regreso y viaje preparados');
+      notify('Gema recuperada · Próximo horizonte');
       say('La energía está con nosotros. Te acompaño de vuelta a la nave.');
     }
   }
@@ -292,7 +292,7 @@ function interact() {
 function fire() {
   if (blocked() || flight.returning || combat.shot) return;
   const target = selectedTarget();
-  if (!target) { notify('Primero necesitamos un objetivo activo.'); return; }
+  if (!target) { notify('Acercate a las rocas para identificar un blanco.'); return; }
   const required = target.kind === 'small' ? 'astronaut' : 'ship';
   if (!correctWeapon(target)) { notify(required === 'ship' ? 'Este núcleo requiere el cañón de la nave. Volvé a abordar.' : 'Los asteroides pequeños requieren el arma del astronauta.'); return; }
   const distance = flight.position.distanceTo(target.position);
@@ -569,7 +569,7 @@ function updateScan(dt) {
   if (scanProgress === 1) {
     mission.scan(); scanning = false; play('scan');saveProgress();
     triggerBurst(world.beacon.position, 'scan'); notify('Señal decodificada · Tres regiones para explorar');
-    say('Hay tres objetivos EVA en regiones distintas. Acercá la nave a cada región antes de salir.');
+    say('La baliza señala tres regiones. Acercá la nave y exploremos cada una.');
   }
 }
 function updateCombat(dt,worldDt){
@@ -594,14 +594,14 @@ function updateCombat(dt,worldDt){
  }
  const result=combat.update(dt,{blocked:occluded});
  if(!result)return;
- if(result.interrupted){notify('Línea de tiro interrumpida · El intento no cuenta como fallo');play('interrupted');return;}
+ if(result.interrupted){notify('Línea de tiro interrumpida · Cambiá de posición');play('interrupted');return;}
  const target=world.targets.find(item=>item.id===result.id);
  if(result.hit&&target){
    const optional=mission.optionalState(result.id);let destroyed=false;
    if(optional){const damage=mission.damageOptional(result.id,result.actor,worldTime);destroyed=!!damage?.destroyed;if(!destroyed){triggerBurst(target.position,'impact',{velocity:target.velocity});play('smallBreak',.55);notify('Impacto · La roca resiste',2);}}
    else destroyed=mission.hit(result.id,result.actor,target.position);
-   if(destroyed){destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,result.actor==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(result.actor==='ship'?'ship':'impact');illuminate(target.position,result.actor==='ship'?0xffbb78:0x7deaff,result.actor==='ship'?1:.45);play(result.actor==='ship'?'largeBreak':'smallBreak');notify(optional?'Roca despejada · No suma a la misión':result.actor==='ship'?'Núcleo destruido':'Objetivo EVA destruido',2);saveProgress();}
- }else{notify('Disparo fallido · Acercate y estabilizate',3);say('La próxima oportunidad sigue. Dos fallos activan asistencia en ese objetivo.');}
+   if(destroyed){destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,result.actor==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(result.actor==='ship'?'ship':'impact');illuminate(target.position,result.actor==='ship'?0xffbb78:0x7deaff,result.actor==='ship'?1:.45);play(result.actor==='ship'?'largeBreak':'smallBreak');notify(optional?'Roca despejada':result.actor==='ship'?'Núcleo destruido':'Asteroide fragmentado',2);saveProgress();}
+ }else{notify('Disparo fallido · Acercate y estabilizate',3);}
 }
 function updateHazards() {
   hazardWarning = null;
@@ -637,7 +637,7 @@ function updateHazards() {
         health = 100; invulnerableUntil = time + 12;
         if (flight.actor === 'astronaut') flight.returnToShip();
         else flight.shipPosition.add(new THREE.Vector3(0, 4, 0));
-        notify('Rescate de emergencia · Integridad restablecida', 5); say('Te recupero. Conservamos los objetivos completados.');
+        notify('Rescate de emergencia · Integridad restablecida', 5); say('Te recupero. Seguimos juntos.');
         play('rescue');
       }
       break;
@@ -742,15 +742,15 @@ function updateCamera(dt) {
 function updateMissionUI() {
   const content = {
     scan: ['Todo empieza <br/>con una señal.', 'Buscá el pulso de la baliza y acercate con el astronauta. El cable mantiene tu conexión con la nave.', 'Consultar rumbo'],
-    small: ['Abrir un camino.', 'Buscá los tres asteroides con pulso cian. Se destruyen con el astronauta y cuentan para avanzar; las rocas opcionales no suman.', 'Consultar región'],
-    large: ['La fuerza <br/>de tu nave.', 'Los núcleos con pulso dorado cuentan para avanzar. Abordá y usá el cañón de la nave.', 'Consultar región'],
+    small: ['Abrir un camino.', 'Explorá las tres regiones y buscá los asteroides de brillo cian. Acercá la nave y salí a despejar el paso.', 'Consultar región'],
+    large: ['La fuerza <br/>de tu nave.', 'Buscá el brillo dorado de los núcleos. Volvé a bordo y abrí paso con el cañón.', 'Consultar región'],
     gem: ['Una conexión <br/>más.', 'Recuperá la gema con el astronauta. Si está lejos, acercá primero la nave y después salí.', 'Ubicar la gema'],
-    return: ['El siguiente <br/>horizonte.', 'La gema viaja con vos. Regreso, abordaje y transición al próximo sector en curso.', 'Regreso en curso…'],
-    transit: ['Pieza por pieza.', 'Preparando el próximo bioma y el acople de tu nave.', 'En tránsito…'],
+    return: ['El siguiente <br/>horizonte.', 'La gema viaja con vos. Volvemos a bordo hacia el siguiente horizonte.', 'Regreso en curso…'],
+    transit: ['Pieza por pieza.', 'Rumbo al próximo sector. Preparando el acople de tu nave.', 'En tránsito…'],
     complete: ['Lo construimos <br/>juntos.', 'Tres sectores recorridos, tres gemas recuperadas. Tu nave está completa.', 'Nueva expedición'],
   }[state.phase];
   $('missionTitle').innerHTML = content[0]; $('missionDescription').textContent = content[1];
-  $('missionButton').textContent=gemSequence.active?'Secuencia en curso…':content[2]+' ↗';
+  $('missionButton').textContent=gemSequence.active?'Próximo horizonte…':content[2]+' ↗';
   $('missionButton').disabled = paused || gemSequence.active || flight.returning || state.phase === 'transit' || time < assemblyUntil;
   $('biomeName').textContent = `${String(state.sector + 1).padStart(2, '0')} / ${state.layout.name.toUpperCase()}`;
   $('sectorNumber').textContent = `SECTOR ${String(state.sector + 1).padStart(2, '0')}`;
@@ -775,7 +775,7 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
   const titles = {
     scan: 'Escaneá la baliza', small: 'Asteroides EVA · pulso cian',
     large: flight.actor === 'astronaut' ? 'Volvé a la nave' : 'Despejá los núcleos',
-    gem: 'Recuperá la gema', return: 'Gema recuperada · Regreso automático',
+    gem: 'Recuperá la gema', return: 'Gema recuperada · De vuelta a la nave',
     transit: 'Viajando al próximo sector', complete: 'Expedición completa',
   };
   $('mobileSector').textContent = `${state.layout.name.split(' · ')[0]} · ${String(state.sector + 1).padStart(2, '0')} / 03`;
@@ -838,7 +838,7 @@ function updateHUD() {
   const total = ['small', 'large'].includes(state.phase) ? state.layout[state.phase].length : 0;
   const done = total ? state.layout[state.phase].filter(item => state.destroyed.includes(item.id)).length : 0;
   updateMobileHUD({ distance, actionDistance, chance, done, total });
-  $('targetReadout').textContent = combat.shot ? `${combat.shot.phase === 'lock' ? 'ESTABILIZANDO' : 'PROYECTIL EN VUELO'} · ${combat.shot.actor === 'ship' ? 'CAÑÓN' : 'EVA'}` : target ? `${done}/${total} · ${Math.round(distance)} m · ${weaponReady ? `${Math.round(chance * 100)}% ACIERTO${distance > WEAPON_RANGE[flight.actor] ? ' · FUERA DE ALCANCE' : ''}` : state.phase === 'large' ? 'REQUIERE NAVE' : 'REQUIERE ASTRONAUTA'}` : state.phase === 'scan' ? 'BALIZA → ESCANEO → TRES OBJETIVOS' : state.phase === 'complete' ? `EXPEDICIÓN COMPLETA · ${state.gems} GEMAS` : state.phase === 'return' ? 'GEMA → REGRESO → VIAJE' : 'EXPLORACIÓN EN TRES DIMENSIONES';
+  $('targetReadout').textContent = combat.shot ? `${combat.shot.phase === 'lock' ? 'ESTABILIZANDO' : 'PROYECTIL EN VUELO'} · ${combat.shot.actor === 'ship' ? 'CAÑÓN' : 'EVA'}` : target ? `${done}/${total} · ${Math.round(distance)} m · ${weaponReady ? `${Math.round(chance * 100)}% ACIERTO${distance > WEAPON_RANGE[flight.actor] ? ' · FUERA DE ALCANCE' : ''}` : state.phase === 'large' ? 'REQUIERE NAVE' : 'REQUIERE ASTRONAUTA'}` : state.phase === 'scan' ? 'SEÑAL DE BALIZA · ACERCATE' : state.phase === 'complete' ? `EXPEDICIÓN COMPLETA · ${state.gems} GEMAS` : state.phase === 'return' ? 'GEMA → REGRESO → VIAJE' : 'EXPLORACIÓN EN TRES DIMENSIONES';
   $('healthValue').textContent = `${health}%`; $('healthBar').style.width = `${health}%`;
   $('healthBar').parentElement.parentElement.classList.toggle('danger', health <= 50);
   $('cableTitle').textContent = flight.actor === 'astronaut' ? 'CABLE' : 'PILOTO';
@@ -899,7 +899,7 @@ function updateHUD() {
 function handlePhaseChange() {
   if (state.phase === previousPhase) return;
   previousPhase = state.phase; navigating = false; selectedId = null;
-  if (state.phase === 'large') { say('Campo despejado. Volvé a la nave: estos núcleos requieren su cañón.'); notify('Objetivos EVA completos · Buscá los núcleos con la nave',5); }
+  if (state.phase === 'large') { say('Campo despejado. Volvé a la nave: estos núcleos requieren su cañón.'); notify('Paso despejado · Volvé a la nave',5); }
   if (state.phase === 'gem') { say('La gema está libre. Acercá la nave y salí para recuperarla.'); notify('Energía liberada · Gema localizada', 5); play('gemReveal'); triggerBurst(new THREE.Vector3().copy(state.layout.gem),'gem'); }
   updateMissionUI();
 }
@@ -934,8 +934,7 @@ function animate(now) {
       ensureTarget(found);saveProgress();
       if(!combat.shot){
         const required=world.targets.some(target=>found.includes(target.id)&&target.kind===state.phase);
-        if(required)say(state.phase==='small'?'Pulso cian: ese asteroide cuenta. Acercá la nave y salí con el astronauta.':'Pulso dorado: ese núcleo cuenta. Destruilo con el cañón de la nave.');
-        else if(time>subtitleUntil)say('Rocas opcionales: no suman al objetivo. Podés destruirlas o seguir explorando.');
+        if(required)say(state.phase==='small'?'Ahí está el brillo cian. Ese asteroide se alcanza con el arma del traje.':'Un núcleo de brillo dorado. Para romperlo necesitamos el cañón de la nave.');
       }
     }}
     ensureTarget();

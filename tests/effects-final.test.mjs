@@ -55,12 +55,12 @@ test('late atlas completion cannot double-dispose already released texture owner
  t.mock.method(THREE.TextureLoader.prototype,'load',(url,onLoad)=>{const texture=new THREE.Texture();const index=textures.length;counts[index]=0;texture.addEventListener('dispose',()=>counts[index]++);textures.push(texture);callbacks.push(()=>onLoad(texture));return texture;});
  const fx=effects.createEffects(new THREE.Scene());fx.dispose();callbacks.forEach(fn=>fn());assert.deepEqual(counts,[1,1,1]);
 });
-test('EVA shot gains a compact luminous flight cue without changing the shared projectile or ship visuals',()=>{
+test('EVA flight cue stays attached to the shared projectile and both weapon trails remain readable',()=>{
  const geometry=new THREE.BoxGeometry(.08,.08,.24),material=new THREE.MeshStandardMaterial(),templates={createProjectile(){return new THREE.Mesh(geometry,material)}};
  const eva=effects.createProjectileVisual(templates,'astronaut'),ship=effects.createProjectileVisual(templates,'ship');
  const cue=eva.group.getObjectByName('eva-projectile-glow');assert.ok(cue,'EVA needs an additive cue visible around the dark original body');assert.equal(ship.group.getObjectByName('eva-projectile-glow'),undefined);
- eva.update(new THREE.Vector3(1,2,3),new THREE.Vector3(0,0,-1),.016);assert.ok(cue.position.distanceTo(eva.model.position)<1e-8);assert.ok(cue.scale.x>=.18&&cue.scale.x<=.3);assert.equal(eva.model.geometry,geometry);assert.equal(eva.model.material,material);
- assert.ok(eva.group.getObjectByName('projectile-world-trail').material.size>=.06);assert.equal(ship.group.getObjectByName('projectile-world-trail').material.size,.11);
+ eva.update(new THREE.Vector3(1,2,3),new THREE.Vector3(0,0,-1),.016);assert.ok(cue.position.distanceTo(eva.model.position)<1e-8);assert.ok(cue.scale.x>=.3&&cue.scale.x<=.4);assert.equal(eva.model.geometry,geometry);assert.equal(eva.model.material,material);
+ assert.ok(eva.group.getObjectByName('projectile-world-trail').material.size>=.09);assert.ok(ship.group.getObjectByName('projectile-world-trail').material.size>=.13);
  let disposed=0;cue.material.map.addEventListener('dispose',()=>disposed++);eva.dispose();eva.dispose();assert.equal(disposed,1);ship.dispose();
 });
 test('EVA muzzle flash never throws mineral chunks or opaque-sized dust across the first-person sightline',()=>{
