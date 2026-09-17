@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BoxGeometry, Mesh, MeshStandardMaterial, Scene, Texture } from '../vendor/three.module.js';
-import { loadModelSet, usesMobileAssets } from '../src/lowpoly/asset-loading.js';
+import { loadModelSet, releaseModelAssets, usesMobileAssets } from '../src/lowpoly/asset-loading.js';
 
 const entries = Array.from({ length: 5 }, (_, i) => [String(i), `model-${i}`]);
 test('touch phones and iPad desktop mode choose the mobile bundle; Mac keeps full detail', () => {
@@ -40,4 +40,52 @@ test('failed loading settles in-flight work and releases every loaded resource e
   } };
   await assert.rejects(loadModelSet(entries, { loader }), /missing model/);
   assert.equal(calls, 3); assert.equal(released, 6); assert.equal(closed, 2);
+});
+
+test('releasing one view keeps shared geometry and image alive until its last owner leaves', async () => {
+  let geometryReleased = 0, materialReleased = 0, textureReleased = 0, imageClosed = 0;
+  const geometry = new BoxGeometry(), texture = new Texture({ close() { imageClosed++; } });
+  const material = new MeshStandardMaterial({ map: texture });
+  geometry.addEventListener('dispose', () => geometryReleased++);
+  material.addEventListener('dispose', () => materialReleased++);
+  texture.addEventListener('dispose', () => textureReleased++);
+  const loader = { async loadAsync() {
+    const scene = new Scene(); scene.add(new Mesh(geometry, material));
+    return { scene, animations: [] };
+  } };
+  const first = await loadModelSet([['first','first']], { loader });
+  const second = await loadModelSet([['second','second']], { loader });
+  releaseModelAssets(first);
+  assert.deepEqual([geometryReleased, materialReleased, textureReleased, imageClosed], [0,0,0,0]);
+  releaseModelAssets(second);
+  assert.deepEqual([geometryReleased, materialReleased, textureReleased, imageClosed], [1,1,1,1]);
+  releaseModelAssets(second); releaseModelAssets(first);
+  assert.deepEqual([geometryReleased, materialReleased, textureReleased, imageClosed], [1,1,1,1], 'repeated cleanup is safe');
+});
+
+test('one failed batch cannot dispose resources still used by a loaded view', async () => {
+  let released = 0, closed = 0;
+  const geometry = new BoxGeometry(), texture = new Texture({ close() { closed++; } });
+  const material = new MeshStandardMaterial({ map: texture });
+  geometry.addEventListener('dispose', () => released++);
+  const loader = { async loadAsync(url) {
+    if (url.includes('missing')) throw new Error('missing');
+    const scene = new Scene(); scene.add(new Mesh(geometry, material)); return { scene, animations: [] };
+  } };
+  const active = await loadModelSet([['active','active']], { loader });
+  await assert.rejects(loadModelSet([['shared','shared'],['missing','missing']], { loader }), /missing/);
+  assert.equal(released, 0); assert.equal(closed, 0);
+  releaseModelAssets(active);
+  assert.equal(released, 1); assert.equal(closed, 1);
+});
+test('shared skeleton releases a late-created bone texture only after its final loaded owner',async()=>{
+ const {SkinnedMesh,Skeleton,Bone}=await import('../vendor/three.module.js');const bone=new Bone(),skeleton=new Skeleton([bone]);
+ const geometry=new BoxGeometry(),material=new MeshStandardMaterial();
+ const loader={async loadAsync(){const scene=new Scene();const a=new SkinnedMesh(geometry,material),b=new SkinnedMesh(geometry,material);a.bind(skeleton);b.bind(skeleton);scene.add(a,b);return{scene,animations:[]};}};
+ const first=await loadModelSet([['one','one']],{loader}),second=await loadModelSet([['two','two']],{loader});
+ // The renderer allocates this AFTER loadModelSet has retained the scene.
+ skeleton.computeBoneTexture();let disposed=0;skeleton.boneTexture.addEventListener('dispose',()=>disposed++);
+ releaseModelAssets(first);assert.equal(disposed,0);assert.ok(skeleton.boneTexture);
+ releaseModelAssets(second);assert.equal(disposed,1);assert.equal(skeleton.boneTexture,null);
+ releaseModelAssets(first);releaseModelAssets(second);assert.equal(disposed,1);
 });

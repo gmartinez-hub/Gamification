@@ -11,6 +11,12 @@ export function sampleHazard(spec, time, outPosition, outVelocity) {
   for (const axis of ['x', 'y', 'z']) {
     outPosition[axis] = spec.position[axis] + (motion?.axis[axis] || 0) * displacement;
     outVelocity[axis] = (motion?.axis[axis] || 0) * speed;
+    if (motion?.secondary && motion.type !== 'crossing') {
+      const factor = motion.type === 'drift' ? .5 : 1;
+      const harmonic = motion.type === 'drift' ? 2 : 1;
+      outPosition[axis] += motion.secondary[axis] * Math.cos(angle * harmonic) * motion.amplitude * factor;
+      outVelocity[axis] -= motion.secondary[axis] * Math.sin(angle * harmonic) * motion.amplitude * factor * harmonic * frequency;
+    }
   }
   return outPosition;
 }

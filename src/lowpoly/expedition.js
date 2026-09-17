@@ -1,18 +1,24 @@
-import { sweptSphereHit } from './hazards.js';
+import { sampleHazard } from './hazards.js';
 import { validCheckpoint } from './checkpoint.js';
 
 // Mission rules use world-space metres and plain data, independently of camera or renderer.
-export const AIM_RANGES = Object.freeze({ astronaut: 30, ship: 70 });
+export const AIM_RANGES = Object.freeze({ astronaut: 22, ship: 48 });
 
 const SECTORS = [
   { biomeId: 'nereida', name: "Nereida · Campo inestable", color: 0x66d8df },
   { biomeId: 'vesper', name: "Vesper · Órbita fracturada", color: 0xb299ef },
   { biomeId: 'umbra', name: "Umbra · Núcleo desconocido", color: 0xf397b5 },
 ];
-const LAUNCH = { x: 4.5, y: -.85, z: 7.5 };
 const SHIP_START = { x: 0, y: 0, z: 10 };
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+// Conservative sphere enclosing every point of all authored motion families.
+const motionReach = spec => (spec.motion?.amplitude || 0) * 1.5;
+const envelopeRadius = spec => spec.radius + motionReach(spec);
+function safeCorePosition(core, position) {
+  return position && ['x','y','z'].every(k=>Number.isFinite(position[k])) &&
+    distance(core.position, position) <= motionReach(core) + 1e-6 ? {...position} : {...core.position};
+}
 
 function seedNumber(seed) {
   if (typeof seed === "number" && Number.isFinite(seed)) return seed >>> 0;
@@ -60,86 +66,57 @@ function pointInVolume(random, center, halfSize, valid = () => true) {
 
 function createLayout(seed, sector) {
   const random = createRandom(`${seed}:layout:${sector}`);
-  const hazardRandom = createRandom(`${seed}:hazards:${sector}`);
-  const occupied = [];
-  const beacon = pointInVolume(random, { x: -6, y: 3, z: 1 }, { x: 3, y: 2, z: 3 });
-  occupied.push({ position: beacon, radius: 1.2 });
-
-  function target(kind, index, center, halfSize) {
-    const radius = kind === "small" ? 1.1 + random() * .5 : 2.1 + random() * .7;
-    const position = pointInVolume(random, center, halfSize, candidate =>
-      (kind !== "small" || distance(candidate, LAUNCH) <= 24) &&
-      occupied.every(other => distance(candidate, other.position) > radius + other.radius + 2)
-    );
-    const result = { id: `sector-${sector + 1}-${kind}-${index + 1}`, position, radius };
-    occupied.push(result);
-    return result;
-  }
-
-  const small = [
-    { x: -11, y: -2, z: -1 },
-    { x: 10, y: 5, z: -4 },
-    { x: 1, y: -6, z: -10 },
-  ].map((center, index) => target("small", index, center, { x: 2.5, y: 1.5, z: 1.5 }));
-
-  const large = [
-    { x: -7, y: 3, z: -27 },
-    { x: 8, y: -4, z: -31 },
-    { x: 0, y: 6, z: -36 },
-  ].slice(0, sector + 1).map((center, index) =>
-    target("large", index, center, { x: 2, y: 1.5, z: 1.5 })
-  );
-  const finalCore = large.at(-1);
-  const gem = {
-    x: finalCore.position.x + finalCore.radius + 2,
-    y: finalCore.position.y,
-    z: finalCore.position.z,
-  };
-  const gate = { x: 0, y: 0, z: -56 };
-  const exit = { x: 0, y: 0, z: -80 };
-
-  const protectedVolumes = [
-    { position: SHIP_START, radius: 8 },
-    { position: beacon, radius: 6 },
-    { position: gem, radius: 6 },
-    ...occupied.map(object => ({ position: object.position, radius: object.radius + 2 })),
+  const jitter = (n) => (random() * 2 - 1) * n;
+  const beacon = { x: -6 + jitter(3), y: 3 + jitter(2), z: 1 + jitter(3) };
+  const regions = [
+    { x: -42 + jitter(9), y: 12 + jitter(5), z: -52 + jitter(8) },
+    { x: 49 + jitter(9), y: -16 + jitter(5), z: -125 + jitter(8) },
+    { x: -35 + jitter(9), y: 28 + jitter(5), z: -211 + jitter(8) },
   ];
-  // Overlapping spheres contain the entire 9 m corridor capsule, including its approach.
-  for (let z = -47; z >= -87; z -= 4) protectedVolumes.push({ position: { x: 0, y: 0, z }, radius: 10 });
-
-  const hazards = [2, -9, -19, -27, -37, -45].map((z, index) => {
-    const radius = 1.25 + hazardRandom() * .8;
-    const axis = sector === 1
-      ? { x: .65, y: (index % 2 ? -1 : 1) * .72, z: .12 }
-      : sector === 2
-        ? { x: .42, y: (index % 2 ? -1 : 1) * .91, z: .16 }
-        : { x: .96, y: .23, z: (index % 2 ? -1 : 1) * .12 };
-    const length = Math.hypot(axis.x, axis.y, axis.z);
-    for (const key of ['x', 'y', 'z']) axis[key] /= length;
-    const amplitude = 4.5 + hazardRandom() * (1.5 + sector * .5);
-    const maximumSpeed = 1.15 + sector * .4 + hazardRandom() * .45;
-    const motion = { axis, amplitude, period: Math.PI * 2 * amplitude / maximumSpeed, phase: hazardRandom() * Math.PI * 2 };
-    const position = pointInVolume(
-      hazardRandom,
-      { x: index % 2 ? 21 : -21, y: index % 3 === 0 ? 7 : -3, z },
-      { x: 6, y: 4, z: 3 },
-      candidate => {
-        const a = {}, b = {};
-        for (const key of ['x', 'y', 'z']) {
-          a[key] = candidate[key] - axis[key] * amplitude;
-          b[key] = candidate[key] + axis[key] * amplitude;
-        }
-        // The sinusoid visits exactly this segment: one swept test protects every time sample.
-        return protectedVolumes.every(volume => !sweptSphereHit(a, b, volume.position, volume.position, radius + volume.radius + .15)) &&
-          occupied.every(other => distance(candidate, other.position) > radius + other.radius + 2);
-      }
-    );
-    const result = { id: `sector-${sector + 1}-hazard-${index + 1}`, position, radius, motion };
-    occupied.push(result);
-    return result;
-  });
-
-  return { ...SECTORS[sector], beacon, small, large, hazards, gem, gate, exit };
+  function motion(index, amplitude = 2) {
+    return { type: ['crossing', 'orbit', 'drift'][index % 3], axis: { x: 1, y: 0, z: 0 },
+      secondary: { x: 0, y: .6, z: .8 }, amplitude, period: amplitude * Math.PI * 2 / 1.25,
+      phase: random() * Math.PI * 2 };
+  }
+  const small = regions.map((center, index) => ({
+    id: `sector-${sector + 1}-small-${index + 1}`, role: 'eva', radius: 1.1 + random() * .5,
+    position: { x: center.x + 10, y: center.y + 3, z: center.z - 3 },
+    approach: { ...center }, region: index, motion: motion(index, 1.5),
+  }));
+  const large = regions.slice(0, sector + 1).map((center, index) => ({
+    id: `sector-${sector + 1}-large-${index + 1}`, role: 'core', radius: 2.1 + random() * .7,
+    position: { x: center.x - 17, y: center.y + 10, z: center.z - 28 },
+    region: index, motion: motion(index + 1, 2),
+  }));
+  const gem = { ...large.at(-1).position };
+  const gate = { x: 0, y: 0, z: -56 }, exit = { x: 0, y: 0, z: -80 };
+  const protectedVolumes = [ {position: SHIP_START, radius: 8}, {position: beacon, radius: 6},
+    ...regions.map(position => ({position, radius: 15})),
+    ...small.concat(large).map(t => ({position:t.position, radius:envelopeRadius(t) + 4})) ];
+  const placed = [];
+  function population(role, count) {
+    return Array.from({length: count}, (_, index) => {
+      const radius = 1.25 + random() * 2;
+      const m = motion(index, 4.5 + random() * 2);
+      const region = regions[index % 3];
+      // Decoration belongs beyond the playable route's x±220 envelope, never in an EVA window.
+      const center = role === 'decoration'
+        ? {x:(index % 2 ? 1 : -1) * 275, y:region.y, z:region.z}
+        : {x:region.x + (index % 2 ? 38 : -38), y:region.y, z:region.z};
+      const reach = radius + motionReach({motion:m});
+      const position = pointInVolume(random, center, {x:22,y:30,z:34}, p =>
+        (role !== 'decoration' || Math.abs(p.x) - reach > 220) &&
+        distance(p, {x:0,y:0,z:clamp(p.z,-87,-47)}) > reach + 10 &&
+        protectedVolumes.every(v => distance(p,v.position) > reach + v.radius) &&
+        placed.every(other => distance(p,other.position) > reach + envelopeRadius(other) + 2));
+      const spec = {id:`sector-${sector + 1}-${role}-${index + 1}`,role,position,radius,motion:m,health:Math.ceil(radius)};
+      placed.push(spec);
+      return spec;
+    });
+  }
+  const hazards = population('hazard', 9), breakables = population('breakable', 9);
+  const decoration = population('decoration', 12);
+  return { ...SECTORS[sector], beacon, small, large, hazards, breakables, decoration, regions, gem, gate, exit };
 }
 
 /** Friendly assisted aiming: targeting distance and shooter speed matter, never the camera view. */
@@ -154,6 +131,48 @@ export function aimChance({ distance: shotDistance = 0, actor = "astronaut", sec
 
 export function createExpedition(seed = 712069) {
   const state = {};
+  let optional = new Map(), nextRespawn = 0;
+  function resetPopulations() {
+    optional = new Map([...state.layout.hazards, ...state.layout.breakables].map(spec =>
+      [spec.id, {health: spec.health, destroyed: false, respawnAt: 0, generation: 0}]));
+    nextRespawn = 0;
+  }
+  function discover(position, radius = 38) {
+    const found = [];
+    for (const target of [...state.layout.small, ...state.layout.large, ...state.layout.hazards, ...state.layout.breakables]) {
+      if (!state.discovered.includes(target.id) && distance(position, target.position) <= radius) {
+        state.discovered.push(target.id); found.push(target.id);
+      }
+    }
+    return found;
+  }
+  function damageOptional(id, actor, time = 0) {
+    const item = optional.get(id);
+    if (!item || item.destroyed || !['astronaut', 'ship'].includes(actor)) return false;
+    item.health = Math.max(0, item.health - (actor === 'ship' ? 3 : 1));
+    if (!item.health) { item.destroyed = true; item.respawnAt = time + 24; }
+    return {id, health:item.health, destroyed:item.destroyed};
+  }
+  function updatePopulations(time, {playerPosition, isVisible, exclusionRadius = 45} = {}) {
+    if (!Number.isFinite(time) || time < nextRespawn || !playerPosition || typeof isVisible !== 'function') return [];
+    for (const spec of [...state.layout.hazards, ...state.layout.breakables]) {
+      const item = optional.get(spec.id);
+      if (!item.destroyed || time < item.respawnAt) continue;
+      // Keep the whole future trajectory outside the exclusion sphere, not just its spawn sample.
+      const margin = spec.radius + spec.motion.amplitude * 1.5;
+      const point = {}; sampleHazard(spec,time,point,{});
+      if (distance(spec.position, playerPosition) <= exclusionRadius + margin || isVisible(point, margin)) continue;
+      item.health = spec.health; item.destroyed = false; item.generation++;
+      state.discovered = state.discovered.filter(id => id !== spec.id);
+      nextRespawn = time + 4;
+      return [spec.id];
+    }
+    return [];
+  }
+  function setScanProgress(value) {
+    if (state.phase !== 'scan' || !Number.isFinite(value)) return false;
+    state.scanProgress = clamp(value, 0, 1); return true;
+  }
 
   function reset(nextSeed = state.seed ?? seed) {
     const normalizedSeed = seedNumber(nextSeed);
@@ -163,37 +182,61 @@ export function createExpedition(seed = 712069) {
       moduleStage: 1,
       phase: "scan",
       gems: 0,
-      destroyed: [],
+      destroyed: [], discovered: [], scanProgress: 0, lastCorePosition: null,
       layout: createLayout(normalizedSeed, 0),
     });
+    resetPopulations();
     return true;
   }
 
   function scan() {
     if (state.phase !== "scan") return false;
-    state.phase = "small";
+    state.phase = "small"; state.scanProgress = 1;
     return true;
   }
 
   function restoreCheckpoint(saved) {
     if (!validCheckpoint(saved)) return false;
     const layout = createLayout(saved.seed, saved.sector);
+    const ids = new Set([...layout.small, ...layout.large].map(t => t.id));
+    const allIds = new Set([...ids, ...layout.hazards.map(t=>t.id), ...layout.breakables.map(t=>t.id)]);
+    const destroyed = saved.gemRecovered ? [...ids] : [...new Set(saved.destroyed || [])].filter(id => ids.has(id));
+    const smallDone = layout.small.every(t=>destroyed.includes(t.id));
+    // Invalid out-of-order large progress is ignored instead of unlocking rewards.
+    if (!smallDone && !saved.gemRecovered) for (const t of layout.large) {
+      const i=destroyed.indexOf(t.id); if(i>=0)destroyed.splice(i,1);
+    }
+    const scanned = saved.scanned === true || destroyed.length > 0;
+    const largeDone = layout.large.every(t=>destroyed.includes(t.id));
+    // Destruction order identifies the actual last core; v1 has no ordered partial history.
+    const lastCoreId = [...(saved.destroyed || destroyed)].reverse().find(id =>
+      destroyed.includes(id) && layout.large.some(core => core.id === id));
+    const lastCore = layout.large.find(core => core.id === lastCoreId);
+    const lastCorePosition = lastCore ? safeCorePosition(lastCore, saved.lastCorePosition) : null;
+    if (largeDone && lastCorePosition) layout.gem = {...lastCorePosition};
     Object.assign(state, { seed: saved.seed, sector: saved.sector, moduleStage: saved.sector + 1,
       gems: saved.complete ? 3 : saved.sector + Number(saved.gemRecovered),
-      phase: saved.complete ? 'complete' : saved.gemRecovered ? 'return' : 'scan',
-      destroyed: saved.gemRecovered ? [...layout.small, ...layout.large].map(target => target.id) : [], layout });
+      phase: saved.complete ? 'complete' : saved.gemRecovered ? 'return' : largeDone ? 'gem' : smallDone ? 'large' : scanned ? 'small' : 'scan',
+      destroyed, discovered: [...new Set(saved.discovered || [])].filter(id=>allIds.has(id)),
+      scanProgress: scanned ? 1 : saved.scanProgress || 0, lastCorePosition, layout });
+    resetPopulations();
     return true;
   }
 
-  function hit(id, actor) {
+  function hit(id, actor, position) {
     const kind = state.phase;
     if (kind !== "small" && kind !== "large") return false;
     if (actor !== (kind === "small" ? "astronaut" : "ship")) return false;
     const targets = state.layout[kind];
     if (!targets.some(target => target.id === id) || state.destroyed.includes(id)) return false;
     state.destroyed.push(id);
+    if (kind === 'large') {
+      const target = targets.find(t => t.id === id);
+      state.lastCorePosition = safeCorePosition(target, position);
+    }
     if (targets.every(target => state.destroyed.includes(target.id))) {
       state.phase = kind === "small" ? "large" : "gem";
+      if (kind === "large") state.layout.gem = {...state.lastCorePosition};
     }
     return true;
   }
@@ -219,12 +262,13 @@ export function createExpedition(seed = 712069) {
       state.sector++;
       state.moduleStage = state.sector + 1;
       state.phase = "scan";
-      state.destroyed = [];
+      state.destroyed = []; state.discovered = []; state.scanProgress = 0; state.lastCorePosition = null;
       state.layout = createLayout(state.seed, state.sector);
+      resetPopulations();
     }
     return true;
   }
 
   reset(seed);
-  return { state, scan, hit, collectGem, enterCorridor, finishTransit, reset, restoreCheckpoint };
+  return { state, discover, setScanProgress, damageOptional, optionalState: id => optional.get(id), updatePopulations, scan, hit, collectGem, enterCorridor, finishTransit, reset, restoreCheckpoint };
 }

@@ -238,9 +238,9 @@ test('diagonal propulsion cannot exceed straight-line travel speed', () => {
 
 test('world bounds constrain travel and permit deploying inside the map', () => {
   const flight = aboard(); advance(flight, 30, new Vector3(1, 1, -1), true);
-  assert.ok(flight.position.x <= 50 && flight.position.y <= 22 && flight.position.z >= -90);
+  assert.ok(flight.position.x <= 220 && flight.position.y <= 100 && flight.position.z >= -300);
   assert.equal(flight.deploy(), true);
-  assert.ok(flight.position.x <= 50 && flight.position.y <= 22 && flight.position.z >= -90);
+  assert.ok(flight.position.x <= 220 && flight.position.y <= 100 && flight.position.z >= -300);
 });
 
 test('paused and invalid time steps cannot move translation or orientation', () => {
@@ -279,10 +279,10 @@ test('impact separation reapplies the EVA hull envelope and the ship world bound
   const flight = createFlight(); flight.astronautPosition.set(3.5, -.85, 6.5);
   flight.applyImpact(new Vector3(-1, 0, 0), 2, new Vector3());
   assert.ok(flight.position.clone().add(new Vector3(0, .85, 0)).distanceTo(new Vector3(0, 0, 6.5)) >= 2.8);
-  flight.reset({ aboard: true }); flight.shipPosition.set(45, 0, 10); flight.velocity.set(3, 2, 0);
+  flight.reset({ aboard: true }); flight.shipPosition.set(215, 0, 10); flight.velocity.set(3, 2, 0);
   flight.applyImpact(new Vector3(1, 0, 0), 10, new Vector3());
-  assert.ok(flight.position.x < 50); assert.equal(flight.velocity.x, 0); assert.equal(flight.velocity.y, 2);
-  flight.deploy(); assert.ok(flight.position.x <= 50);
+  assert.ok(flight.position.x < 220); assert.equal(flight.velocity.x, 0); assert.equal(flight.velocity.y, 2);
+  flight.deploy(); assert.ok(flight.position.x <= 220);
 });
 
 test('invalid contact data cannot corrupt flight position or velocity', () => {
@@ -290,4 +290,11 @@ test('invalid contact data cannot corrupt flight position or velocity', () => {
   for (const normal of [undefined, new Vector3(), { x: NaN, y: 1, z: 0 }]) flight.applyImpact(normal, 4);
   flight.applyImpact(new Vector3(1, 0, 0), Infinity);
   assert.ok(flight.position.equals(position)); assert.deepEqual(flight.velocity.toArray(), [1, 2, 3]);
+});
+
+test('the extended route is reachable before deploying an EVA with its full tether',()=>{
+ const flight=aboard(), destination=new Vector3(-35,28,-211);
+ advance(flight,65,new Vector3(),false,{navigationTarget:destination,arrivalRadius:0});
+ assert.ok(flight.position.distanceTo(destination)<.2,'third search region must not be clamped by old prototype bounds');
+ flight.deploy();flight.update(.02,new Vector3(1,0,0));assert.ok(flight.tetherLength<26);
 });

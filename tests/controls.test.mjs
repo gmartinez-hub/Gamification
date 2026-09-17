@@ -21,17 +21,45 @@ const emit = (target, type, fields = {}) => {
   for (const [name, value] of Object.entries(fields)) Object.defineProperty(event, name, { value });
   target.dispatchEvent(event);
 };
-function fixture() {
+function fixture({joystick = false} = {}) {
   const window = new EventTarget(), document = new EventTarget();
   const canvas = new Element('CANVAS'), right = new Element(), up = new Element();
   right.dataset.move = 'right'; up.dataset.move = 'up';
   document.defaultView = window; document.hidden = false;
-  document.querySelectorAll = () => [right, up]; document.querySelector = () => null;
+  const stick = new Element();
+  stick.getBoundingClientRect=()=>({left:0,top:0,width:120,height:120});
+  stick.querySelector=()=>null;
+  document.querySelectorAll = () => [right, up];
+  document.querySelector = selector => joystick && selector === '[data-joystick]' ? stick : null;
   for (const element of [canvas, right, up]) element.ownerDocument = document;
   const controls = createControls(canvas);
-  return { window, document, canvas, right, up, controls };
+  return { window, document, canvas, right, up, stick, controls };
 }
 const press = (button, id, pointerType = 'touch') => emit(button, 'pointerdown', { pointerId: id, pointerType, button: 0 });
+
+test('analog stick has gradual direction and does not steal a second finger camera drag', () => {
+  const f=fixture({joystick:true});
+  emit(f.stick,'pointerdown',{pointerId:1,pointerType:'touch',button:0,clientX:60,clientY:60});
+  emit(f.window,'pointermove',{pointerId:1,clientX:84,clientY:60});
+  const partial=f.controls.sample(); assert(partial.x>.35 && partial.x<.7); assert.equal(partial.z,0);
+  emit(f.canvas,'pointerdown',{pointerId:2,pointerType:'touch',button:0,clientX:200,clientY:200});
+  emit(f.window,'pointermove',{pointerId:2,clientX:217,clientY:194});
+  const combined=f.controls.sample(); assert.equal(combined.x,partial.x); assert.equal(combined.lookX,17); assert.equal(combined.lookY,-6);
+  emit(f.window,'pointermove',{pointerId:1,clientX:300,clientY:60});
+  assert.equal(f.controls.sample().x,1);
+  emit(f.window,'pointercancel',{pointerId:1});
+  assert.equal(f.controls.sample().x,0); f.controls.dispose();
+});
+
+test('native touch cancellation and backgrounding cannot leave the analog stick held', () => {
+  const f=fixture({joystick:true});
+  const start=()=>emit(f.stick,'pointerdown',{pointerId:1,pointerType:'touch',button:0,clientX:60,clientY:10});
+  start(); assert(f.controls.sample().z<-.8);
+  emit(f.window,'touchcancel',{touches:[]});
+  assert.equal(f.controls.sample().z,0);
+  start(); emit(f.window,'pagehide'); assert.equal(f.controls.sample().z,0);
+  f.controls.dispose();
+});
 
 test('native touch cancellation releases only the canceled control if pointercancel was lost', () => {
   const f = fixture();

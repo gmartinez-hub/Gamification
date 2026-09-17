@@ -2,7 +2,7 @@ import { Euler, Quaternion, Vector3 } from '../../vendor/three.module.js';
 import { TETHER_MAX, shipPoint, shipCollisionSpheres, shipFrameRadius } from './spatial.js';
 
 const NO_INPUT = Object.freeze({ x: 0, y: 0, z: 0 });
-const WORLD_MIN = new Vector3(-50, -22, -90), WORLD_MAX = new Vector3(50, 22, 35);
+const WORLD_MIN = new Vector3(-220, -90, -300), WORLD_MAX = new Vector3(220, 100, 60);
 export const EVA_RADIUS = .65, EVA_CENTER_Y = .85;
 const EVA_CENTER = new Vector3(0, EVA_CENTER_Y, 0), TETHER_SOFT = 22;
 const PROFILES = {
@@ -190,6 +190,7 @@ export function createFlight() {
     get arrived() { return arrived; },
     get shipYaw() { return yaw; },
     get shipPitch() { return pitch; },
+    get angularSpeed() { return Math.hypot(yawRate, pitchRate); },
     get dockPosition() { anchors(); return dock; },
     get tetherPosition() { anchors(); return tether; },
     get tetherLength() { anchors(); return actor === 'astronaut' ? Math.hypot(astronautPosition.x - tether.x, astronautPosition.y + EVA_CENTER_Y - tether.y, astronautPosition.z - tether.z) : 0; },

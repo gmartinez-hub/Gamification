@@ -1,7 +1,6 @@
 import * as THREE from '../../vendor/three.module.js';
 
-// Local, analytic plasma. One tube geometry is shared by both engines and all
-// three layers; no texture downloads, history buffers or frame allocations.
+// Layered volume and filament surface, plus a bounded world-space particle history.
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const vertexShader = /* glsl */`
 uniform float time; uniform float power; uniform float length;
@@ -85,47 +84,82 @@ export function createPropulsion(shipGroup, { gain = 1 } = {}) {
       layers.push(material.uniforms); materials.push(material);
     }
     let light;
-    if (i < 2 || /^main-ring-[03]-/.test(original.name)) { light = new THREE.PointLight(0x40bcff, 0, 5.5, 2); light.position.z = .18; root.add(light); stats.lights++; }
+    if (i < 2 || /^main-ring-[0246]-/.test(original.name)) { light = new THREE.PointLight(0x40bcff, 0, 5.5, 2); light.position.z = .18; root.add(light); stats.lights++; }
     engines.push({ original, priorVisible: original.visible, root, layers, light });
     original.visible = false; root.visible = false;
   }
-  // Each nozzle owns a small analytic particle plume; no growing trail buffers.
+  // Particle coordinates and velocities are WORLD space, sampled at birth. The
+  // shader deliberately ignores modelMatrix, even before a Scene is attached.
+  const capacity = Math.max(128, sources.length * 64), positions = new Float32Array(capacity*3);
+  const velocities = new Float32Array(capacity*3), life = new Float32Array(capacity), ages = new Float32Array(capacity);
+  const strengths = new Float32Array(capacity), sizes = new Float32Array(capacity);
   const plumeGeometry = new THREE.BufferGeometry();
-  const seeds = new Float32Array(32 * 3);
-  for(let i=0;i<32;i++){seeds[i*3]=i/32;seeds[i*3+1]=(i*2.399963)%(Math.PI*2);seeds[i*3+2]=.3+(i%7)/10;}
-  plumeGeometry.setAttribute('position',new THREE.BufferAttribute(seeds,3));
-  for(const engine of engines){
-    const uniforms={time:{value:0},power:{value:0},boost:{value:0}};
-    const material=new THREE.ShaderMaterial({uniforms,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,
-      vertexShader:`uniform float time;uniform float power;uniform float boost;varying float fade;
-        void main(){float age=fract(position.x+time*(.75+boost*.5));float spread=(.1+age*age*.5)*position.z;vec3 p=vec3(cos(position.y)*spread,sin(position.y)*spread,age*(4.8+boost*5.));vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp((16.+boost*10.)/max(1.,-mv.z),1.,5.);fade=sin(age*3.14159)*power;}`,
-      fragmentShader:`varying float fade;void main(){float r=length(gl_PointCoord-.5)*2.;float alpha=(1.-smoothstep(.15,1.,r))*fade*.6;if(alpha<.005)discard;gl_FragColor=vec4(.2,1.2,2.8,alpha);}`});
-    const particles=new THREE.Points(plumeGeometry,material);particles.name='exhaust-plasma-motes';particles.frustumCulled=false;engine.root.add(particles);engine.plume=uniforms;materials.push(material);
-  }
+  plumeGeometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
+  plumeGeometry.setAttribute('energy',new THREE.BufferAttribute(strengths,1).setUsage(THREE.DynamicDrawUsage));
+  plumeGeometry.setAttribute('size',new THREE.BufferAttribute(sizes,1).setUsage(THREE.DynamicDrawUsage));
+  const plumeMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,
+    vertexShader:`attribute float energy;attribute float size;varying float fade;
+      void main(){vec4 mv=viewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp(size*280./max(.2,-mv.z),1.,18.);fade=energy;}`,
+    fragmentShader:`varying float fade;void main(){float r=length(gl_PointCoord-.5)*2.;float alpha=exp(-r*r*4.)*(1.-smoothstep(.65,1.,r))*fade;if(alpha<.003)discard;gl_FragColor=vec4(.25,1.25,3.,alpha);}`});
+  const points=new THREE.Points(plumeGeometry,plumeMaterial);points.name='world-exhaust-history';points.frustumCulled=false;points.renderOrder=4;shipGroup.add(points);materials.push(plumeMaterial);
+  for(const engine of engines){const marker=new THREE.Object3D();marker.name='exhaust-plasma-motes';engine.root.add(marker);engine.credit=0;}
+  const origin=new THREE.Vector3(),direction=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion();
+  let cursor=0,serial=0,activeCount=0,lastTime=null;
+  const history={points,positions,get activeCount(){return activeCount;}};
+  function reset(){life.fill(0);ages.fill(0);strengths.fill(0);positions.fill(0);cursor=0;activeCount=0;lastTime=null;for(const engine of engines){engine.credit=0;engine.root.visible=false;engine.original.userData.power=0;if(engine.light)engine.light.intensity=0;}points.visible=false;plumeGeometry.attributes.energy.needsUpdate=true;plumeGeometry.attributes.position.needsUpdate=true;}
   let disposed = false;
-  function update(time = 0, { thrust = 0, reducedMotion = false, boost = false } = {}) {
+  function update(time = 0, { thrust = 0, reducedMotion = false, boost = false, dt, velocity } = {}) {
     if (disposed) return;
-    const t = Number.isFinite(time) ? time : 0, power = clamp(Number(thrust) || 0);
+    const t = Number.isFinite(time) ? time : 0;
+    if(lastTime!==null&&t<lastTime)reset();
+    const delta=clamp(Number.isFinite(dt)?dt:lastTime===null?1/60:t-lastTime,0,.1);lastTime=t;
+    let scene=shipGroup;while(scene.parent)scene=scene.parent;
+    if(scene.isScene&&points.parent!==scene)scene.add(points);
+    shipGroup.updateWorldMatrix(true,true);
+    activeCount=0;
+    for(let p=0;p<capacity;p++){
+      if(life[p]<=0)continue;ages[p]+=delta;
+      if(ages[p]>=life[p]||reducedMotion){life[p]=0;strengths[p]=0;continue;}
+      const offset=p*3;for(let k=0;k<3;k++)positions[offset+k]+=velocities[offset+k]*delta;
+      strengths[p]=Math.pow(1-ages[p]/life[p],2)*.7;activeCount++;
+    }
     for (let i = 0; i < engines.length; i++) {
       const engine = engines[i]; engine.original.visible = false;
-      const power = clamp(engine.original.userData.power ?? thrust);
+      let visible=true;for(let parent=engine.original.parent;parent;parent=parent.parent)if(!parent.visible)visible=false;
+      const power = visible && !engine.original.userData.blocked ? clamp(engine.original.userData.power ?? thrust) : 0;
       engine.root.visible = power > .015 && level > 0;
-      const boosted = boost && /^(main-ring|pod-)/.test(engine.original.name) ? 1 : 0;
-      engine.plume.time.value = reducedMotion ? 0 : t; engine.plume.power.value = reducedMotion ? 0 : power; engine.plume.boost.value = boosted;
+      const boosted = boost && !/^rcs-/.test(engine.original.name) ? 1 : 0;
+      const nozzleRadius=engine.original.userData.radius ?? .32;
+      engine.root.getWorldScale(scale);const nozzleScale=Math.max(scale.x,scale.y,scale.z);
+      if(power>.015&&!reducedMotion&&level>0){
+        engine.credit+=delta*(35+power*65)*(1+boosted*.4);
+        engine.root.getWorldPosition(origin);engine.root.getWorldQuaternion(rotation);
+        while(engine.credit>=1){
+          engine.credit--;const p=cursor++%capacity,offset=p*3,phase=serial++*2.399963;
+          const spread=.08+((serial*17)%11)/55;
+          direction.set(Math.cos(phase)*spread,Math.sin(phase)*spread,1).normalize().applyQuaternion(rotation);
+          const speed=(3.5+power*6+boosted*7)*Math.max(.12,nozzleScale)*Math.sqrt(nozzleRadius/.32);
+          positions[offset]=origin.x;positions[offset+1]=origin.y;positions[offset+2]=origin.z;
+          velocities[offset]=direction.x*speed+(velocity?.x||0);velocities[offset+1]=direction.y*speed+(velocity?.y||0);velocities[offset+2]=direction.z*speed+(velocity?.z||0);
+          if(life[p]<=0)activeCount++;life[p]=.32+(serial%13)/26;ages[p]=0;strengths[p]=.7*power;sizes[p]=nozzleRadius*nozzleScale*(.12+(serial%5)*.03);
+        }
+      }else engine.credit=0;
       const breathe = reducedMotion ? 1 : 1 + Math.sin(t * 17 + i * 1.7) * .018;
       for (let j = 0; j < engine.layers.length; j++) {
         const u = engine.layers[j];
         u.time.value = t; u.power.value = power; u.boost.value = boosted; u.motion.value = reducedMotion ? 0 : 1;
-        u.length.value = (.34 + power * (4.8 + boosted * 4.2)) * (j === 0 ? .82 : j === 1 ? 1 : 1.06) * breathe;
-        u.radius.value = (.19 + power * (.22 + boosted * .07)) * (j === 0 ? .61 : j === 1 ? 1 : 1.32);
+        u.length.value = (.24 + power * (4.8 + boosted * 4.2)) * (nozzleRadius / .32) * (j === 0 ? .82 : j === 1 ? 1 : 1.06) * breathe;
+        u.radius.value = nozzleRadius * (.66 + power * (.42 + boosted * .13)) * (j === 0 ? .61 : j === 1 ? 1 : 1.32);
       }
-      if (engine.light) engine.light.intensity = power * level * (reducedMotion ? 1.15 : 3.2 + boosted * 3.2);
+      if (engine.light) engine.light.intensity = power * level * Math.pow(nozzleRadius/.32,2) * (reducedMotion ? 1.15 : 3.2 + boosted * 3.2);
     }
+    points.visible=activeCount>0&&!reducedMotion;
+    plumeGeometry.attributes.position.needsUpdate=true;plumeGeometry.attributes.energy.needsUpdate=true;plumeGeometry.attributes.size.needsUpdate=true;
   }
   function dispose() {
-    if (disposed) return; disposed = true;
+    if (disposed) return; disposed = true;reset();points.removeFromParent();
     for (const engine of engines) { engine.root.removeFromParent(); engine.original.visible = engine.priorVisible; }
     for (const material of materials) material.dispose(); geometry.dispose(); plumeGeometry.dispose();
   }
-  return { update, dispose, stats };
+  return { update, reset, dispose, stats, history };
 }

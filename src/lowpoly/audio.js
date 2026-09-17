@@ -38,6 +38,10 @@ const FILES = {
   passby: RUNTIME + 'target_orbit_passby.wav',
   beacon: RUNTIME + 'sector_beacon_far_ping.wav',
   stabilize: RUNTIME + 'zero_g_lock_stabilize.wav',
+  slowEnter: AIM + 'slow_motion_enter_03.wav',
+  slowExit: AIM + 'slow_motion_exit_snap_09.wav',
+  zeroG: AIM + 'zero_g_rotate_whoosh_04.wav',
+  invalid: AIM + 'invalid_target_blip_08.wav',
 };
 
 // [sample, gain] layers, cooldown seconds, optional ambience duck seconds.
@@ -62,6 +66,11 @@ const CUES = {
   rescue: { layers: [['stabilize', .25]], cooldown: 1.4, duck: 1.2 },
   complete: { layers: [['complete', .3], ['stageClear', .15]], cooldown: 2, duck: 1.8 },
   companionHint: { layers: [['hint', .16]], cooldown: 1.2, duck: .4 },
+  slowEnter: { layers: [['slowEnter', .2], ['zeroG', .09]], cooldown: .35, duck: .8 },
+  slowExit: { layers: [['slowExit', .13]], cooldown: .3 },
+  interrupted: { layers: [['invalid', .14]], cooldown: .45 },
+  cabinStep: { layers: [['click', .065]], cooldown: .38 },
+  cabinSeat: { layers: [['airlock', .14], ['stabilize', .1]], cooldown: .8 },
 };
 const LOOP_NAMES = ['space', 'idle', 'move', 'boost', 'focus', 'relic'];
 const BIOMES = {
@@ -151,19 +160,27 @@ export function createExpeditionAudio() {
 
   async function load() {
     const owner = context;
-    await Promise.allSettled(Object.entries(FILES).map(async ([id, path]) => {
-      const response = await fetch(new URL(path, import.meta.url), { signal: abort.signal });
-      if (!response.ok) return;
-      const buffer = await owner.decodeAudioData(await response.arrayBuffer());
-      if (disposed || owner !== context) return;
-      // Only attenuate unexpected over-level files; never boost quiet ambience.
-      let peak = 1;
-      if (buffer.getChannelData) for (let c = 0; c < buffer.numberOfChannels; c++) {
-        const samples = buffer.getChannelData(c);
-        for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+    const entries=Object.entries(FILES).filter(([id])=>!buffers.has(id));
+    let cursor=0;
+    async function worker() {
+      while(cursor<entries.length && !disposed && owner===context) {
+        const [id,path]=entries[cursor++];
+        try {
+          const response = await fetch(new URL(path, import.meta.url), { signal: abort.signal });
+          if (!response.ok) continue;
+          const buffer = await owner.decodeAudioData(await response.arrayBuffer());
+          if (disposed || owner !== context) return;
+          // Only attenuate unexpected over-level files; never boost quiet ambience.
+          let peak = 1;
+          if (buffer.getChannelData) for (let c = 0; c < buffer.numberOfChannels; c++) {
+            const samples = buffer.getChannelData(c);
+            for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+          }
+          buffers.set(id, { buffer, scale: 1 / peak });
+        } catch { /* A missing cue must not block other sounds or gameplay. */ }
       }
-      buffers.set(id, { buffer, scale: 1 / peak });
-    }));
+    }
+    await Promise.all(Array.from({length:3},worker));
   }
 
   function startVoice(id, volume, loop = false, rate = 1) {
@@ -268,7 +285,9 @@ export function createExpeditionAudio() {
       try {
         if (!context && !createGraph()) return false;
         if (context.state !== 'running') await context.resume();
-        if (!loading) loading = load();
+        // Share only in-flight work. A later gesture may retry missing samples
+        // without decoding successful buffers again or duplicating active loops.
+        if (!loading) loading = load().finally(() => { loading = undefined; });
         await loading;
         if (!active() || !buffers.size) return false;
         ensureLoops(); mix(); return true;

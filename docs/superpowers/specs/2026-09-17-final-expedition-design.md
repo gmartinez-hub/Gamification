@@ -6,6 +6,9 @@
 
 Este documento cruza los pedidos de la conversación, el código activo, los assets locales, las referencias visuales y las auditorías anteriores. Es una revisión de diseño: no acredita implementación, calidad final ni rendimiento. No se modificó el juego, no se editaron modelos y no se publicó una versión durante esta revisión.
 
+
+> **Corrección de cabina — 17/09, posterior a la aprobación inicial:** usar la cabina completa de la referencia `ChatGPT Image Sep 17, 2026 at 02_26_27 AM.png`. El ventanal debe dominar la vista como la referencia, nunca un visor miniatura. El usuario aclaró después que no exige una abertura literal de 3,80 m: prioriza proporción visual con controles humanos, conservando el exterior. Verificar escala de ventana, cuerpo, mandos y cámara conjuntamente. El usuario simplificó expresamente la circulación: basta acercarse al puesto, sentarse/pilotear y pararse. Esto sustituye las exigencias de caminabilidad libre y colisiones de circulación que permanezcan descritas debajo. No autoriza rediseñar el casco exterior sin mostrar la necesidad concreta.
+
 ## 1. Resultado de la auditoría
 
 Los frentes generales estaban nombrados, pero varios requisitos podían desaparecer dentro de etiquetas demasiado amplias. Se corrige eso con entregables y condiciones de aceptación explícitos:
@@ -41,8 +44,8 @@ Una entrega significa una sola publicación final. Las pruebas internas y correc
 
 ### Cabina y controles: respuestas de esta revisión
 
-- **Solo cabina transitable**, con piloto y vistas en primera y tercera persona. Hábitat y propulsión siguen siendo exteriores. Esta frontera la eligió el usuario; no es un recorte inferido.
-- Caminar con **botas magnéticas**. La nave **se estabiliza al levantarse**. Fuera de la cabina se conserva la inercia espacial.
+- **Cabina con acercamiento al puesto, sentarse, pilotear y pararse**, con piloto y vistas en primera y tercera persona. Esta simplificación fue solicitada explícitamente por el usuario el 17/09 después de ver la escala del interior. No hace falta navegación libre por la cabina; hábitat y propulsión siguen siendo exteriores.
+- Apoyo estable de **botas magnéticas** en el puesto. La nave **se estabiliza al levantarse**. Fuera de la cabina se conserva la inercia espacial.
 - Companion con **sonidos expresivos de robot y subtítulos breves**. No se requiere locución hablada.
 - Móvil: **joystick analógico principal y flechas disponibles en ajustes**. Mantener arrastre para mirar, altura, estabilización, acción contextual y acceso visible a visor/cámara.
 - **Disparo de nave sin nueva torreta:** salida desde un punto coherente del casco, escala proporcional, carga, partículas, estela e impacto. No exigir remodelar la nave para visualizar el cañón en esta versión. Las anclas y efectos de motores/toberas siguen incluidos por separado.

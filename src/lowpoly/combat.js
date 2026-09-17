@@ -13,15 +13,21 @@ export function createCombat(random = Math.random) {
     if (!Number.isFinite(chance)) return 0;
     return (missesByTarget.get(keyFor(id, actor)) || 0) >= 2 ? 1 : Math.min(.95, Math.max(.35, chance));
   }
-  const stats = { attempts: 0, hits: 0, misses: 0 };
+  const stats = { attempts: 0, hits: 0, misses: 0, interrupted: 0 };
+  function interrupt(reason = 'occluded') {
+    if (!shot) return null;
+    const result = {id:shot.id, actor:shot.actor, hit:false, interrupted:true, reason};
+    shot = null; cooldown = .4; stats.attempts--; stats.interrupted++;
+    return result;
+  }
   return {
-    stats,
+    stats, interrupt,
     chanceFor,
     get shot() { return shot; },
     get cooldown() { return cooldown; },
-    start({ id, actor, kind, distance, chance, origin }) {
-      if (shot || cooldown > 0 || !Number.isFinite(chance) || !Number.isFinite(distance) || distance < 0 || distance > WEAPON_RANGE[actor]) return false;
-      if (!((actor === 'astronaut' && kind === 'small') || (actor === 'ship' && kind === 'large'))) return false;
+    start({ id, actor, kind, distance, chance, origin, blocked = false, discovered = true }) {
+      if (blocked || !discovered || !['astronaut', 'ship'].includes(actor) || shot || cooldown > 0 || !Number.isFinite(chance) || !Number.isFinite(distance) || distance < 0 || distance > WEAPON_RANGE[actor]) return false;
+      if (!((actor === 'astronaut' && kind === 'small') || (actor === 'ship' && kind === 'large') || ['hazard', 'breakable'].includes(kind))) return false;
       const assisted = chanceFor({ id, actor, chance }) === 1;
       shot = { id, actor, assisted, elapsed: 0, lockTime: actor === 'ship' ? 1.6 : 1.05,
         travelTime: actor === 'ship' ? .9 : .55, phase: 'lock',
@@ -29,7 +35,9 @@ export function createCombat(random = Math.random) {
       stats.attempts++;
       return true;
     },
-    update(dt) {
+    update(dt, {blocked = false} = {}) {
+      if (blocked && shot) return interrupt();
+      dt = Number.isFinite(dt) ? dt : 0;
       cooldown = Math.max(0, cooldown - Math.max(0, dt));
       if (!shot) return null;
       shot.elapsed += Math.max(0, dt);
@@ -44,6 +52,6 @@ export function createCombat(random = Math.random) {
       cooldown = .4;
       return result;
     },
-    reset() { shot = null; cooldown = 0; missesByTarget.clear(); stats.attempts = stats.hits = stats.misses = 0; },
+    reset() { shot = null; cooldown = 0; missesByTarget.clear(); stats.attempts = stats.hits = stats.misses = stats.interrupted = 0; },
   };
 }

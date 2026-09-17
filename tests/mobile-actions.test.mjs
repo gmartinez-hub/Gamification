@@ -1,115 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getMobileAction } from '../src/lowpoly/mobile-actions.js';
-
-const snapshot = (overrides = {}) => ({
-  phase: 'scan', actor: 'astronaut', navigating: false, returning: false,
-  scanning: false, shotActive: false, cooldown: 0, blocked: false,
-  actionDistance: 10, targetDistance: Infinity, weaponRange: 30,
-  chance: .82, assemblyLocked: false, ...overrides,
+import {getMobileAction} from '../src/lowpoly/mobile-actions.js';
+const snapshot=(extra={})=>({phase:'scan',actor:'astronaut',actionDistance:10,targetDistance:Infinity,weaponRange:22,chance:.8,...extra});
+test('beacon and gem interactions appear only within physical reach',()=>{
+ assert.equal(getMobileAction(snapshot({actionDistance:3.8})).action,'interact');
+ assert.equal(getMobileAction(snapshot({actionDistance:3.81})).action,'navigate');
+ assert.equal(getMobileAction(snapshot({phase:'gem',actionDistance:3})).action,'interact');
+ assert.equal(getMobileAction(snapshot({phase:'gem',actionDistance:3.01})).action,'navigate');
 });
-
-test('beacon action follows deployment, approach and scan reach', () => {
-  assert.equal(getMobileAction(snapshot({ actor: 'ship' })).action, 'deploy');
-  assert.equal(getMobileAction(snapshot()).action, 'navigate');
-  const scanning = getMobileAction(snapshot({ actionDistance: 3.8 }));
-  assert.equal(scanning.action, 'interact');
-  assert.equal(scanning.disabled, false);
-  assert.match(scanning.label, /Escanear/);
-  assert.equal(getMobileAction(snapshot({ actionDistance: 3.81 })).action, 'navigate');
+test('mission targets preserve EVA and ship roles, while exploration requires repositioning',()=>{
+ assert.equal(getMobileAction(snapshot({phase:'small',actor:'ship',targetDistance:18})).action,'deploy');
+ assert.equal(getMobileAction(snapshot({phase:'small',actor:'ship',targetDistance:35})).action,'navigate');
+ assert.equal(getMobileAction(snapshot({phase:'small',targetDistance:18})).action,'fire');
+ assert.equal(getMobileAction(snapshot({phase:'small',targetDistance:35})).action,'return');
+ assert.equal(getMobileAction(snapshot({phase:'large',targetDistance:18})).action,'return');
+ assert.equal(getMobileAction(snapshot({phase:'large',actor:'ship',targetDistance:30,weaponRange:48})).action,'fire');
 });
-
-test('an active guide can be stopped, then yields to a reachable action', () => {
-  const guiding = getMobileAction(snapshot({ navigating: true }));
-  assert.equal(guiding.action, 'navigate');
-  assert.equal(guiding.disabled, false);
-  assert.match(guiding.label, /Detener/);
-  assert.equal(getMobileAction(snapshot({ navigating: true, actionDistance: 2 })).action, 'interact');
-  const aiming = getMobileAction(snapshot({ phase: 'small', navigating: true, targetDistance: 20 }));
-  assert.equal(aiming.action, 'fire');
+test('optional targets are actionable with either weapon without requiring a mission phase',()=>{
+ for(const actor of ['astronaut','ship'])for(const targetKind of ['hazard','breakable']){
+  assert.equal(getMobileAction(snapshot({actor,targetKind,targetDistance:18})).action,'fire');
+ }
+ assert.equal(getMobileAction(snapshot({targetKind:'hazard',targetDistance:18,actionDistance:3})).action,'interact');
 });
-
-test('an ongoing scan stays visible without offering a conflicting action', () => {
-  const action = getMobileAction(snapshot({ scanning: true, actionDistance: 3 }));
-  assert.equal(action.action, 'interact');
-  assert.equal(action.disabled, true);
-  assert.match(action.label, /Escaneando/);
+test('no manual corridor or remote automatic action is offered after collection',()=>{
+ for(const actor of ['ship','astronaut'])assert.equal(getMobileAction(snapshot({phase:'return',actor})).disabled,true);
+ for(const extra of [{sequence:true},{phase:'transit'},{assemblyLocked:true},{shotActive:true},{returning:true},{blocked:true}]){
+  const action=getMobileAction(snapshot({phase:'small',targetDistance:18,...extra}));assert.equal(action.disabled,true);assert.equal(action.secondary,undefined);
+ }
 });
-
-test('small and large targets require the appropriate pilot and weapon range', () => {
-  assert.equal(getMobileAction(snapshot({ phase: 'small', actor: 'ship', targetDistance: 20 })).action, 'deploy');
-  assert.equal(getMobileAction(snapshot({ phase: 'large', targetDistance: 20 })).action, 'return');
-  assert.equal(getMobileAction(snapshot({ phase: 'small', actor: 'ship', targetDistance: 20 })).secondary, 'target');
-  assert.equal(getMobileAction(snapshot({ phase: 'large', targetDistance: 20 })).secondary, 'target');
-  for (const [phase, actor, weaponRange] of [['small', 'astronaut', 30], ['large', 'ship', 70]]) {
-    const ready = getMobileAction(snapshot({ phase, actor, weaponRange, targetDistance: weaponRange }));
-    assert.equal(ready.action, 'fire');
-    assert.equal(ready.disabled, false);
-    assert.equal(ready.secondary, 'target');
-    assert.match(ready.hint, /82%/);
-    const far = getMobileAction(snapshot({ phase, actor, weaponRange, targetDistance: weaponRange + .01 }));
-    assert.equal(far.action, 'navigate');
-    assert.equal(far.secondary, 'target');
-  }
+test('cabin context replaces flight prompts and retains seating when flight is held',()=>{
+ assert.equal(getMobileAction(snapshot({cabinMode:'standing',canSit:true,blocked:true})).action,'cabin');
+ assert.equal(getMobileAction(snapshot({cabinMode:'stabilizing',blocked:true})).disabled,true);
 });
-
-test('cooldown prevents repeat firing but preserves the selected target context', () => {
-  const action = getMobileAction(snapshot({ phase: 'small', targetDistance: 20, cooldown: .3 }));
-  assert.equal(action.action, 'fire');
-  assert.equal(action.disabled, true);
-  assert.match(action.label, /Recargando/);
-  assert.equal(action.secondary, 'target');
-  assert.equal(getMobileAction(snapshot({ phase: 'small', targetDistance: 20, cooldown: 0 })).disabled, false);
-});
-
-test('missing or invalid targets cannot expose a working fire or target switch button', () => {
-  for (const targetDistance of [undefined, NaN, Infinity, -1]) {
-    const action = getMobileAction(snapshot({ phase: 'small', targetDistance }));
-    assert.equal(action.disabled, true);
-    assert.equal(action.action, 'none');
-    assert.equal(action.secondary, undefined);
-  }
-});
-
-test('gem approach uses the existing guide that deploys from a nearby ship', () => {
-  const nearShip = getMobileAction(snapshot({ phase: 'gem', actor: 'ship', actionDistance: 11.9 }));
-  assert.equal(nearShip.action, 'navigate');
-  assert.match(nearShip.label, /Salir por la gema/);
-  assert.match(getMobileAction(snapshot({ phase: 'gem', actor: 'ship', actionDistance: 12 })).label, /Guiar/);
-  assert.equal(getMobileAction(snapshot({ phase: 'gem', actionDistance: 3 })).action, 'interact');
-  assert.equal(getMobileAction(snapshot({ phase: 'gem', actionDistance: 3.01 })).action, 'navigate');
-});
-
-test('return objective boards before navigating to the corridor', () => {
-  assert.equal(getMobileAction(snapshot({ phase: 'return' })).action, 'return');
-  const aboard = getMobileAction(snapshot({ phase: 'return', actor: 'ship' }));
-  assert.equal(aboard.action, 'navigate');
-  assert.match(aboard.label, /corredor/);
-  assert.match(getMobileAction(snapshot({ phase: 'return', actor: 'ship', navigating: true })).label, /Detener/);
-});
-
-test('transitions, returning, aiming and blocked controls offer no conflicting secondary action', () => {
-  for (const extra of [
-    { phase: 'transit' }, { assemblyLocked: true }, { blocked: true },
-    { returning: true }, { shotActive: true },
-  ]) {
-    const action = getMobileAction(snapshot({ phase: 'small', targetDistance: 20, ...extra }));
-    assert.equal(action.disabled, true);
-    assert.equal(action.secondary, undefined);
-  }
-  assert.match(getMobileAction(snapshot({ assemblyLocked: true, blocked: true })).label, /Ensamblando/);
-  assert.match(getMobileAction(snapshot({ phase: 'transit', blocked: true })).label, /Viajando/);
-});
-
-test('completed expedition offers a restart, while paused completion remains blocked', () => {
-  assert.deepEqual(getMobileAction(snapshot({ phase: 'complete' })), {
-    action: 'restart', label: 'Nueva expedición', disabled: false,
-  });
-  assert.equal(getMobileAction(snapshot({ phase: 'complete', blocked: true })).disabled, true);
-});
-
-test('action selection leaves the input state untouched', () => {
-  const state = Object.freeze(snapshot({ phase: 'large', actor: 'ship', targetDistance: 40, weaponRange: 70 }));
-  assert.equal(getMobileAction(state).action, 'fire');
-  assert.equal(state.phase, 'large');
+test('reload and cooldown cannot expose an invalid shot',()=>{
+ assert.equal(getMobileAction(snapshot({phase:'small',targetDistance:18,cooldown:.3})).disabled,true);
+ for(const targetDistance of [NaN,-1,Infinity])assert.notEqual(getMobileAction(snapshot({phase:'small',targetDistance})).action,'fire');
+ assert.equal(getMobileAction(snapshot({phase:'complete'})).action,'restart');
+ assert.equal(getMobileAction(snapshot({phase:'complete',blocked:true})).disabled,true);
 });

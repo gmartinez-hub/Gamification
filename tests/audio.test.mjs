@@ -65,6 +65,24 @@ function audioBoundary(t, { missing = '', failStart = false, decodeGate } = {}) 
   return { contexts, loads, active: () => contexts.flatMap(c => c.sources.filter(s => s.started && !s.stopped)) };
 }
 
+test('audio fetch and decode are queued instead of starting every sound together', async t => {
+  const boundary=audioBoundary(t);
+  const fetchAsset=globalThis.fetch;
+  let active=0,maximum=0;
+  t.mock.method(globalThis,'fetch',async (...args)=>{
+    maximum=Math.max(maximum,++active);
+    await new Promise(resolve=>setTimeout(resolve,2));
+    const response=await fetchAsset(...args);
+    active--; return response;
+  });
+  const audio=createExpeditionAudio();audio.setEnabled(true);
+  await audio.unlock();
+  assert(maximum<=3,'bounded audio requests leave decoding headroom for models');
+  assert(boundary.loads.length>20,'all common mission cues remain available');
+  assert.equal(audio.play('slowEnter'),true);
+  audio.dispose();
+});
+
 test('factory stays silent and does not create browser audio before gesture unlock', async t => {
   const boundary = audioBoundary(t), audio = createExpeditionAudio();
   audio.setEnabled(true); audio.update({ actor: 'ship', thrust: 1, boost: true });
@@ -207,4 +225,18 @@ test('a partial browser audio graph failure is cleaned up and a later gesture ca
   assert.equal(await audio.unlock(), true);
   assert.ok(boundary.active().some(s => s.loop));
   audio.dispose();
+});
+test('a later gesture retries offline audio while concurrent unlocks share one retry',async t=>{
+ const boundary=audioBoundary(t),fetchFile=globalThis.fetch;let offline=true,requests=0;
+ t.mock.method(globalThis,'fetch',async(...args)=>{requests++;if(offline)throw Error('offline');return fetchFile(...args);});
+ const audio=createExpeditionAudio();audio.setEnabled(true);assert.equal(await audio.unlock(),false);const failedRequests=requests;
+ offline=false;assert.deepEqual(await Promise.all([audio.unlock(),audio.unlock()]),[true,true]);
+ assert.equal(requests,failedRequests*2);assert.equal(audio.play('shipFire'),true);assert.equal(boundary.active().filter(s=>s.loop).length,6);audio.dispose();
+});
+test('audio retry requests only absent samples and preserves decoded cues',async t=>{
+ const boundary=audioBoundary(t),fetchFile=globalThis.fetch;let missing=true;const requested=[];
+ t.mock.method(globalThis,'fetch',async(url,...args)=>{const name=new URL(url).pathname.split('/').pop();requested.push(name);if(missing&&name==='small_asteroid_hit_03.wav')throw Error('temporary');return fetchFile(url,...args);});
+ const audio=createExpeditionAudio();audio.setEnabled(true);assert.equal(await audio.unlock(),true);assert.equal(audio.play('smallHit'),false);assert.equal(audio.play('smallBreak'),true);
+ const before=requested.length;missing=false;assert.equal(await audio.unlock(),true);assert.deepEqual(requested.slice(before),['small_asteroid_hit_03.wav']);assert.equal(audio.play('smallHit'),true);
+ const allLoaded=requested.length;await audio.unlock();assert.equal(requested.length,allLoaded);assert.equal(boundary.active().filter(s=>s.loop).length,6);audio.dispose();
 });

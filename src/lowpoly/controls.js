@@ -7,7 +7,7 @@ const MOVEMENT_KEYS = {
 const ACTION_KEYS = {
   KeyE: 'onAction', KeyF: 'onFire', Tab: 'onTarget', KeyV: 'onView',
   Escape: 'onPause', KeyR: 'onReturn', KeyX: 'onDeploy',
-  KeyG: 'onNavigate', KeyI: 'onInspect',
+  KeyG: 'onNavigate', KeyI: 'onInspect', KeyB: 'onCabin',
 };
 
 const MOVES = new Set(['left', 'right', 'forward', 'back', 'up', 'down', 'boost', 'brake']);
@@ -22,6 +22,9 @@ export function createControls(canvas, handlers = {}) {
   let drag = null;
   let lookX = 0;
   let lookY = 0;
+  const stickElement=document.querySelector('[data-joystick]');
+  const stickThumb=stickElement?.querySelector('[data-joystick-thumb]');
+  let stick=null, stickX=0, stickZ=0;
   let disposed = false;
   const previousTouchAction = canvas.style.touchAction;
   canvas.style.touchAction = 'none';
@@ -53,6 +56,12 @@ export function createControls(canvas, handlers = {}) {
   }
 
   function stopPointer(event) {
+    if(stick?.id===event.pointerId) {
+      const id=stick.id; stick=null; stickX=stickZ=0;
+      if(stickThumb) stickThumb.style.transform='translate(0px,0px)';
+      stickElement.classList.toggle('is-pressed',false);
+      release(stickElement,id);
+    }
     const touch = touches.get(event.pointerId);
     if (touch) {
       touches.delete(event.pointerId);
@@ -74,12 +83,14 @@ export function createControls(canvas, handlers = {}) {
       if (touch.pointerType === 'touch' && !stillTouched(touch.button)) stopPointer({ pointerId: id });
     }
     if (drag?.pointerType === 'touch' && !stillTouched(canvas)) stopPointer({ pointerId: drag.id });
+    if (stick?.pointerType === 'touch' && !stillTouched(stickElement)) stopPointer({ pointerId: stick.id });
   }
 
   function clear() {
     keys.clear();
     lookX = 0;
     lookY = 0;
+    if(stick) stopPointer({pointerId:stick.id});
     for (const [id, touch] of [...touches]) {
       touches.delete(id);
       release(touch.button, id);
@@ -130,12 +141,31 @@ export function createControls(canvas, handlers = {}) {
     listen(button, 'contextmenu', event => event.preventDefault());
   }
 
+  function moveStick(event) {
+    const dx=(event.clientX-stick.x)/stick.radius, dz=(event.clientY-stick.y)/stick.radius;
+    const length=Math.hypot(dx,dz), amount=Math.max(0,(Math.min(1,length)-.08)/.92);
+    stickX=length>0?dx/length*amount:0; stickZ=length>0?dz/length*amount:0;
+    if(stickThumb) stickThumb.style.transform=`translate(${stickX*stick.radius}px,${stickZ*stick.radius}px)`;
+    event.preventDefault();
+  }
+  if(stickElement) {
+    listen(stickElement,'pointerdown',event=>{
+      if(event.button!==0 || stick) return;
+      const rect=stickElement.getBoundingClientRect();
+      stick={id:event.pointerId,pointerType:event.pointerType,x:rect.left+rect.width/2,y:rect.top+rect.height/2,radius:Math.max(1,rect.width*.38)};
+      capture(stickElement,event.pointerId); stickElement.classList.toggle('is-pressed',true); moveStick(event);
+    });
+    listen(stickElement,'lostpointercapture',stopPointer);
+    listen(stickElement,'contextmenu',event=>event.preventDefault());
+  }
+
   listen(canvas, 'pointerdown', event => {
     if (event.button !== 0 || drag) return;
     drag = { id: event.pointerId, x: event.clientX, y: event.clientY, pointerType: event.pointerType };
     capture(canvas, event.pointerId);
   });
   listen(window, 'pointermove', event => {
+    if(stick?.id===event.pointerId) { moveStick(event); return; }
     if (drag?.id !== event.pointerId) return;
     lookX += event.clientX - drag.x;
     lookY += event.clientY - drag.y;
@@ -153,9 +183,9 @@ export function createControls(canvas, handlers = {}) {
       const pressed = new Set([...keys].map(code => MOVEMENT_KEYS[code]));
       for (const touch of touches.values()) pressed.add(touch.move);
       const sample = {
-        x: Number(pressed.has('right')) - Number(pressed.has('left')),
+        x: Math.max(-1,Math.min(1,Number(pressed.has('right')) - Number(pressed.has('left'))+stickX)),
         y: Number(pressed.has('up')) - Number(pressed.has('down')),
-        z: Number(pressed.has('back')) - Number(pressed.has('forward')),
+        z: Math.max(-1,Math.min(1,Number(pressed.has('back')) - Number(pressed.has('forward'))+stickZ)),
         boost: pressed.has('boost'),
         brake: pressed.has('brake'),
         lookX,

@@ -1,14 +1,7 @@
 import * as THREE from '../../vendor/three.module.js';
 import { sampleHazard } from './hazards.js';
-import { loadModelSet } from './asset-loading.js';
-
-const TEXTURES = {
-  ocean: new URL('../../assets/runtime/lowpoly-textures/ocean.jpg', import.meta.url).href,
-  moon: new URL('../../assets/runtime/lowpoly-textures/moon.jpg', import.meta.url).href,
-  gas: new URL('../../assets/runtime/three-textures/gas-giant-color.png', import.meta.url).href,
-  rock: new URL('../../assets/runtime/lowpoly-textures/rock-mineral.jpg', import.meta.url).href,
-  nebula: new URL('../../assets/runtime/lowpoly-textures/nebula.jpg', import.meta.url).href,
-};
+import { loadModelSet, releaseModelAssets } from './asset-loading.js';
+import { createWorldTextureLibrary, ROCK_SURFACES } from './world-textures.js';
 
 const BIOMES = {
   nereida: {
@@ -19,7 +12,7 @@ const BIOMES = {
   vesper: {
     planet: 0xb4accf, atmosphere: 0xa393dc, rock: 0x827e92, accent: 0xb9a0ee, texture: 'gas',
     sky: 0x040512, haze: 0x31204f, warmHaze: 0x1a3449, sun: 0xcbd8ff, fill: 0xbcc7ed, exposure: 1.18,
-    planetPosition: [-94, 26, -430], planetRadius: 108, moonPosition: [196, -75, -560], moonRadius: 19,
+    planetPosition: [-138, 42, -575], planetRadius: 105, moonPosition: [196, -75, -560], moonRadius: 19,
   },
   umbra: {
     planet: 0x615054, atmosphere: 0xd98a5e, rock: 0x6d6262, accent: 0xd49479, texture: 'moon',
@@ -46,31 +39,21 @@ const positionFrom = ({ x, y, z }) => new THREE.Vector3(x, y, z);
 
 const MODEL_FILES = { beacon: 'baliza', rock: 'asteroide-marron', base: 'asteroide-base' };
 
-function collectModelResources(models) {
-  const resources = new Set();
-  for (const model of Object.values(models)) model?.traverse(object => {
-    if (!object.isMesh) return;
-    resources.add(object.geometry);
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-      resources.add(material);
-      for (const value of Object.values(material)) if (value?.isTexture) resources.add(value);
-    }
-  });
-  return resources;
+function sourceBundle(models) {
+  return Object.fromEntries(Object.entries(models).map(([name,scene])=>[name,{scene}]));
 }
 
 /** Load once before world.load(). Ownership transfers to the world supplied
  * with this bundle; imported resources survive sector changes. */
 export async function loadWorldAssets(options = {}) {
   const models = await loadModelSet(Object.entries(MODEL_FILES), options);
-  if (options.mobile) Object.assign(models, await loadModelSet([['fractureRock','asteroide-marron'],['fractureBase','asteroide-base']], { mobile:true, directory:'fracture-proxies' }));
   return Object.fromEntries(Object.entries(models).map(([name, gltf]) => [name, gltf.scene]));
 }
 
 /** Presentation only. The layout remains immutable; public positions follow the
  * actual drifting objects so aiming and collision use the same visible location.
  */
-export function createSectorWorld(scene, { assets = null, assetLoader = loadWorldAssets } = {}) {
+export function createSectorWorld(scene, { assets = null, assetLoader = loadWorldAssets, gemModel = null, textureLoader } = {}) {
   const root = new THREE.Group();
   root.name = 'expedition-sector';
   scene.add(root);
@@ -96,7 +79,13 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   const skyFill = new THREE.HemisphereLight(0x698bad, 0x010209, .32);
   skyScene.add(skySun, skyFill);
   const targets = [];
-  const hazards = [];
+  const hazards = [], decoration = [];
+  const textureLibrary = createWorldTextureLibrary({ loader:textureLoader });
+  const preparations = new Map();
+  let ownedAssetBundle;
+  let missionGem = gemModel;
+  let dustBase, dustSpeeds;
+  const ambientInstances = [];
   let resources = new Set();
   let generation = 0;
   let disposed = false;
@@ -106,19 +95,15 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   let primaryPlanet;
   let clouds;
   let dust;
-  let gateRings = [];
-  let transitStreaks;
-  let gateStructure;
   let sectorPalette;
   let beaconSignal;
   let beaconLight;
+  let beaconScan;
   let assetPromise;
   let assetTemplates;
-  const assetResources = new Set();
-  const mineralMap = { value: null };
 
   function installAssets(models) {
-    for (const resource of collectModelResources(models)) assetResources.add(resource);
+    ownedAssetBundle = sourceBundle(models);
     const templates = {};
     for (const name of Object.keys(models)) {
       const source = models[name];
@@ -133,8 +118,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       const point = new THREE.Vector3();
       source.traverse(part => {
         if (!part.isMesh) return;
-        const shape = part.geometry.clone().applyMatrix4(part.matrixWorld).translate(-center.x, -center.y, -center.z);
-        assetResources.add(shape);
+        const shape = part.geometry.applyMatrix4(part.matrixWorld).translate(-center.x, -center.y, -center.z);
         const positions = shape.attributes.position;
         for (let i = 0; i < positions.count; i++) radius = Math.max(radius, point.fromBufferAttribute(positions, i).length());
         const mesh = new THREE.Mesh(shape, part.material);
@@ -147,11 +131,8 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       template.userData.model = MODEL_FILES[name];
       templates[name] = template;
     }
-    // Templates own normalized clones. The imported meshes were never rendered;
-    // their original geometry is no longer needed after normalization.
-    for (const model of Object.values(models)) model.traverse(part => {
-      if (part.isMesh && assetResources.delete(part.geometry)) part.geometry.dispose();
-    });
+    // This world owns the source bundle. Normalize its geometry in memory once
+    // (no exported asset changes), then share it across every sector instance.
     assetTemplates = templates;
   }
 
@@ -161,11 +142,11 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     if (!assetPromise) {
       assetPromise = Promise.resolve(assetLoader()).then(models => {
         if (disposed) {
-          for (const resource of collectModelResources(models)) resource.dispose();
+          releaseModelAssets(sourceBundle(models));
           throw new Error('Sector world was disposed while models loaded.');
         }
         try { installAssets(models); }
-        catch (error) { for (const resource of assetResources) resource.dispose(); assetResources.clear(); throw error; }
+        catch (error) { releaseModelAssets(ownedAssetBundle); ownedAssetBundle=undefined; throw error; }
         return assetTemplates;
       }).catch(error => { assetPromise = null; throw error; });
     }
@@ -197,25 +178,32 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     material.customProgramCacheKey = () => `mineral-v4:${floor}:${contrast}`;
     return material;
   }
-  function triplanarMineral(color, accent, emissiveIntensity = .16) {
-    const material = surface(color, { flatShading: false, roughness: .91, metalness: .03, emissive: accent, emissiveIntensity });
-    material.name = 'biome-triplanar-mineral';
-    material.onBeforeCompile = shader => {
-      shader.uniforms.mineralMap = mineralMap;
-      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 mineralPosition; varying vec3 mineralNormal;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nmineralPosition = transformed; mineralNormal = normal;');
-      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D mineralMap; varying vec3 mineralPosition; varying vec3 mineralNormal;')
-        .replace('#include <map_fragment>', `
-          vec3 mineralWeights = pow(abs(normalize(mineralNormal)), vec3(4.));
-          mineralWeights /= max(dot(mineralWeights, vec3(1.)), .0001);
-          vec3 mineralSamples = vec3(texture2D(mineralMap, mineralPosition.yz * 1.9).r,
-            texture2D(mineralMap, mineralPosition.zx * 1.9).r, texture2D(mineralMap, mineralPosition.xy * 1.9).r);
-          float mineralGrain = dot(mineralSamples, mineralWeights);
-          diffuseColor.rgb *= .46 + mineralGrain * 1.32;
-        `).replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor + (mineralGrain - .5) * .13, .72, .98);')
-        .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= smoothstep(.63, .9, mineralGrain);');
+  function rockCoating(name) {
+    const material=surface(new THREE.Color(0xffffff).lerp(new THREE.Color(sectorPalette.rock),.07),{
+      flatShading:false,roughness:.88,metalness:.07,envMapIntensity:.5,
+    });
+    material.name='wrapped-'+name; material.userData.surface=name;
+    const map={value:null};
+    const placeholder=own(new THREE.DataTexture(new Uint8Array([158,164,173,255]),1,1));
+    placeholder.needsUpdate=true; map.value=placeholder;
+    texture(name,[],{onLoad:image=>{map.value=image;}});
+    material.onBeforeCompile=shader=>{
+      shader.uniforms.rockSurface=map;
+      shader.vertexShader=shader.vertexShader.replace('#include <common>',
+        '#include <common>\nvarying vec3 rockPosition; varying vec3 rockNormal;')
+        .replace('#include <begin_vertex>','#include <begin_vertex>\nrockPosition=transformed;rockNormal=normal;');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
+        '#include <common>\nuniform sampler2D rockSurface; varying vec3 rockPosition; varying vec3 rockNormal;')
+        .replace('#include <map_fragment>',`
+          vec3 w=pow(abs(normalize(rockNormal)),vec3(6.));w/=max(dot(w,vec3(1.)),.0001);
+          vec3 p=rockPosition*.83;
+          vec3 mineral=texture2D(rockSurface,p.yz).rgb*w.x+texture2D(rockSurface,p.zx).rgb*w.y+texture2D(rockSurface,p.xy).rgb*w.z;
+          diffuseColor.rgb*=mineral;
+          float grain=dot(mineral,vec3(.2126,.7152,.0722));`)
+        .replace('#include <roughnessmap_fragment>',
+          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(grain-.5)*.18,.68,.98);');
     };
-    material.customProgramCacheKey = () => 'biome-triplanar-mineral-v1';
+    material.customProgramCacheKey=()=> 'approved-surface-triplanar-v1';
     return material;
   }
   function addMesh(parent, shape, material, position = [0, 0, 0]) {
@@ -224,47 +212,55 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     parent.add(object);
     return object;
   }
-  function addRing(parent, radius, thickness, material, position = [0, 0, 0], horizontal = false, segments = 40) {
-    const ring = addMesh(parent, geometry(THREE.TorusGeometry, radius, thickness, 4, segments), material, position);
-    if (horizontal) ring.rotation.x = Math.PI / 2;
-    return ring;
+  function textureNames(biome) {
+    return [...ROCK_SURFACES,'nebula',(BIOMES[biome] || BIOMES.nereida).texture];
+  }
+  function prepareBiome(layoutOrId) {
+    if(disposed) return Promise.reject(new Error('Cannot prepare a disposed world.'));
+    const biome = typeof layoutOrId==='string' ? layoutOrId : layoutOrId.biomeId;
+    if(!preparations.has(biome)) {
+      const promise=textureLibrary.prepare(textureNames(biome)).then(()=>{
+        if(disposed) throw new Error('Cannot prepare a disposed world.');
+        return {biomeId:biome,ready:true};
+      }).catch(error=>{preparations.delete(biome);throw error;});
+      preparations.set(biome,promise);
+    }
+    return preparations.get(biome);
+  }
+  function setMissionAssets(templates) {
+    missionGem = templates?.createGem ? templates.createGem() : templates;
+    if(currentLayout) { gem.clear(); createGem(); }
   }
   function texture(name, materialList, { slot = 'map', repeat = 1, bump = 0, onLoad } = {}) {
-    // TextureLoader creates an HTML image. Geometry also works in Node and on
-    // browsers where an optional texture fails to load.
-    if (typeof document === 'undefined') return;
     const version = generation;
-    const loaded = new THREE.TextureLoader().load(TEXTURES[name], image => {
-      if (disposed || version !== generation) { image.dispose(); return; }
-      image.colorSpace = slot === 'normalMap' ? THREE.NoColorSpace : THREE.SRGBColorSpace;
-      image.anisotropy = 8;
-      image.wrapS = THREE.RepeatWrapping;
-      if (repeat > 1) image.wrapT = THREE.RepeatWrapping;
-      image.repeat.set(repeat, repeat);
+    const bind = source => {
+      if(!source || disposed || version!==generation) return;
+      const image=own(source.clone()); image.needsUpdate=true;
+      image.colorSpace=slot==='normalMap' ? THREE.NoColorSpace : THREE.SRGBColorSpace;
+      image.repeat.set(repeat,repeat);
       let height;
-      if (bump) {
-        // Reuse the image data with a linear interpretation for shallow surface relief.
-        height = own(image.clone()); height.colorSpace = THREE.NoColorSpace; height.needsUpdate = true;
-      }
-      for (const material of materialList) {
-        material[slot] = image;
-        if (height) { material.bumpMap = height; material.bumpScale = bump; }
-        if (slot === 'normalMap') material.normalScale.set(.17, .17);
-        material.needsUpdate = true;
+      if(bump) { height=own(image.clone()); height.colorSpace=THREE.NoColorSpace; height.needsUpdate=true; }
+      for(const material of materialList) {
+        material[slot]=image;
+        if(height) { material.bumpMap=height; material.bumpScale=bump; }
+        if(slot==='normalMap') material.normalScale.set(.17,.17);
+        material.needsUpdate=true;
       }
       onLoad?.(image);
-    }, undefined, () => {});
-    own(loaded);
+    };
+    const ready=textureLibrary.get(name);
+    if(ready) bind(ready);
+    else textureLibrary.load(name).then(bind).catch(()=>{});
   }
   function clearSector() {
     generation++;
     for (const resource of resources) resource.dispose();
     resources.clear();
     for (const group of [background, playable, beacon, gem, gate, celestial]) group.clear();
-    clouds = undefined; dust = undefined; transitStreaks = undefined;
+    clouds = undefined; dust = undefined;
     targets.length = 0;
-    hazards.length = 0;
-    gateRings = [];
+    hazards.length = 0; decoration.length=0; ambientInstances.length=0;
+    dustBase=dustSpeeds=undefined; beaconScan=undefined;
   }
 
   function createBackground(random) {
@@ -289,7 +285,12 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
           float dawn = pow(max(0., dot(d, normalize(vec3(.4,.18,-.8)))), 12.);
           vec3 color = base + cool * belt * (.07 + .22 * bands * wisps) + warm * dawn * .15;
           if (skyReady > .5) {
-            vec3 archiveCloud = texture2D(skyMap, vec2(fract(skyUV.x + .18), skyUV.y)).rgb;
+            float panoramaU=fract(skyUV.x+.18);
+            // The approved panorama has different left/right borders. Crossfade
+            // to its opposite half only at the join, preserving continuous sky.
+            float seamBlend=smoothstep(0.,.16,panoramaU)*(1.-smoothstep(.84,1.,panoramaU));
+            vec3 archiveCloud=mix(texture2D(skyMap,vec2(fract(panoramaU+.5),skyUV.y)).rgb,
+              texture2D(skyMap,vec2(panoramaU,skyUV.y)).rgb,seamBlend);
             float cloudValue = dot(archiveCloud, vec3(.2126,.7152,.0722));
             vec3 cloudTint = mix(vec3(.08,.30,.84), normalize(cool + vec3(.005)) * .65, .35);
             color += cloudTint * pow(cloudValue, .72) * .28 + archiveCloud * vec3(.18,.08,.24) * .055;
@@ -377,6 +378,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       }));
       clouds = addMesh(celestial, geometry(THREE.SphereGeometry, radius * 1.004, 56, 40), cloudMaterial);
       clouds.position.copy(primaryPlanet.position); clouds.rotation.z = -.18;
+      texture('ocean', [], {onLoad:image=>{cloudMaterial.uniforms.cloudMap.value=image;cloudMaterial.uniforms.cloudReady.value=1;}});
     } else if (currentLayout.biomeId === 'vesper') {
       const ringMaterial = own(new THREE.ShaderMaterial({
         uniforms: { tint: { value: new THREE.Color(0xb5abc9) } },
@@ -390,7 +392,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
       }));
       const planetaryRing = addMesh(celestial, geometry(THREE.RingGeometry, 141, 238, 128, 1), ringMaterial);
       planetaryRing.name = 'fractured-orbital-ring'; planetaryRing.position.copy(primaryPlanet.position);
-      planetaryRing.rotation.set(1.05, -.21, -.48);
+      planetaryRing.rotation.set(1.28, -.12, -.3); planetaryRing.scale.setScalar(.83);
     }
     const moonMaterial = mineral(currentLayout.biomeId === 'umbra' ? 0xc0a897 : 0xc0c5d1, .45, 1.05);
     moonMaterial.flatShading = false;
@@ -410,21 +412,24 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
 
     // Metre-scale dust has real parallax. Mineral motes and beacon flecks share
     // this single, depth-tested point draw instead of stacking transparent fog.
-    const forms = createRockFormations(random);
-    const dustPoints = [], dustColors = [], moteColor = new THREE.Color();
-    const point = (x,y,z,color,intensity=1) => {
-      dustPoints.push(x,y,z); moteColor.set(color).multiplyScalar(intensity); dustColors.push(moteColor.r,moteColor.g,moteColor.b);
+    createRockFormations(random);
+    const dustPoints=[],dustColors=[],speeds=[],moteColor=new THREE.Color();
+    const point=(x,y,z,color,intensity=1)=>{
+      dustPoints.push(x,y,z); moteColor.set(color).multiplyScalar(intensity);
+      dustColors.push(moteColor.r,moteColor.g,moteColor.b); speeds.push(.3+random());
     };
-    for (let i=0;i<210;i++) point((random()-.5)*100,(random()-.5)*48,25-random()*140,sectorPalette.accent,.42+random()*.3);
-    const mote = new THREE.Vector3();
-    for (const form of forms) for (let i=0;i<12;i++) {
-      mote.set((random()-.5)*2.5,.25+(random()-.5)*1.3,(random()-.5)*2.5).applyMatrix4(form.matrix);
-      point(mote.x,mote.y,mote.z,sectorPalette.sun,.4+random()*.6);
+    // Three overlapping physical depths extend throughout the expanded route.
+    // Nearby flecks communicate motion; distant fine dust never forms a fog wall.
+    for(let layer=0;layer<3;layer++) for(let i=0;i<150;i++) {
+      const width=[85,175,330][layer],height=[50,95,145][layer];
+      point((random()-.5)*width,(random()-.5)*height,25-random()*340,
+        i%6===0?sectorPalette.sun:sectorPalette.accent,(.3+random()*.4)/(1+layer*.3));
     }
-    for (let i=0;i<18;i++) {
-      const angle=random()*Math.PI*2, radius=1.6+random()*1.1;
-      point(currentLayout.beacon.x+Math.cos(angle)*radius,currentLayout.beacon.y+(random()-.5)*2.5,currentLayout.beacon.z+Math.sin(angle)*radius,0x94f5e0,.7);
+    for(const region of currentLayout.regions || [currentLayout.beacon]) for(let i=0;i<36;i++) {
+      const a=random()*Math.PI*2,r=5+random()*23;
+      point(region.x+Math.cos(a)*r,region.y+(random()-.5)*25,region.z+Math.sin(a)*r,sectorPalette.accent,.65);
     }
+    dustBase=new Float32Array(dustPoints); dustSpeeds=new Float32Array(speeds);
     const dustGeometry = own(new THREE.BufferGeometry());
     dustGeometry.setAttribute('position',new THREE.Float32BufferAttribute(dustPoints,3));
     dustGeometry.setAttribute('color',new THREE.Float32BufferAttribute(dustColors,3));
@@ -499,89 +504,58 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   }
 
   function createRockFormations(random) {
-    const biome = currentLayout.biomeId;
-    const transform = new THREE.Object3D();
-    const style = biome === 'nereida' ? 'mesa' : biome === 'umbra' ? 'shard' : 'boulder';
-    const shapes = [0,1.8,4.1].map(variation=>rockGeometry(style,9,variation));
-    const secondary = rockGeometry(style, 4, 1.7);
-    // Nearby silhouettes stay beyond the playable envelope (x ±50, y ±22,
-    // z -90..35). Their tops enter the lower frame, never a mandatory route.
-    // The central formations are beyond the corridor exit at z=-80.
-    const islands = [
-      [-49,-43,-35,21,21,17], [58,-45,-53,17,20,16],
-      [-31,-41,-78,17,16,15], [41,-47,-98,19,17,17],
-      [-71,7,-69,18,24,18], [76,-7,-108,17,23,17],
-      [-85,-24,-145,26,22,22], [103,-29,-183,25,23,25],
-      [-112,38,-226,23,18,19], [51,-81,-239,25,25,28],
-      [-150,4,-267,34,31,29], [169,-17,-291,32,26,28],
-      [-49,-105,-329,39,31,32], [149,60,-351,25,23,28],
-    ];
-    const forms = [];
-    const batches=shapes.map((shape,index)=>{
-      const batch=own(new THREE.InstancedMesh(shape,materials.ambientRock,Math.ceil((islands.length-index)/3)));
-      batch.name=index===0?'authored-rock-formations':`fractured-rock-formations-${index}`;
-      batch.castShadow=true;batch.receiveShadow=true;background.add(batch);return batch;
+    const biome=currentLayout.biomeId;
+    const style=biome==='nereida'?'mesa':biome==='umbra'?'shard':'boulder';
+    // Only these large, composed silhouettes use the full imported source.
+    // Fine distant chips are newly authored geometry, never decimated GLB assets.
+    const source=assetTemplates?.base.children.find(object=>object.isMesh)?.geometry;
+    const detail=source || rockGeometry(style,22,.6);
+    const locations=[[-266,-60,-115],[270,25,-160],[-282,63,-280],[275,-80,-335],[-252,-122,-425],[279,110,-475]];
+    locations.forEach(([x,y,z],i)=>{
+      const size=28+random()*12, rotation=new THREE.Euler(.3+i*.7,.6+i*1.4,i*.4);
+      const group=new THREE.Group();group.name='mineral-composition-'+i;group.position.set(x,y,z);
+      const core=new THREE.Mesh(detail,materials.coatings[(i+(biome==='vesper'?2:biome==='umbra'?4:0))%7]);
+      core.scale.setScalar(size);core.rotation.copy(rotation);group.add(core);
+      // A second rotated mass changes the silhouette without stretching the source.
+      const satellite=new THREE.Mesh(detail,materials.coatings[(i+3)%7]);
+      satellite.scale.setScalar(size*.42);satellite.position.set(i%2?size*.6:-size*.6,size*.28,-size*.12);
+      satellite.rotation.set(rotation.z+1.4,rotation.y+.8,rotation.x);group.add(satellite);
+      group.traverse(object=>{if(object.isMesh){object.receiveShadow=true;object.castShadow=false;}});
+      group.userData.layer='far';background.add(group);
+      group.updateMatrixWorld(true);
+      const bounds=new THREE.Box3().setFromObject(group);
+      group.position.x+=x<0?Math.min(0,-225-bounds.max.x):Math.max(0,225-bounds.min.x);
     });
-    const color = new THREE.Color();
-    for (let i = 0; i < islands.length; i++) {
-      const [x,y,z,sx,sy,sz] = islands[i];
-      transform.position.set(x,y,z); transform.rotation.set(0, .22+i*.71, 0);
-      if (biome === 'vesper') {
-        transform.scale.set(sx*.9, sy*.64, sz*1.18);
-        transform.rotation.set(.14,.12,x<0 ? -.31 : .31);
-        if (z < -120) transform.position.y += x * .3 + 13;
-      } else if (biome === 'umbra') {
-        transform.scale.set(sx*.74, sy*1.25, sz*.82);
-        transform.rotation.set(.08,.6,i%2 ? -.12 : .1);
-      } else transform.scale.set(sx,sy,sz);
-      // Bound the rotated vertices, rather than assuming a particular shape's
-      // height, so even the tilted Vesper plates cannot breach the flight volume.
-      transform.updateMatrix();
-      const shape=shapes[i%3],formations=batches[i%3];
-      const bound = shape.boundingBox.clone().applyMatrix4(transform.matrix);
-      if (bound.max.z > -94) {
-        if (i === 4 || i === 5) {
-          const shift = x < 0 ? -52-bound.max.x : 52-bound.min.x;
-          transform.position.x += shift;
-        } else transform.position.y -= Math.max(0, bound.max.y + 24);
+    const chips=rockGeometry(style,18,2.3);
+    for(let surfaceIndex=0;surfaceIndex<7;surfaceIndex++) {
+      const batch=own(new THREE.InstancedMesh(chips,materials.coatings[surfaceIndex],8));
+      batch.name=surfaceIndex===0?'authored-rock-formations':'mineral-debris-'+surfaceIndex;
+      batch.userData.layer='far'; batch.userData.forms=[];
+      for(let i=0;i<batch.count;i++) {
+        const z=-90-random()*425,sign=i%2?1:-1;
+        const size=1.2+random()**2*8;
+        // All decorative envelopes stay outside the navigable x±220 volume.
+        const position=new THREE.Vector3(sign*(245+random()*100),-75+random()*160,z);
+        const rotation=new THREE.Euler(random()*6,random()*6,random()*6);
+        const scale=new THREE.Vector3(size,size*(biome==='umbra'?1.25:.83),size*.94);
+        const transform=new THREE.Object3D();transform.position.copy(position);transform.rotation.copy(rotation);transform.scale.copy(scale);transform.updateMatrix();
+        batch.setMatrixAt(i,transform.matrix);batch.userData.forms.push({position,rotation,scale,phase:random()*6});
       }
-      transform.updateMatrix(); formations.setMatrixAt(Math.floor(i/3), transform.matrix);
-      color.setScalar(.83 + random()*.25); formations.setColorAt(Math.floor(i/3),color);
-      forms.push({ matrix: transform.matrix.clone(), scale: transform.scale.clone() });
+      batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);batch.instanceMatrix.needsUpdate=true;
+      batch.computeBoundingSphere(); background.add(batch);ambientInstances.push(batch);
     }
-    for(const batch of batches)batch.instanceMatrix.needsUpdate=true;
+  }
 
-    // Satellite slabs stay attached to the same transforms and material family,
-    // giving every large island a broken silhouette in a single additional draw.
-    const chips = own(new THREE.InstancedMesh(secondary, materials.rockEdges, 28));
-    chips.name = 'rock-strata'; chips.receiveShadow = true;
-    const local = new THREE.Object3D(), matrix = new THREE.Matrix4();
-    for (let i=0;i<chips.count;i++) {
-      const form = forms[i % forms.length];
-      local.position.set((random()-.5)*.8, -.27-random()*.35, (random()-.5)*.8);
-      local.scale.set(.17+random()*.18,.13+random()*.13,.19+random()*.16);
-      local.rotation.set(.12,random()*6,.08);
-      local.updateMatrix(); matrix.multiplyMatrices(form.matrix,local.matrix);
-      chips.setMatrixAt(i,matrix);
-    }
-    chips.instanceMatrix.needsUpdate = true; background.add(chips);
-
-    const debris = own(new THREE.InstancedMesh(secondary, materials.ambientRock, 176));
-    debris.name = biome === 'vesper' ? 'diagonal-fracture-belt' : 'decorative-asteroid-belt';
-    debris.receiveShadow = false;
-    for (let i = 0; i < debris.count; i++) {
-      const z = -105-random()*260;
-      const size = .28+random()**2*3.2;
-      const x = (random()-.5)*225;
-      if (biome === 'vesper') transform.position.set(x, x*.28-9+(random()-.5)*24,z);
-      else transform.position.set(x,-27-random()*43,z);
-      transform.rotation.set(random()*6,random()*6,random()*6);
-      transform.scale.set(size,size*(biome === 'umbra' ? 1.5 : .7),size*(.7+random()*.5));
-      transform.updateMatrix(); debris.setMatrixAt(i,transform.matrix);
-      color.setScalar(.72+random()*.4); debris.setColorAt(i,color);
-    }
-    debris.instanceMatrix.needsUpdate = true; background.add(debris);
-    return forms;
+  function createDecoration(spec,random) {
+    const object=new THREE.Group();object.name=spec.id;object.position.copy(positionFrom(spec.position));
+    const shape=ambientInstances[0].geometry;
+    const body=new THREE.Mesh(shape,materials.coatings[Math.floor(random()*7)]);
+    body.scale.setScalar(spec.radius/(shape.boundingSphere.radius+shape.boundingSphere.center.length()));
+    body.rotation.set(random()*6,random()*6,random()*6);object.add(body);
+    object.userData.kind='decoration';object.userData.body=body;object.userData.driftPhase=random()*6;
+    object.userData.active=false; background.add(object);
+    decoration.push({id:spec.id,kind:'decoration',spec,object,position:object.position,radius:spec.radius,
+      previousPosition:object.position.clone(),velocity:new THREE.Vector3()});
   }
 
   function createTarget(spec, kind, random) {
@@ -593,13 +567,13 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     const isHazard = kind === 'hazard';
     let body;
     if (assetTemplates) {
-      body = assetTemplates[isHazard || isLarge ? 'base' : 'rock'].clone(true);
+      const appearance=targets.length;
+      const originalBrown=kind==='small' && appearance%3===0;
+      body = assetTemplates[originalBrown?'rock':'base'].clone(true);
       body.scale.setScalar(radius * .94);
       body.traverse(part => {
         if (!part.isMesh) return;
-        const proxy = assetTemplates[isHazard || isLarge ? 'fractureBase' : 'fractureRock'];
-        if (proxy) part.userData.fractureGeometry = proxy.children[0].geometry;
-        if (isHazard || isLarge) part.material = isHazard ? materials.importedHazard : materials.importedCore;
+        if(!originalBrown) part.material=materials.coatings[(appearance+(currentLayout.biomeId==='vesper'?2:currentLayout.biomeId==='umbra'?4:0))%7];
       });
       object.add(body);
     } else {
@@ -618,16 +592,43 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     object.userData.body = body;
     playable.add(object);
     const record = { id: spec.id, object, position: object.position, radius, kind, spec, previousPosition: object.position.clone(), velocity: new THREE.Vector3() };
-    if (isHazard) {
-      sampleHazard(spec, 0, record.position, record.velocity);
-      record.previousPosition.copy(record.position);
-      const trail = new THREE.Line(own(new THREE.BufferGeometry().setFromPoints([
-        positionFrom(spec.position).addScaledVector(positionFrom(spec.motion.axis), -spec.motion.amplitude),
-        positionFrom(spec.position).addScaledVector(positionFrom(spec.motion.axis), spec.motion.amplitude),
-      ])), materials.hazardTrail);
-      trail.name = `${spec.id}-trajectory`; playable.add(trail);
+    if(spec.motion) sampleHazard(spec,0,record.position,record.velocity);
+    record.previousPosition.copy(record.position);
+    targets.push(record);
+    if(isHazard) hazards.push(record);
+  }
+
+  function installBeaconScan() {
+    beacon.updateWorldMatrix(true,true);
+    const bounds=new THREE.Box3().setFromObject(beacon,true);
+    beaconScan={beaconScanProgress:{value:0},beaconScanning:{value:0},beaconScanComplete:{value:0},
+      beaconScanBounds:{value:new THREE.Vector2(bounds.min.y,Math.max(.01,bounds.max.y-bounds.min.y))}};
+    const clones=new Map();
+    function scanMaterial(source) {
+      if(clones.has(source))return clones.get(source);
+      // Borrow every original PBR map and glyph. Only this sector's material and
+      // uniforms change; disposing it must never dispose the shared source maps.
+      const material=own(source.clone()),prior=source.onBeforeCompile,priorKey=source.customProgramCacheKey();
+      material.name=(source.name||'beacon')+'-surface-scan';
+      material.onBeforeCompile=(shader,renderer)=>{
+        prior.call(material,shader,renderer);Object.assign(shader.uniforms,beaconScan);
+        shader.vertexShader=shader.vertexShader.replace('#include <common>',
+          '#include <common>\nuniform vec2 beaconScanBounds; varying float beaconSurfaceHeight;')
+          .replace('#include <begin_vertex>','#include <begin_vertex>\nbeaconSurfaceHeight=((modelMatrix*vec4(transformed,1.)).y-beaconScanBounds.x)/beaconScanBounds.y;');
+        shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
+          '#include <common>\nuniform float beaconScanProgress; uniform float beaconScanning; uniform float beaconScanComplete; varying float beaconSurfaceHeight;')
+          .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+            float scanHead=mix(.018,.982,beaconScanProgress);
+            float scanDistance=abs(beaconSurfaceHeight-scanHead);
+            float scanBand=1.-smoothstep(.009,.026,scanDistance);
+            float scanFeather=(1.-smoothstep(.016,.065,scanDistance))*.13;
+            float scanTrace=step(beaconSurfaceHeight,scanHead)*beaconScanProgress*.018;
+            totalEmissiveRadiance+=vec3(.08,.78,1.)*((scanBand+scanFeather)*(beaconScanning*1.05+beaconScanComplete*.28)+scanTrace);`);
+      };
+      material.customProgramCacheKey=()=>priorKey+'beacon-surface-progress-v1';
+      clones.set(source,material);return material;
     }
-    (isHazard ? hazards : targets).push(record);
+    beacon.traverse(mesh=>{if(mesh.isMesh)mesh.material=Array.isArray(mesh.material)?mesh.material.map(scanMaterial):scanMaterial(mesh.material);});
   }
 
   function createBeacon() {
@@ -645,6 +646,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
         leg.rotation.y = angle;
       }
     }
+    installBeaconScan();
     // A compact navigation lamp on the upper housing communicates scanning;
     // it is geometry on the beacon, not a screen-facing halo or orbiting ring.
     beaconSignal = addMesh(beacon, geometry(THREE.SphereGeometry, .026, 12, 8), materials.beaconGlow, [0, 1.208, 0]);
@@ -653,6 +655,10 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   }
 
   function createGem() {
+    if(missionGem) {
+      gem.position.copy(positionFrom(currentLayout.gem)); gem.userData.kind='gem';
+      gemCrystal=missionGem.clone(true); gem.add(gemCrystal); return;
+    }
     gem.position.copy(positionFrom(currentLayout.gem));
     gem.userData.kind = 'gem';
     const rings = [[-.66, 0], [-.27, .30], [.19, .38], [.47, .23], [.68, 0]], positions = [];
@@ -674,58 +680,23 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   }
 
   function createCorridor() {
-    gate.position.copy(positionFrom(currentLayout.gate));
-    gate.userData.kind = 'gate';
-    const corridorEnd = positionFrom(currentLayout.exit).sub(gate.position);
-    const structuralShape = geometry(THREE.TorusGeometry, 9, 0.2, 4, 12);
-    const illuminatedShape = geometry(THREE.TorusGeometry, 8.7, 0.045, 3, 48);
-    for (let i = 0; i < 5; i++) {
-      const ringPosition = corridorEnd.clone().multiplyScalar(i / 4);
-      const structure = addMesh(gate, structuralShape, materials.graphite);
-      structure.position.copy(ringPosition);
-      structure.rotation.z = i % 2 * Math.PI / 12;
-      const light = addMesh(gate, illuminatedShape, materials.gateLine);
-      light.position.copy(ringPosition);
-      gateRings.push(light);
-    }
-    const brackets = own(new THREE.InstancedMesh(geometry(THREE.BoxGeometry, 0.7, 0.31, 0.75), materials.ivory, 8));
-    const transform = new THREE.Object3D();
-    for (let i = 0; i < 8; i++) {
-      const angle = i * Math.PI / 4;
-      transform.position.set(Math.sin(angle) * 9, Math.cos(angle) * 9, 0);
-      transform.rotation.z = -angle;
-      transform.updateMatrix();
-      brackets.setMatrixAt(i, transform.matrix);
-    }
-    brackets.instanceMatrix.needsUpdate = true;
-    gate.add(brackets);
-    const railPoints=[];
-    for (let i=0;i<12;i++) {
-      const angle=i*Math.PI/6;const x=Math.cos(angle)*8.7,y=Math.sin(angle)*8.7;
-      railPoints.push(new THREE.Vector3(x,y,0),new THREE.Vector3(x,y,0).add(corridorEnd));
-    }
-    const rails=new THREE.LineSegments(own(new THREE.BufferGeometry().setFromPoints(railPoints)),materials.gateRail);
-    rails.name='corridor-depth-rails';gate.add(rails);
-    const streakPositions=new Float32Array(48*6);
-    const streakGeometry=own(new THREE.BufferGeometry());
-    streakGeometry.setAttribute('position',new THREE.BufferAttribute(streakPositions,3).setUsage(THREE.DynamicDrawUsage));
-    transitStreaks=new THREE.LineSegments(streakGeometry,own(new THREE.LineBasicMaterial({ color:sectorPalette.accent,transparent:true,opacity:.55,depthWrite:false,toneMapped:false })));
-    transitStreaks.name='transit-star-streaks';transitStreaks.visible=false;transitStreaks.frustumCulled=false;gate.add(transitStreaks);
+    // Compatibility anchor only. Cinematics owns the physical travel sequence;
+    // exploration never renders the old permanent rings or a manual destination.
+    gate.position.copy(positionFrom(currentLayout.gate)); gate.userData.kind='gate'; gate.visible=false;
   }
 
   function load(layout) {
     if (disposed) throw new Error('Cannot load a disposed sector world.');
     clearSector();
     currentLayout = layout;
+    textureLibrary.retainOnly(textureNames(layout.biomeId));
+    for(const key of preparations.keys()) if(key!==layout.biomeId) preparations.delete(key);
     sectorPalette = BIOMES[layout.biomeId] || BIOMES.nereida;
     Object.assign(lighting, { sun: sectorPalette.sun, fill: sectorPalette.fill, exposure: sectorPalette.exposure });
     skySun.color.set(sectorPalette.sun); skyFill.color.set(sectorPalette.fill); skyFill.intensity = layout.biomeId === 'vesper' ? .8 : .48;
     const random = randomForLayout(layout);
     materials = {
       ivory: surface(0xe5e1cd), graphite: surface(0x22333e), copper: surface(0xba8154, { metalness: 0.55 }),
-      ambientRock: triplanarMineral(sectorPalette.rock, 0x000000, 0),
-      rockEdges: triplanarMineral(new THREE.Color(sectorPalette.rock).multiplyScalar(1.07), 0x000000, 0),
-      hazardTrail: own(new THREE.LineBasicMaterial({ color: 0xb67957, transparent: true, opacity: .16, depthWrite: false })),
       targetRock: mineral(0x859294),
       hazardRock: mineral(0x765646),
       cyan: surface(0x8de7ef, { emissive: 0x45cbd7, emissiveIntensity: 0.75, roughness: 0.3 }),
@@ -735,23 +706,19 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
         metalness: .08, roughness: .12, clearcoat: 1, clearcoatRoughness: .08, ior: 1.46,
         transparent: true, opacity: .83, depthWrite: false, flatShading: true })),
       gemHeart: surface(0xd7fff2, { emissive: 0x54d9bf, emissiveIntensity: .95, roughness: .24, metalness: .15 }),
-      importedCore: triplanarMineral(new THREE.Color(sectorPalette.rock).multiplyScalar(1.14), sectorPalette.accent),
-      importedHazard: triplanarMineral(new THREE.Color(sectorPalette.rock).lerp(new THREE.Color(0x9b6144), .28), 0xb46839),
       cyanLine: glow(0x7ee6e0, 0.55), amberLine: glow(0xffcd79, 0.6),
       beaconGlow: surface(0x7ff2e6, { emissive: 0x7ff2e6, emissiveIntensity: 1.8, roughness: .22, metalness: .05, flatShading: false }),
-      beaconLine: glow(0x7ff2e6, 0.5), gateLine: glow(0x496976, 0.45),
-      gateRail: own(new THREE.LineBasicMaterial({ color:sectorPalette.accent,transparent:true,opacity:.07,depthWrite:false })),
+      beaconLine: glow(0x7ff2e6, 0.5),
     };
+    materials.coatings=ROCK_SURFACES.map(rockCoating);
     createBackground(random);
-    for (const material of [materials.ambientRock,materials.rockEdges,materials.targetRock,materials.hazardRock]) material.vertexColors = true;
-    const neutralGrain = own(new THREE.DataTexture(new Uint8Array([155, 155, 155, 255]), 1, 1));
-    neutralGrain.needsUpdate = true; mineralMap.value = neutralGrain;
-    texture('rock', [materials.targetRock,materials.hazardRock], {
-      repeat: 1.2, bump: .16, onLoad: image => { image.wrapS = image.wrapT = THREE.RepeatWrapping; mineralMap.value = image; },
-    });
+    for (const material of [materials.targetRock,materials.hazardRock]) material.vertexColors = true;
+    texture('rock', [materials.targetRock,materials.hazardRock], {repeat:1.2,bump:.16});
     for (const spec of layout.small) createTarget(spec, 'small', random);
     for (const spec of layout.large) createTarget(spec, 'large', random);
     for (const spec of layout.hazards) createTarget(spec, 'hazard', random);
+    for (const spec of layout.breakables || []) createTarget(spec, 'breakable', random);
+    for (const spec of layout.decoration || []) createDecoration(spec, random);
     createBeacon();
     createGem();
     createCorridor();
@@ -761,65 +728,63 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     sync({ phase: 'scan', destroyed: [] }, 0);
   }
 
-  function sync(state, time = 0, { reducedMotion = false } = {}) {
+  function sync(state, time = 0, { reducedMotion = false, optionalState = () => undefined, scanning = false } = {}) {
     if (!currentLayout || disposed) return;
     const destroyed = new Set(state.destroyed);
     const largeVisible = ['large', 'gem', 'return', 'transit', 'complete'].includes(state.phase);
-    for (const record of [...targets, ...hazards]) {
+    for (const record of [...targets, ...decoration]) {
       const { object, kind } = record;
-      const phase = object.userData.driftPhase;
+      const phase=object.userData.driftPhase;
       record.previousPosition.copy(record.position);
-      if (kind === 'hazard') sampleHazard(record.spec, time, record.position, record.velocity);
-      else {
-        object.position.copy(object.userData.basePosition);
-        object.position.x += Math.sin(time * .31 + phase) * .16;
-        object.position.y += Math.sin(time * .43 + phase) * .22;
-        object.position.z += Math.cos(time * .27 + phase) * .12;
-        record.velocity.set(Math.cos(time*.31+phase)*.16*.31, Math.cos(time*.43+phase)*.22*.43, -Math.sin(time*.27+phase)*.12*.27);
-      }
-      object.userData.body.rotation.y = phase + time * (kind === 'hazard' ? .16 : .07) * (reducedMotion ? .2 : 1);
-      object.visible = !destroyed.has(record.id) && (kind !== 'large' || largeVisible);
-      object.userData.active = kind === 'hazard' || kind === state.phase;
+      if(record.spec.motion) sampleHazard(record.spec,time,record.position,record.velocity);
+      object.userData.body.rotation.y=phase+time*(kind==='hazard'?.12:.045)*(reducedMotion?.2:1);
+      const optional=optionalState(record.id);
+      record.generation=optional?.generation || 0;
+      object.visible=!destroyed.has(record.id) && !optional?.destroyed && (kind!=='large'||largeVisible);
+      object.userData.active=object.visible && (kind==='hazard'||kind==='breakable'||kind===state.phase);
     }
     materials.cyan.emissiveIntensity = state.phase === 'small' ? 0.85 : 0.15;
     materials.cyanLine.opacity = state.phase === 'small' ? 0.6 : 0.18;
-    const scanning = state.phase === 'scan';
-    beacon.userData.active = scanning;
-    materials.beaconGlow.color.set(scanning ? 0x83f4e5 : 0xc6a36d);
-    materials.beaconLine.color.copy(materials.beaconGlow.color);
-    materials.beaconLine.opacity = scanning ? 0.25 + Math.sin(time * 2) * 0.14 : 0.12;
-    const signal = scanning ? .65 + Math.sin(time * 2.8) * .25 : .24;
+    const scanAvailable=state.phase==='scan',scanComplete=!scanAvailable || state.scanProgress>=1;
+    const scanActive=scanAvailable && scanning && !scanComplete;
+    const progress=scanComplete?1:THREE.MathUtils.clamp(Number(state.scanProgress)||0,0,1);
+    beacon.userData.active=scanAvailable;beacon.userData.scanProgress=progress;beacon.userData.scanning=scanActive;
+    beaconScan.beaconScanProgress.value=progress;beaconScan.beaconScanning.value=Number(scanActive);beaconScan.beaconScanComplete.value=Number(scanComplete);
+    materials.beaconGlow.color.set(scanActive?0x83f4e5:scanComplete?0x97d9cf:0x5e9cbd);
+    const pulse=reducedMotion?0:Math.sin(time*(scanActive?6:2.8));
+    const signal=scanActive?.8+pulse*.12:scanComplete?.28:.13+pulse*.035;
     beaconSignal.material.emissive.copy(materials.beaconGlow.color);
-    beaconSignal.material.emissiveIntensity = .8 + signal * 1.8;
-    beaconLight.color.set(scanning ? 0x83f4e5 : 0xc6a36d); beaconLight.intensity = signal * 1.35;
+    beaconSignal.material.emissiveIntensity=.45+signal*1.55;
+    beaconLight.color.copy(materials.beaconGlow.color);beaconLight.intensity=signal*1.35;
     gem.visible = state.phase === 'gem';
     gem.userData.active = gem.visible;
     gem.position.copy(positionFrom(currentLayout.gem));
     gem.position.y += Math.sin(time * 1.7) * 0.17;
     gemCrystal.rotation.y = time * 0.55;
     gemCrystal.rotation.z = Math.sin(time * 0.7) * 0.12;
-    const open = ['return', 'transit', 'complete'].includes(state.phase);
-    gate.userData.active = open;
-    materials.gateLine.color.set(open ? sectorPalette.accent : 0x496976);
-    materials.gateLine.opacity = open ? 0.65 + Math.sin(time * 2) * 0.13 : 0.2;
-    materials.gateRail.opacity = open ? .24 : .045;
-    for (let i = 0; i < gateRings.length; i++) {
-      gateRings[i].scale.setScalar(open && !reducedMotion ? 1 + Math.sin(time * 2 - i * 0.8) * 0.013 : 1);
-    }
-    transitStreaks.visible = state.phase === 'transit' && !reducedMotion;
-    if (transitStreaks.visible) {
-      const points=transitStreaks.geometry.attributes.position;
-      for (let i=0;i<48;i++) {
-        const angle=i*2.399963, radius=6.2+(i%7)*.22;
-        const z=-((time*18+i*2.13)%38)+6;
-        const x=Math.cos(angle)*radius,y=Math.sin(angle)*radius;
-        points.setXYZ(i*2,x,y,z);points.setXYZ(i*2+1,x,y,z-1.1-(i%4)*.35);
-      }
-      points.needsUpdate=true;
-    }
+    gate.visible=false; gate.userData.active=false;
     primaryPlanet.rotation.y = -.4 + time * .00065;
     if (clouds) clouds.rotation.y = -.4 + time * .00092;
-    if (dust) dust.material.opacity = reducedMotion ? .37 : .39+Math.sin(time*.45)*.025;
+    if(dust) {
+      const positions=dust.geometry.attributes.position;
+      for(let i=0;i<positions.count;i++) {
+        const offset=i*3, speed=dustSpeeds[i], t=reducedMotion?0:time;
+        positions.setXYZ(i,dustBase[offset]+Math.sin(t*.12+speed*7)*(.7+speed),
+          dustBase[offset+1]+Math.cos(t*.09+speed*11)*(.4+speed*.45),
+          dustBase[offset+2]+Math.sin(t*.07+speed*5)*(.8+speed*1.3));
+      }
+      positions.needsUpdate=true;
+      dust.material.opacity=reducedMotion?.35:.39+Math.sin(time*.25)*.025;
+    }
+    for(const batch of ambientInstances) {
+      const transform=new THREE.Object3D();
+      batch.userData.forms.forEach((form,index)=>{
+        transform.position.copy(form.position); transform.position.y+=Math.sin(time*.06+form.phase)*.9;
+        transform.rotation.copy(form.rotation); transform.rotation.y+=reducedMotion?0:time*.007;
+        transform.scale.copy(form.scale); transform.updateMatrix(); batch.setMatrixAt(index,transform.matrix);
+      });
+      batch.instanceMatrix.needsUpdate=true;
+    }
   }
 
   function updateSky(camera) {
@@ -833,12 +798,13 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
   function dispose() {
     if (disposed) return;
     clearSector();
-    for (const resource of assetResources) resource.dispose();
-    assetResources.clear(); assetTemplates = undefined; mineralMap.value = null;
+    if(ownedAssetBundle) releaseModelAssets(ownedAssetBundle);
+    ownedAssetBundle=undefined; textureLibrary.dispose(); preparations.clear();
+    assetTemplates = undefined;
     root.removeFromParent();
     disposed = true;
     currentLayout = undefined;
   }
 
-  return { loadAssets, load, sync, targets, beacon, gem, gate, hazards, skyScene, skyCamera, updateSky, lighting, dispose };
+  return { loadAssets, prepareBiome, setMissionAssets, load, sync, targets, beacon, gem, gate, hazards, decoration, skyScene, skyCamera, updateSky, lighting, dispose };
 }

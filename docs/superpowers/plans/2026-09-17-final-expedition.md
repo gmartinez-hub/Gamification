@@ -7,6 +7,8 @@
 **Tech Stack:** Vendor Three.js r179 ES modules, GLB/Meshopt, Blender Python for asset adaptations, DOM controls, Web Audio, Node test runner, Playwright real browser QA, current Vercel site.
 **Spec:** docs/superpowers/specs/2026-09-17-final-expedition-design.md
 
+> **User correction 17/09:** Cabin scope now means preserve the complete chosen cabin and reference-like dominant window, with short approach, sit/pilot and stand. No free roaming required. Literal 3.80m window rejected in favor of visual proportion; keep human-sized controls and approved exterior. This supersedes Task3 free-walking requirements below.
+
 ## Global constraints
 
 - Preserve 3 EVA objectives per sector and 1/2/3 ship cores, then gem. Optional/hazard kills never count; mandatory objectives never respawn.

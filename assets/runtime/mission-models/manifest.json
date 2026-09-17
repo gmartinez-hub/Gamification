@@ -1,0 +1,47 @@
+{
+  "description": "Original geometry, animation and image bytes; shared external textures. No decimation or resizing.",
+  "models": [
+    {
+      "file": "gema.glb",
+      "bytes": 1065592,
+      "sourceBytes": 8977340,
+      "sourceHash": "1222fe9e85d36f2ee4e94a4539566e4926b84ee86b495f8f093792d1e44306e4",
+      "sourceName": "Meshy_AI_Aether_Shard_0917134541_texture.glb",
+      "images": [
+        {
+          "uri": "textures/773ee710d263572e1f2f2aea084a43cda4920a992d4b3a345f324c811a89f1e7.jpg",
+          "bytes": 3097029
+        },
+        {
+          "uri": "textures/7f27c6f5b249cf78677b77d99fe50fe7c2c795385f01756d19f470eb2170ca1b.jpg",
+          "bytes": 1847753
+        },
+        {
+          "uri": "textures/bffb16c188184c9ddba8d19b58dca240112afb84c122a3bee8a86802686c7f74.jpg",
+          "bytes": 2482507
+        }
+      ]
+    },
+    {
+      "file": "proyectil.glb",
+      "bytes": 1812768,
+      "sourceBytes": 9588844,
+      "sourceHash": "20ccf2e18e0910d89f85de2502332ad25fa4a10a5a8df0142a04f70096b402f8",
+      "sourceName": "Meshy_AI_Aethercore_Torpedo_0917134749_texture.glb",
+      "images": [
+        {
+          "uri": "textures/0b5b3f6bb625db48e39437a276eb1795acc887964368d526e559db7cd3c8f7fc.jpg",
+          "bytes": 2697619
+        },
+        {
+          "uri": "textures/5942dc38c0ff1cac0f299e760da9db5e5ea91dbaa5184012e394c18d7228c452.jpg",
+          "bytes": 2093549
+        },
+        {
+          "uri": "textures/94fca28b280579a7b56b792c5c282790833567ba93b9df3648310876e5ca36dd.jpg",
+          "bytes": 2130708
+        }
+      ]
+    }
+  ]
+}

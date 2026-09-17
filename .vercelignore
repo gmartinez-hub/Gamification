@@ -1,5 +1,10 @@
 qa-*
 qa/
+.superpowers/
+.worktrees/
+docs/
+tests/
+scripts/
 background-lab/
 tools/
 assets/*.png

@@ -43,7 +43,7 @@ test('storage round-trips preferences, isolates URL seeds and clears old runs', 
   assert.equal(store.save(mission.state, { firstPerson: false, soundEnabled: true, effectsVolume: .6, ambienceVolume: .2 }), true);
   const loaded = store.load({ seed: 620 });
   assert.equal(loaded.sector, 1);
-  assert.deepEqual(loaded.settings, { firstPerson: false, soundEnabled: true, effectsVolume: .6, ambienceVolume: .2, introSeen: false });
+  assert.deepEqual(loaded.settings, { firstPerson: false, soundEnabled: true, effectsVolume: .6, ambienceVolume: .2, introSeen: false, touchLayout: 'joystick' });
   assert.equal(store.load({ seed: 621 }), null);
   store.clear(); assert.equal(store.load(), null);
 });
@@ -64,4 +64,10 @@ test('save clamps optional volume settings and rejects incompatible checkpoint v
   assert.equal(store.load().settings.ambienceVolume, 0);
   const saved = JSON.parse(storage.getItem(CHECKPOINT_KEY)); saved.version = 99;
   storage.setItem(CHECKPOINT_KEY, JSON.stringify(saved)); assert.equal(store.load(), null);
+});
+
+test('touch layout persists without accepting arbitrary CSS states', () => {
+ const store=createCheckpointStore(memory()), state=createExpedition(62).state;
+ store.save(state,{touchLayout:'arrows'}); assert.equal(store.load().settings.touchLayout,'arrows');
+ store.save(state,{touchLayout:'malformed'}); assert.equal(store.load().settings.touchLayout,'joystick');
 });

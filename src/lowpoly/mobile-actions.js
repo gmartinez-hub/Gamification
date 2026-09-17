@@ -1,58 +1,33 @@
-const enabled = (action, label, details = {}) => ({ action, label, disabled: false, ...details });
-const waiting = label => ({ action: 'none', label, disabled: true });
-const validDistance = value => Number.isFinite(value) && value >= 0;
-
-/** Select the next useful action without exposing the entire control panel. */
-export function getMobileAction(snapshot) {
-  const {
-    phase, actor, navigating = false, returning = false, scanning = false,
-    shotActive = false, cooldown = 0, blocked = false, actionDistance = Infinity,
-    targetDistance = Infinity, weaponRange = 0, chance, assemblyLocked = false,
-  } = snapshot;
-
-  if (assemblyLocked) return waiting('Ensamblando nave…');
-  if (phase === 'transit') return waiting('Viajando al próximo sector…');
-  if (blocked) return waiting('Controles en pausa');
-  if (returning) return waiting('Volviendo a la nave…');
-  if (shotActive) return waiting('Apuntando y disparando…');
-  if (phase === 'complete') return enabled('restart', 'Nueva expedición');
-
-  const guide = (label, hint) => enabled('navigate', navigating ? 'Detener guía' : label,
-    { hint: navigating ? 'Movete para retomar el vuelo' : hint });
-
-  if (phase === 'scan') {
-    if (actor === 'ship') return enabled('deploy', 'Salir de la nave');
-    if (scanning) return { action: 'interact', label: 'Escaneando…', disabled: true, hint: 'Mantenete cerca de la baliza' };
-    if (validDistance(actionDistance) && actionDistance <= 3.8) return enabled('interact', 'Escanear baliza');
-    return guide('Guiar a la baliza', 'Acercate para escanear');
-  }
-
-  if (phase === 'small' || phase === 'large') {
-    const targetAction = validDistance(targetDistance) ? { secondary: 'target' } : {};
-    if (phase === 'small' && actor === 'ship') return enabled('deploy', 'Salir de la nave', targetAction);
-    if (phase === 'large' && actor !== 'ship') return enabled('return', 'Volver a la nave', { hint: 'El núcleo requiere el cañón', ...targetAction });
-    if (!validDistance(targetDistance)) return waiting('Buscando objetivo…');
-    const secondary = 'target';
-    if (targetDistance > weaponRange || !Number.isFinite(weaponRange) || weaponRange <= 0) {
-      return { ...guide('Acercarse al objetivo', 'Fuera de alcance'), secondary };
-    }
-    const hint = Number.isFinite(chance) ? `${Math.round(Math.max(0, Math.min(1, chance)) * 100)}% de acierto` : 'Objetivo al alcance';
-    return {
-      action: 'fire', label: cooldown > 0 ? 'Recargando…' : phase === 'large' ? 'Disparar cañón' : 'Disparar',
-      disabled: cooldown > 0, secondary, hint,
-    };
-  }
-
-  if (phase === 'gem') {
-    if (actor === 'ship') return guide(actionDistance < 12 ? 'Salir por la gema' : 'Guiar a la gema', 'La recupera el astronauta');
-    if (validDistance(actionDistance) && actionDistance <= 3) return enabled('interact', 'Recoger gema');
-    return guide('Guiar a la gema', 'Acercate para recogerla');
-  }
-
-  if (phase === 'return') {
-    if (actor !== 'ship') return enabled('return', 'Volver a la nave');
-    return guide('Guiar al corredor', 'El próximo módulo te espera');
-  }
-
-  return waiting('Preparando expedición…');
+const enabled=(action,label,details={})=>({action,label,disabled:false,...details});
+const waiting=(label,details={})=>({action:'none',label,disabled:true,...details});
+const valid=value=>Number.isFinite(value)&&value>=0;
+/** Nearby actions preserve discovery. A bearing is a hint, never an autopilot. */
+export function getMobileAction({phase,actor,returning=false,scanning=false,shotActive=false,cooldown=0,blocked=false,
+ actionDistance=Infinity,targetDistance=Infinity,weaponRange=0,chance,assemblyLocked=false,sequence=false,
+ cabinMode=null,canSit=false,targetKind=null}){
+ if(assemblyLocked)return waiting('Ensamblando nave…');
+ if(phase==='transit')return waiting('Viajando al próximo sector…');
+ if(sequence||phase==='return')return waiting('Gema a bordo · Regreso y viaje');
+ if(cabinMode)return canSit?enabled('cabin','Sentarse y pilotear'):waiting('Preparando el puesto…');
+ if(blocked)return waiting('Controles en pausa');
+ if(returning)return waiting('Volviendo a la nave…');
+ if(shotActive)return waiting('Apuntando y disparando…');
+ if(phase==='complete')return enabled('restart','Nueva expedición');
+ const near=valid(targetDistance)&&targetDistance<=weaponRange&&weaponRange>0;
+ const fire=()=>({action:'fire',label:cooldown>0?'Recargando…':actor==='ship'?'Disparar cañón':'Disparar',disabled:cooldown>0,secondary:'target',hint:Number.isFinite(chance)?`${Math.round(chance*100)}% de acierto`:'Objetivo al alcance'});
+ const hint=label=>enabled('navigate',label,{hint:'El rumbo es orientativo. Movete para explorar.'});
+ if(phase==='scan'&&actor==='astronaut'&&actionDistance<=3.8)return scanning?waiting('Escaneando…'):enabled('interact','Escanear baliza');
+ if(phase==='gem'&&actor==='astronaut'&&actionDistance<=3)return enabled('interact','Recoger gema');
+ if(['hazard','breakable'].includes(targetKind)&&near)return fire();
+ if(phase==='scan')return actor==='ship'&&actionDistance<23?enabled('deploy','Salir hacia la baliza'):hint('Buscar la señal');
+ if(phase==='small'||phase==='large'){
+  const secondary=valid(targetDistance)?'target':undefined;
+  if(phase==='large'&&actor==='astronaut')return enabled('return','Volver a la nave',{secondary});
+  if(phase==='small'&&actor==='ship')return targetDistance<23?enabled('deploy','Salir / EVA',{secondary}):hint('Explorar las regiones');
+  if(near)return fire();
+  if(actor==='astronaut')return enabled('return','Abordar y mover la nave',{hint:'El cable delimita esta zona de exploración.'});
+  return hint('Explorar las regiones');
+ }
+ if(phase==='gem')return actor==='ship'&&actionDistance<23?enabled('deploy','Salir por la gema'):hint('Ubicar la gema');
+ return waiting('Preparando expedición…');
 }

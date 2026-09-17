@@ -194,3 +194,26 @@
   .flight-menu-heading{margin-bottom:8px}
   .mobile-menu-actions button{min-height:44px}
 }
+
+/* Expedition controls keep the environment visible. */
+.joystick{display:none;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.companion-subtitle{position:fixed;z-index:6;left:50%;bottom:200px;transform:translateX(-50%);max-width:min(460px,86vw);margin:0;padding:10px 15px;border-left:2px solid #e5b875;background:#081721cf;border-radius:4px;color:#d5e5e1;font-size:12px;line-height:1.5;pointer-events:none;text-align:center}
+.cinematic-skip{position:fixed;z-index:12;right:20px;bottom:24px;background:#11212dda;font-size:11px}
+body.cinematic .hud .action-deck,body.cinematic .hud .touch-controls,body.cinematic .flight-controls,body.cinematic .mobile-actionbar{visibility:hidden}
+body.cinematic .mission-panel{opacity:.6}
+.sound-settings select{background:#132b38;color:var(--ink);border:1px solid var(--line);border-radius:6px;min-height:40px;padding:5px}
+body.in-cabin .altitude-pad,body.in-cabin .flight-controls{visibility:hidden}
+@media(pointer:coarse),(max-width:700px){
+ body[data-touch-layout=joystick] .direction-pad{display:none}
+ body[data-touch-layout=joystick] .joystick{display:block;position:absolute;pointer-events:auto;left:calc(13px + var(--mobile-safe-left));bottom:calc(15px + var(--mobile-safe-bottom));width:108px;height:108px;border:1px solid #a1d9d64a;border-radius:50%;background:radial-gradient(circle,#132d3688,#10233055);z-index:5}
+ .joystick span{display:block;position:absolute;width:44px;height:44px;left:31px;top:31px;border:1px solid #b1efdf8a;border-radius:50%;background:#87c9c253;box-shadow:inset 0 0 13px #b2eeed18;pointer-events:none}
+ .joystick.is-pressed span{background:#92ddd47a;border-color:#dbfff1}
+ .companion-subtitle{bottom:calc(183px + var(--mobile-safe-bottom));font-size:11px;max-width:85vw;padding:7px 10px}
+ .cinematic .companion-subtitle{bottom:calc(92px + var(--mobile-safe-bottom))}
+ #mobileCabinButton{min-height:44px;font-size:10px;border-radius:12px;padding:7px}
+ .cinematic-skip{bottom:calc(25px + var(--mobile-safe-bottom))}
+}
+@media(pointer:coarse) and (min-width:740px) and (max-height:500px){.companion-subtitle{bottom:76px;max-width:48vw}}
+
+/* Graphic recovery remains actionable above the ordinary pause screen. */
+.loading.graphics-recovery{z-index:50;background:#080f1e;transition:none}

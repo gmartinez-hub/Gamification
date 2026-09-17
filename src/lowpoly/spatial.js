@@ -7,9 +7,9 @@ export const TETHER_MAX = 26;
 export const SHIP_ANCHORS = Object.freeze({
   dock: Object.freeze({ x: 3.3, y: -.85, z: -2.5 }),
   eva: Object.freeze({ x: 4.5, y: -.85, z: -2.5 }),
-  tether: Object.freeze({ x: 2.4, y: .05, z: -2.5 }),
+  tether: Object.freeze({ x: 2.15, y: .05, z: -2.5 }),
   eye: Object.freeze({ x: 0, y: 1.05, z: -4.8 }),
-  muzzle: Object.freeze({ x: 0, y: -.4, z: -6.6 }),
+  muzzle: Object.freeze({ x: 0, y: -.4, z: -6.18 }),
 });
 export function shipPoint(name, position, quaternion, out = new Vector3()) {
   return out.copy(SHIP_ANCHORS[name]).applyQuaternion(quaternion).add(position);

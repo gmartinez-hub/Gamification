@@ -1,4 +1,5 @@
 import test from "node:test";
+import { sampleHazard } from "../src/lowpoly/hazards.js";
 import assert from "node:assert/strict";
 import { createExpedition, createRandom, aimChance, AIM_RANGES } from "../src/lowpoly/expedition.js";
 
@@ -154,8 +155,8 @@ test("procedural layouts remain reachable and keep hazards clear across seeds an
     for (let sector = 0; sector < 3; sector++) {
       const layout = mission.state.layout;
       assert.ok(distance(layout.beacon, launch) <= 24, `unreachable beacon seed ${seed}`);
-      for (const target of layout.small) assert.ok(distance(target.position, launch) <= 24);
-      for (const target of layout.large) assert.ok(target.position.z <= -25 && target.position.z >= -38);
+      for (const target of layout.small) assert.ok(distance(target.position, target.approach) <= 20);
+      for (const target of layout.large) assert.ok(distance(target.position, ship) > AIM_RANGES.ship);
       assert.ok(distance(layout.gem, layout.large.at(-1).position) <= 7);
       assert.deepEqual(layout.gate, { x: 0, y: 0, z: -56 });
       assert.deepEqual(layout.exit, { x: 0, y: 0, z: -80 });
@@ -174,7 +175,7 @@ test("procedural layouts remain reachable and keep hazards clear across seeds an
         for (const target of [...layout.small, ...layout.large]) {
           assert.ok(distance(hazard.position, target.position) > hazard.radius + target.radius + 2);
         }
-        if (hazard.position.z < -44) assert.ok(Math.hypot(hazard.position.x, hazard.position.y) > hazard.radius + 6);
+        if (hazard.position.z < -44 && hazard.position.z > -87) assert.ok(Math.hypot(hazard.position.x, hazard.position.y) > hazard.radius + 6);
       }
       clearEncounter(mission);
       mission.collectGem(); mission.enterCorridor("ship"); mission.finishTransit();
@@ -207,7 +208,7 @@ test('biomes have explicit identities and moving hazard routes protect all manda
       const layout = mission.state.layout;
       assert.equal(layout.biomeId, ['nereida', 'vesper', 'umbra'][sector]);
       assert.ok(distance(layout.beacon, tether) < 24);
-      for (const target of layout.small) assert.ok(distance(target.position, eva) < 26);
+      for (const target of layout.small) assert.ok(distance(target.position, target.approach) + target.motion.amplitude * 1.5 < 26);
       for (const hazard of layout.hazards) {
         const { axis, amplitude, period, phase } = hazard.motion;
         assert.ok(amplitude >= 4 && amplitude <= 7.5);
@@ -215,12 +216,8 @@ test('biomes have explicit identities and moving hazard routes protect all manda
         assert.ok(amplitude * Math.PI * 2 / period >= 1);
         assert.ok(amplitude * Math.PI * 2 / period <= 3);
         for (let step = 0; step < 80; step++) {
-          const displacement = Math.sin(step / 80 * Math.PI * 2 + phase) * amplitude;
-          const point = {
-            x: hazard.position.x + axis.x * displacement,
-            y: hazard.position.y + axis.y * displacement,
-            z: hazard.position.z + axis.z * displacement,
-          };
+          const point = {};
+          sampleHazard(hazard, step / 80 * period, point, {});
           assert.ok(distance(point, spawn) > hazard.radius + 8, `unsafe spawn route: seed ${seed}`);
           for (const interaction of [layout.beacon, layout.gem]) {
             assert.ok(distance(point, interaction) > hazard.radius + 6, `unsafe interaction route: seed ${seed}`);
