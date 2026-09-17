@@ -213,5 +213,5 @@ export function createEncounters({seed=712069,sector=0,completedIds=[]}={}) {
     if(destroyed) {entity.active=false;entity.phase='destroyed';entities.splice(entities.indexOf(entity),1);}
     return {destroyed,entity};
   }
-  return {entities,trigger,update,damage,reset,retreat};
+  return {entities,get pending(){return queue.length>0;},trigger,update,damage,reset,retreat};
 }

@@ -47,6 +47,19 @@ test('storage round-trips preferences, isolates URL seeds and clears old runs', 
   assert.equal(store.load({ seed: 621 }), null);
   store.clear(); assert.equal(store.load(), null);
 });
+test('the motorcycle release starts with a new cache instead of loading the pre-motorcycle v4 run', () => {
+  const storage=memory(),legacyKey='gravedad-zero:expedition:v4';
+  storage.setItem(legacyKey,JSON.stringify({...snapshot,version:2,settings:{firstPerson:true}}));
+  const store=createCheckpointStore(storage);
+  assert.equal(CHECKPOINT_KEY,'gravedad-zero:expedition:v5');
+  assert.equal(store.load(),null);
+});
+
+test('a saved camera choice never makes a new browser session start in first person', () => {
+  const storage=memory(),store=createCheckpointStore(storage);
+  storage.setItem(CHECKPOINT_KEY,JSON.stringify({...snapshot,version:2,shipDiscovered:true,settings:{firstPerson:true}}));
+  assert.equal(store.load().settings.firstPerson,false);
+});
 test('malformed or future saves and unavailable browser storage never prevent playing', () => {
   const storage = memory(), store = createCheckpointStore(storage);
   for (const raw of ['{broken', 'null', '[]', '{"version":999}', '{"version":1,"seed":620,"sector":-1}', 'x'.repeat(9000)]) {

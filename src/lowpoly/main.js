@@ -712,7 +712,7 @@ function updateCombat(dt,worldDt){
     if(destroyed){
       destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,weapon==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(weapon==='ship'?'ship':'impact');
       illuminate(target.position,weapon==='ship'?0xffbb78:0x7deaff,weapon==='ship'?1:.45);play(weapon==='ship'?'largeBreak':'smallBreak');
-      if(!optional)encounters.trigger({id:target.id,position:target.position,playerPosition:flight.position});
+      if(!optional&&encounters.trigger({id:target.id,position:target.position,playerPosition:flight.position}))void prepareEnemies();
       notify(optional?'Roca despejada':weapon==='ship'?'Núcleo destruido':'Asteroide fragmentado',2);saveProgress();
     }else{triggerBurst(new THREE.Vector3().copy(hit.position),'impact',{velocity:target.velocity});play('smallBreak',.5);}
   }
@@ -1052,7 +1052,7 @@ function animate(now) {
   const input=controls.sample();
   if(!paused){
     actionProtectedFrame=scanning||gemSequence.active;
-    if(time>3||state.phase!=='scan')void prepareEnemies();
+    if(encounters.pending)void prepareEnemies();
     if(flight.shipDiscovered&&!shipWasDiscovered){shipWasDiscovered=true;say('Encontramos la nave. Podés abordarla o seguir con la moto.');notify('Nave localizada · Ya podés elegir vehículo',5);saveProgress();}
     if(['gem','return','transit'].includes(state.phase)||gemSequence.active)void prepareNextStage();
     if(!cabin&&!viewLoad&&(state.phase==='small'||flight.actor==='ship'||['returning','boarding'].includes(gemSequence.phase)))void prepareView('cabin');

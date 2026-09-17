@@ -1,5 +1,5 @@
-export const CHECKPOINT_KEY = 'gravedad-zero:expedition:v4';
-export const DEFAULT_SETTINGS = Object.freeze({ firstPerson: true, soundEnabled: false, effectsVolume: .75, ambienceVolume: .4, introSeen: false, touchLayout: 'joystick' });
+export const CHECKPOINT_KEY = 'gravedad-zero:expedition:v5';
+export const DEFAULT_SETTINGS = Object.freeze({ firstPerson: false, soundEnabled: false, effectsVolume: .75, ambienceVolume: .4, introSeen: false, touchLayout: 'joystick' });
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export function validCheckpoint(value) {
@@ -19,7 +19,8 @@ function settingsFrom(value) {
   const source = object(value) ? value : {};
   const volume = (key, fallback) => Number.isFinite(source[key]) ? Math.max(0, Math.min(1, source[key])) : fallback;
   return {
-    firstPerson: typeof source.firstPerson === 'boolean' ? source.firstPerson : true,
+    // Camera mode is session state: every page entry opens in third person.
+    firstPerson: false,
     soundEnabled: source.soundEnabled === true,
     effectsVolume: volume('effectsVolume', .75), ambienceVolume: volume('ambienceVolume', .4),
     introSeen: source.introSeen === true, touchLayout: source.touchLayout === 'arrows' ? 'arrows' : 'joystick',

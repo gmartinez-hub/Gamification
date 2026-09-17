@@ -21,6 +21,17 @@ test('one destroyed mission rock queues one encounter and repeated callbacks can
   assert.equal(world.entities.length,1);
 });
 
+test('queued encounters expose pending work so their models can load only after the activating explosion', () => {
+  const world=createEncounters({seed:'lazy-models',sector:0});
+  assert.equal(world.pending,false);
+  assert.equal(world.trigger(mission('activation-rock')),true);
+  assert.equal(world.pending,true);
+  world.update(.1,{playerPosition:player});
+  assert.equal(world.pending,false);
+  world.reset();
+  assert.equal(world.pending,false);
+});
+
 test('sector caps include arrivals and queued waves release gradually as slots clear', () => {
   for (const [sector,shipCap,alienCap,missionCount] of [[0,1,1,4],[1,1,2,5],[2,2,3,6]]) {
     const world=createEncounters({seed:`caps-${sector}`,sector});
