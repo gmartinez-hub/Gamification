@@ -1,4 +1,20 @@
-# Verificación — Gravedad Zero V3
+# Verificación — integración Meshy
+
+Fecha: 17/09/2026. Entrada `index.html`, modelos portables en `assets/runtime/models/`.
+
+- 109 pruebas Node aprobadas: reglas, vuelo, controles, recursos, animación de acople, dirección del empuje, materiales y fractura cerrada con UV exterior conservado.
+- Recorrido real Chrome/Metal en Mac M1 con teclado y botones: tres sectores completos, 19 disparos, escaneo, retorno/abordaje, tres gemas y final. Recarga en sector 2 recupera correctamente checkpoint. Sin errores JS, WebGL ni respuestas HTTP fallidas.
+- Revisión final de visor, exterior y cabina cerrada. Campo inicial medido a 60 FPS durante la ventana de cuatro segundos de telemetría a 1152×720; no es garantía para todas las escenas o dispositivos. Resolución interna máxima 1280×720, proporción conservada.
+- Emulación táctil 393×852: alternancia visor/exterior accesible, botones dentro de pantalla, sin desborde horizontal; empuje al mantener y liberación al soltar, sin selección de texto. La deriva continúa después de soltar. No reemplaza prueba física en Safari/iPhone.
+- Geometría Meshy original conservada; superficies y texturas embebidas. La primera descarga de modelos ronda 200 MB. Los asteroides decorativos usan instancias más ligeras.
+- Cabina es un entorno de pilotaje, sin caminabilidad interior. El arma conserva su agarre; la tapa posterior octagonal no es la boca del cañón. Disparos toman el socket delantero real.
+
+Evidencia local de esta entrega: `output/gamification/meshy-playable-v1/` en el workspace padre (fuera del deploy). Publicación y comprobación de URL se registran al entregar.
+
+---
+
+## Registro anterior V3
+
 
 Fecha: 2026-09-16. Entrada `index.html`; original conservado en `legacy.html`. Pruebas locales con el código V3; el enlace de Vercel se comprueba además al entregar.
 
@@ -59,6 +75,8 @@ Corrección táctil posterior al reporte en iPhone:
 - Chrome: dos dedos mantenidos durante más de cinco segundos, liberación independiente, soltar fuera del botón, cancelación nativa sin evento Pointer terminal y `pagehide`; sin controles activos residuales.
 - WebKit con viewport táctil: siete flujos de menú, pausa, ayuda, cámara e inspección; toque real libera empuje y estado visual; guía, escaneo y disparo completos, ocho texturas cargadas, sin errores de página ni HTTP. No se reprodujo el menú nativo de selección de un iPhone físico.
 
+Acceso directo a cámara: añadido botón visible junto al menú, sin aumentar la altura de la franja superior. Chrome y WebKit verifican Visor↔Exterior con astronauta, Cabina↔Exterior a bordo, salida de inspección y taps sin abrir el menú ni pausar. Tamaños 320×568, 390×650, 740×390 y 844×390; controles de al menos 44 px, sin superposición con sector o estado. Se conservan las restricciones de cámara durante montaje, tránsito y final. Sin errores de página ni HTTP.
+
 ## Límites de las pruebas
 
-Móvil emulado; no se verificó aún en teléfono físico, Safari iOS o Android real, ni se garantiza una tasa de cuadros en esos equipos. El disparo continúa asistido y la cabina no es un interior caminable. El cable no resuelve enredos; las colisiones usan esferas y la cámara no colisiona con decoración. La nave se ancla durante EVA. La gravedad cero se expresa mediante inercia y propulsores; no hay atracción planetaria. No hay guardado persistente, exportación GLB ni proyecto Godot. Se mantiene geometría low poly con materiales y recursos reutilizados.
+Las pruebas automatizadas usan móvil emulado; no incluyen mediciones de rendimiento en Safari iOS o Android real ni garantizan una tasa de cuadros en esos equipos. El disparo continúa asistido y la cabina no es un interior caminable. El cable no resuelve enredos; las colisiones usan esferas y la cámara no colisiona con decoración. La nave se ancla durante EVA. La gravedad cero se expresa mediante inercia y propulsores; no hay atracción planetaria. No hay guardado persistente, exportación GLB ni proyecto Godot. Se mantiene geometría low poly con materiales y recursos reutilizados.

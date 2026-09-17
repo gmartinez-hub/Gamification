@@ -4,26 +4,26 @@ import { sampleHazard } from './hazards.js';
 const TEXTURES = {
   ocean: new URL('../../assets/runtime/lowpoly-textures/ocean.jpg', import.meta.url).href,
   moon: new URL('../../assets/runtime/lowpoly-textures/moon.jpg', import.meta.url).href,
-  moonNormal: new URL('../../assets/runtime/lowpoly-textures/moon-normal.png', import.meta.url).href,
-  rock: new URL('../../assets/runtime/lowpoly-textures/rock.jpg', import.meta.url).href,
+  gas: new URL('../../assets/runtime/three-textures/gas-giant-color.png', import.meta.url).href,
+  rock: new URL('../../assets/runtime/lowpoly-textures/rock-mineral.jpg', import.meta.url).href,
   nebula: new URL('../../assets/runtime/lowpoly-textures/nebula.jpg', import.meta.url).href,
 };
 
 const BIOMES = {
   nereida: {
-    planet: 0xb9d9f9, atmosphere: 0x4aa9fa, rock: 0x817362, accent: 0x73e5de, texture: 'ocean',
-    sky: 0x0a1425, haze: 0x223a62, warmHaze: 0x71513a, sun: 0xffd5a0, fill: 0x93cbdc, exposure: 1.02,
-    planetPosition: [400, -30, -160], planetRadius: 138, moonPosition: [-188, 126, -470], moonRadius: 29,
+    planet: 0xd7eaff, atmosphere: 0x389aef, rock: 0x827d76, accent: 0x73e5de, texture: 'ocean',
+    sky: 0x020711, haze: 0x1a345d, warmHaze: 0x62412a, sun: 0xffd4a0, fill: 0x90c7dc, exposure: 1.0,
+    planetPosition: [118, -72, -390], planetRadius: 165, moonPosition: [-200, 142, -610], moonRadius: 25,
   },
   vesper: {
-    planet: 0x9f99b4, atmosphere: 0x867ac5, rock: 0x595166, accent: 0xb9a0ee, texture: 'moon',
-    sky: 0x070919, haze: 0x40315b, warmHaze: 0x213f53, sun: 0xccd8ff, fill: 0x9584c9, exposure: 1.08,
-    planetPosition: [-150, 75, -405], planetRadius: 100, moonPosition: [230, -35, -520], moonRadius: 26,
+    planet: 0xb4accf, atmosphere: 0xa393dc, rock: 0x827e92, accent: 0xb9a0ee, texture: 'gas',
+    sky: 0x040512, haze: 0x31204f, warmHaze: 0x1a3449, sun: 0xcbd8ff, fill: 0xa08fd1, exposure: 1.02,
+    planetPosition: [-94, 26, -430], planetRadius: 108, moonPosition: [196, -75, -560], moonRadius: 19,
   },
   umbra: {
-    planet: 0x574644, atmosphere: 0xe88162, rock: 0x493c3c, accent: 0xed9ab3, texture: 'moon',
-    sky: 0x0c0914, haze: 0x472740, warmHaze: 0x773e29, sun: 0xffb488, fill: 0x9d84ac, exposure: 1.05,
-    planetPosition: [148, -45, -405], planetRadius: 130, moonPosition: [-190, 132, -540], moonRadius: 18,
+    planet: 0x615054, atmosphere: 0xd98a5e, rock: 0x6d6262, accent: 0xd49479, texture: 'moon',
+    sky: 0x07040a, haze: 0x302035, warmHaze: 0x612d1a, sun: 0xffba8c, fill: 0x8a88ab, exposure: .98,
+    planetPosition: [104, -46, -410], planetRadius: 148, moonPosition: [-179, 111, -580], moonRadius: 20,
   },
 };
 
@@ -43,10 +43,42 @@ function randomForLayout(layout) {
 
 const positionFrom = ({ x, y, z }) => new THREE.Vector3(x, y, z);
 
+const MODEL_FILES = { beacon: 'baliza', rock: 'asteroide-marron', base: 'asteroide-base' };
+
+function collectModelResources(models) {
+  const resources = new Set();
+  for (const model of Object.values(models)) model?.traverse(object => {
+    if (!object.isMesh) return;
+    resources.add(object.geometry);
+    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+      resources.add(material);
+      for (const value of Object.values(material)) if (value?.isTexture) resources.add(value);
+    }
+  });
+  return resources;
+}
+
+/** Load once before world.load(). Ownership transfers to the world supplied
+ * with this bundle; imported resources survive sector changes. */
+export async function loadWorldAssets() {
+  const { GLTFLoader } = await import('../../vendor/GLTFLoader.js');
+  const loader = new GLTFLoader();
+  const entries = Object.entries(MODEL_FILES);
+  const results = await Promise.allSettled(entries.map(async ([name, file]) => [name,
+    (await loader.loadAsync(new URL(`../../assets/runtime/models/${file}.glb`, import.meta.url).href)).scene]));
+  const assets = Object.fromEntries(results.filter(result => result.status === 'fulfilled').map(result => result.value));
+  const failed = results.find(result => result.status === 'rejected');
+  if (failed) {
+    for (const resource of collectModelResources(assets)) resource.dispose();
+    throw new Error('Could not load the world models.', { cause: failed.reason });
+  }
+  return assets;
+}
+
 /** Presentation only. The layout remains immutable; public positions follow the
  * actual drifting objects so aiming and collision use the same visible location.
  */
-export function createSectorWorld(scene) {
+export function createSectorWorld(scene, { assets = null, assetLoader = loadWorldAssets } = {}) {
   const root = new THREE.Group();
   root.name = 'expedition-sector';
   scene.add(root);
@@ -67,9 +99,9 @@ export function createSectorWorld(scene) {
   const lighting = { sun: 0xffd5a0, fill: 0x93cbdc, exposure: 1.02 };
   const celestial = new THREE.Group();
   skyScene.add(celestial);
-  const skySun = new THREE.DirectionalLight(0xffe3c4, 3.1);
-  skySun.position.set(-180, 170, 200);
-  const skyFill = new THREE.HemisphereLight(0x698bad, 0x010209, .7);
+  const skySun = new THREE.DirectionalLight(0xffe3c4, 2.8);
+  skySun.position.set(-220, 210, 160);
+  const skyFill = new THREE.HemisphereLight(0x698bad, 0x010209, .32);
   skyScene.add(skySun, skyFill);
   const targets = [];
   const hazards = [];
@@ -78,13 +110,71 @@ export function createSectorWorld(scene) {
   let disposed = false;
   let currentLayout;
   let materials;
-  let beaconSweep;
   let gemCrystal;
   let primaryPlanet;
   let clouds;
   let dust;
   let gateRings = [];
+  let transitStreaks;
+  let gateStructure;
   let sectorPalette;
+  let beaconSignal;
+  let beaconLight;
+  let assetPromise;
+  let assetTemplates;
+  const assetResources = new Set();
+  const mineralMap = { value: null };
+
+  function installAssets(models) {
+    for (const resource of collectModelResources(models)) assetResources.add(resource);
+    const templates = {};
+    for (const name of Object.keys(MODEL_FILES)) {
+      const source = models[name];
+      if (!source?.isObject3D) throw new Error(`Missing world model: ${name}`);
+      source.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(source, true);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      if (![size.x, size.y, size.z].every(value => Number.isFinite(value) && value > 0)) throw new Error(`Invalid world model bounds: ${name}`);
+      const template = new THREE.Group(); template.name = `meshy-${name}`;
+      let radius = 0;
+      const point = new THREE.Vector3();
+      source.traverse(part => {
+        if (!part.isMesh) return;
+        const shape = part.geometry.clone().applyMatrix4(part.matrixWorld).translate(-center.x, -center.y, -center.z);
+        assetResources.add(shape);
+        const positions = shape.attributes.position;
+        for (let i = 0; i < positions.count; i++) radius = Math.max(radius, point.fromBufferAttribute(positions, i).length());
+        const mesh = new THREE.Mesh(shape, part.material);
+        mesh.name = `meshy-${name}-surface`; mesh.castShadow = true; mesh.receiveShadow = true;
+        template.add(mesh);
+      });
+      if (!template.children.length || radius <= 0) throw new Error(`Empty world model: ${name}`);
+      const scale = name === 'beacon' ? 2.4 / size.y : 1 / radius;
+      for (const mesh of template.children) { mesh.geometry.scale(scale, scale, scale); mesh.geometry.computeBoundingBox(); mesh.geometry.computeBoundingSphere(); }
+      template.userData.model = MODEL_FILES[name];
+      templates[name] = template;
+    }
+    assetTemplates = templates;
+  }
+
+  function loadAssets() {
+    if (disposed) return Promise.reject(new Error('Cannot load assets into a disposed world.'));
+    if (assetTemplates) return assetPromise ||= Promise.resolve(assetTemplates);
+    if (!assetPromise) {
+      assetPromise = Promise.resolve(assetLoader()).then(models => {
+        if (disposed) {
+          for (const resource of collectModelResources(models)) resource.dispose();
+          throw new Error('Sector world was disposed while models loaded.');
+        }
+        try { installAssets(models); }
+        catch (error) { for (const resource of assetResources) resource.dispose(); assetResources.clear(); throw error; }
+        return assetTemplates;
+      }).catch(error => { assetPromise = null; throw error; });
+    }
+    return assetPromise;
+  }
+  if (assets) installAssets(assets);
 
   const own = resource => { resources.add(resource); return resource; };
   const geometry = (Constructor, ...args) => own(new Constructor(...args));
@@ -94,10 +184,10 @@ export function createSectorWorld(scene) {
   const glow = (color, opacity = 1) => own(new THREE.MeshBasicMaterial({
     color, toneMapped: false, transparent: opacity < 1, opacity, depthWrite: opacity === 1,
   }));
-  function mineral(color, floor = .78, contrast = .65) {
-    const material = surface(color, { roughness: .94, metalness: 0 });
-    // Reuse the original rock asset as restrained mineral variation, without its
-    // old magenta/cyan paint turning every background island into an objective.
+  function mineral(color, floor = .26, contrast = 2.35) {
+    const material = surface(color, { roughness: .92, metalness: .04 });
+    // Neutral minerals preserve the surface palette; the map carries fine grain,
+    // while geometry and directional light carry the large fractures.
     material.onBeforeCompile = shader => {
       shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
         #ifdef USE_MAP
@@ -107,7 +197,28 @@ export function createSectorWorld(scene) {
         #endif
       `);
     };
-    material.customProgramCacheKey = () => `mineral-luminance-v1:${floor}:${contrast}`;
+    material.customProgramCacheKey = () => `mineral-v4:${floor}:${contrast}`;
+    return material;
+  }
+  function triplanarMineral(color, accent, emissiveIntensity = .16) {
+    const material = surface(color, { flatShading: false, roughness: .91, metalness: .03, emissive: accent, emissiveIntensity });
+    material.name = 'biome-triplanar-mineral';
+    material.onBeforeCompile = shader => {
+      shader.uniforms.mineralMap = mineralMap;
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 mineralPosition; varying vec3 mineralNormal;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nmineralPosition = transformed; mineralNormal = normal;');
+      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D mineralMap; varying vec3 mineralPosition; varying vec3 mineralNormal;')
+        .replace('#include <map_fragment>', `
+          vec3 mineralWeights = pow(abs(normalize(mineralNormal)), vec3(4.));
+          mineralWeights /= max(dot(mineralWeights, vec3(1.)), .0001);
+          vec3 mineralSamples = vec3(texture2D(mineralMap, mineralPosition.yz * 1.9).r,
+            texture2D(mineralMap, mineralPosition.zx * 1.9).r, texture2D(mineralMap, mineralPosition.xy * 1.9).r);
+          float mineralGrain = dot(mineralSamples, mineralWeights);
+          diffuseColor.rgb *= .46 + mineralGrain * 1.32;
+        `).replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor + (mineralGrain - .5) * .13, .72, .98);')
+        .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= smoothstep(.63, .9, mineralGrain);');
+    };
+    material.customProgramCacheKey = () => 'biome-triplanar-mineral-v1';
     return material;
   }
   function addMesh(parent, shape, material, position = [0, 0, 0]) {
@@ -127,9 +238,9 @@ export function createSectorWorld(scene) {
     if (typeof document === 'undefined') return;
     const version = generation;
     const loaded = new THREE.TextureLoader().load(TEXTURES[name], image => {
-      if (disposed || version !== generation) return;
+      if (disposed || version !== generation) { image.dispose(); return; }
       image.colorSpace = slot === 'normalMap' ? THREE.NoColorSpace : THREE.SRGBColorSpace;
-      image.anisotropy = 2;
+      image.anisotropy = 4;
       image.wrapS = THREE.RepeatWrapping;
       if (repeat > 1) image.wrapT = THREE.RepeatWrapping;
       image.repeat.set(repeat, repeat);
@@ -153,7 +264,7 @@ export function createSectorWorld(scene) {
     for (const resource of resources) resource.dispose();
     resources.clear();
     for (const group of [background, playable, beacon, gem, gate, celestial]) group.clear();
-    clouds = undefined; dust = undefined;
+    clouds = undefined; dust = undefined; transitStreaks = undefined;
     targets.length = 0;
     hazards.length = 0;
     gateRings = [];
@@ -179,10 +290,12 @@ export function createSectorWorld(scene) {
           float wisps = sin(d.y * 32. + d.x * 11. + sin(d.z * 21.) * 2.) * .5 + .5;
           float belt = pow(max(0., 1. - abs(d.y + d.x * .3 - .16)), 10.);
           float dawn = pow(max(0., dot(d, normalize(vec3(.4,.18,-.8)))), 12.);
-          vec3 color = base + cool * belt * (.05 + .16 * bands * wisps) + warm * dawn * .34;
+          vec3 color = base + cool * belt * (.07 + .22 * bands * wisps) + warm * dawn * .15;
           if (skyReady > .5) {
             vec3 archiveCloud = texture2D(skyMap, vec2(fract(skyUV.x + .18), skyUV.y)).rgb;
-            color += archiveCloud * mix(vec3(.65), cool * 4., .4) * .22;
+            float cloudValue = dot(archiveCloud, vec3(.2126,.7152,.0722));
+            vec3 cloudTint = mix(vec3(.08,.30,.84), normalize(cool + vec3(.005)) * .65, .35);
+            color += cloudTint * pow(cloudValue, .72) * .28 + archiveCloud * vec3(.18,.08,.24) * .055;
           }
           gl_FragColor = vec4(color, 1.);
         }`,
@@ -194,165 +307,284 @@ export function createSectorWorld(scene) {
 
     const stars = [], colors = [];
     const starColor = new THREE.Color();
-    for (let i = 0; i < 1250; i++) {
+    for (let i = 0; i < 1950; i++) {
       const azimuth = random() * Math.PI * 2;
       const elevation = random() * 2 - 1;
       const distance = 680 + random() * 180;
       const circumference = Math.sqrt(1 - elevation * elevation);
       stars.push(Math.cos(azimuth) * circumference * distance, elevation * distance, Math.sin(azimuth) * circumference * distance);
-      starColor.set(i % 11 === 0 ? sectorPalette.accent : i % 17 === 0 ? 0xffc697 : 0xd7e8ff).multiplyScalar(.2 + random() * .62);
+      starColor.set(i % 11 === 0 ? sectorPalette.accent : i % 17 === 0 ? 0xffc697 : 0xd7e8ff).multiplyScalar(.42 + random() * .95);
       colors.push(starColor.r, starColor.g, starColor.b);
     }
     const starGeometry = own(new THREE.BufferGeometry());
     starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
     starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    const starField = new THREE.Points(starGeometry, own(new THREE.PointsMaterial({ size: 1.25, vertexColors: true, transparent: true, opacity: .85, depthWrite: false, toneMapped: false })));
+    const starField = new THREE.Points(starGeometry, own(new THREE.PointsMaterial({ size: 1.85, vertexColors: true, transparent: true, opacity: .85, depthWrite: false, toneMapped: false })));
     starField.name = 'distant-stars'; starField.renderOrder = -10;
     celestial.add(starField);
 
-    const planetMaterial = sectorPalette.texture === 'ocean'
-      ? surface(sectorPalette.planet, { roughness: 1, metalness: 0, flatShading: false, emissive: sectorPalette.atmosphere, emissiveIntensity: .018 })
-      : mineral(sectorPalette.planet, .38, 1.45);
+    const planetMaterial = sectorPalette.texture === 'moon' ? mineral(sectorPalette.planet, .25, 2.25) : surface(sectorPalette.planet, {
+      roughness: sectorPalette.texture === 'ocean' ? .77 : .94, metalness: 0, flatShading: false,
+    });
     if (sectorPalette.texture === 'ocean') {
       planetMaterial.onBeforeCompile = shader => {
         shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
           #ifdef USE_MAP
-            vec3 oceanColor = texture2D(map, vMapUv).rgb * vec3(.88,.96,1.03);
-            diffuseColor.rgb *= mix(vec3(.06,.15,.28), oceanColor, .86);
+            vec3 oceanColor = texture2D(map, vMapUv).rgb;
+            diffuseColor.rgb *= oceanColor * vec3(.8,.96,1.12);
           #endif
         `);
       };
-      planetMaterial.customProgramCacheKey = () => 'natural-ocean-v2';
+      planetMaterial.customProgramCacheKey = () => 'natural-ocean-v4';
+    } else if (sectorPalette.texture === 'gas') {
+      planetMaterial.onBeforeCompile = shader => {
+        shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
+          #ifdef USE_MAP
+            vec3 bands = texture2D(map, vMapUv).rgb;
+            float value = dot(bands, vec3(.2126,.7152,.0722));
+            diffuseColor.rgb *= mix(vec3(value), bands, .25) * vec3(.92,.95,1.14);
+          #endif
+        `);
+      };
+      planetMaterial.customProgramCacheKey = () => 'cold-gas-v4';
     }
     planetMaterial.flatShading = false;
     const radius = sectorPalette.planetRadius;
-    primaryPlanet = addMesh(celestial, geometry(THREE.SphereGeometry, radius, 64, 40), planetMaterial, sectorPalette.planetPosition);
-    primaryPlanet.name = 'biome-planet'; primaryPlanet.rotation.z = -.18;
+    primaryPlanet = addMesh(celestial, geometry(THREE.SphereGeometry, radius, 72, 48), planetMaterial, sectorPalette.planetPosition);
+    primaryPlanet.name = 'biome-planet'; primaryPlanet.rotation.z = currentLayout.biomeId === 'vesper' ? -.48 : -.18;
     texture(sectorPalette.texture, [planetMaterial], {
+      bump: sectorPalette.texture === 'moon' ? .15 : 0,
       onLoad: image => {
         if (clouds) { clouds.material.uniforms.cloudMap.value = image; clouds.material.uniforms.cloudReady.value = 1; }
       },
     });
-    if (sectorPalette.texture === 'moon') texture('moonNormal', [planetMaterial], { slot: 'normalMap' });
+    const lightDirection = skySun.position.clone().normalize();
     const atmosphere = own(new THREE.ShaderMaterial({
-      uniforms: { tint: { value: new THREE.Color(sectorPalette.atmosphere) } },
-      vertexShader: `varying vec3 n; varying vec3 v; void main(){ vec4 p = modelViewMatrix * vec4(position,1.0); n = normalize(normalMatrix * normal); v = -p.xyz; gl_Position = projectionMatrix * p; }`,
-      fragmentShader: `uniform vec3 tint; varying vec3 n; varying vec3 v; void main(){ float rim = 1.0 - abs(dot(normalize(n), normalize(v))); gl_FragColor = vec4(tint, pow(rim, 5.) * .48); }`,
+      uniforms: { tint: { value: new THREE.Color(sectorPalette.atmosphere).multiplyScalar(currentLayout.biomeId === 'nereida' ? 2.3 : 1.5) }, sunlight: { value: lightDirection }, strength: { value: currentLayout.biomeId === 'umbra' ? .45 : .88 } },
+      vertexShader: `varying vec3 n; varying vec3 v; varying vec3 wn;
+        void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);wn=normalize(mat3(modelMatrix)*normal);v=-p.xyz;gl_Position=projectionMatrix*p;}`,
+      fragmentShader: `uniform vec3 tint;uniform vec3 sunlight;uniform float strength;varying vec3 n;varying vec3 v;varying vec3 wn;
+        void main(){float rim=1.-abs(dot(normalize(n),normalize(v)));float day=.38+.62*max(0.,dot(normalize(wn),sunlight));gl_FragColor=vec4(tint,pow(rim,5.)*strength*day);}`,
       transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
     }));
-    const halo = addMesh(celestial, geometry(THREE.SphereGeometry, radius * 1.018, 48, 32), atmosphere);
-    halo.position.copy(primaryPlanet.position);
+    const halo = addMesh(celestial, geometry(THREE.SphereGeometry, radius * 1.021, 64, 48), atmosphere);
+    halo.name = 'planet-atmosphere'; halo.position.copy(primaryPlanet.position);
     if (currentLayout.biomeId === 'nereida') {
       const cloudMaterial = own(new THREE.ShaderMaterial({
-        uniforms: { cloudMap: { value: null }, cloudReady: { value: 0 } },
-        vertexShader: `varying vec2 cloudUV; varying vec3 n; void main(){cloudUV=uv;n=normalMatrix*normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader: `uniform sampler2D cloudMap; uniform float cloudReady; varying vec2 cloudUV; varying vec3 n; void main(){
-          vec3 archivedCloud=texture2D(cloudMap,cloudUV).rgb;
-          float cloud=smoothstep(.32,.72,min(min(archivedCloud.r,archivedCloud.g),archivedCloud.b))*.13*cloudReady;
-          float daylight=.2+.8*max(0.,dot(normalize(n),normalize(vec3(-.5,.6,.8))));
-          gl_FragColor=vec4(vec3(.86,.93,1.)*daylight,cloud);
-        }`, transparent: true, depthWrite: false,
+        uniforms: { cloudMap: { value: null }, cloudReady: { value: 0 }, sunlight: { value: lightDirection } },
+        vertexShader: `varying vec2 cloudUV;varying vec3 wn;void main(){cloudUV=uv;wn=mat3(modelMatrix)*normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+        fragmentShader: `uniform sampler2D cloudMap;uniform float cloudReady;uniform vec3 sunlight;varying vec2 cloudUV;varying vec3 wn;
+          void main(){vec3 archive=texture2D(cloudMap,cloudUV).rgb;float cloud=smoothstep(.45,.8,min(min(archive.r,archive.g),archive.b))*.19*cloudReady;
+          float day=.09+.91*max(0.,dot(normalize(wn),sunlight));gl_FragColor=vec4(vec3(.88,.94,1.)*day,cloud);}`,
+        transparent: true, depthWrite: false,
       }));
-      clouds = addMesh(celestial, geometry(THREE.SphereGeometry, radius * 1.003, 48, 32), cloudMaterial);
+      clouds = addMesh(celestial, geometry(THREE.SphereGeometry, radius * 1.004, 56, 40), cloudMaterial);
       clouds.position.copy(primaryPlanet.position); clouds.rotation.z = -.18;
     } else if (currentLayout.biomeId === 'vesper') {
       const ringMaterial = own(new THREE.ShaderMaterial({
-        uniforms: { tint: { value: new THREE.Color(0x827794) } },
-        vertexShader: `varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader: `uniform vec3 tint;varying vec3 p;void main(){float r=length(p.xy);float band=.15+.25*(sin(r*1.8)*.5+.5);float edge=smoothstep(146.,153.,r)*(1.-smoothstep(206.,220.,r));gl_FragColor=vec4(tint,band*edge);}`,
+        uniforms: { tint: { value: new THREE.Color(0xb5abc9) } },
+        vertexShader: `varying vec3 p;varying vec3 wp;void main(){p=position;wp=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+        fragmentShader: `uniform vec3 tint;varying vec3 p;varying vec3 wp;
+          void main(){float r=length(p.xy);float grain=.72+.18*sin(r*2.9)+.10*sin(r*9.1);
+          float bands=mix(.16,.54,smoothstep(.1,.8,sin(r*.22)*.5+.5));
+          float gap=1.-.84*exp(-pow((r-188.)*.48,2.));float edge=smoothstep(141.,148.,r)*(1.-smoothstep(229.,238.,r));
+          float lit=.65+.35*smoothstep(-180.,120.,-p.x+p.y*.3);gl_FragColor=vec4(tint*lit,grain*bands*gap*edge);}`,
         side: THREE.DoubleSide, transparent: true, depthWrite: false,
       }));
-      const planetaryRing = addMesh(celestial, geometry(THREE.RingGeometry, 146, 220, 96, 1), ringMaterial);
+      const planetaryRing = addMesh(celestial, geometry(THREE.RingGeometry, 141, 238, 128, 1), ringMaterial);
       planetaryRing.name = 'fractured-orbital-ring'; planetaryRing.position.copy(primaryPlanet.position);
-      planetaryRing.rotation.set(1.08, .24, -.55);
+      planetaryRing.rotation.set(1.05, -.21, -.48);
     }
-    const moonMaterial = mineral(currentLayout.biomeId === 'umbra' ? 0xb8a3a0 : 0xa1a7b1, .38, 1.45);
+    const moonMaterial = mineral(currentLayout.biomeId === 'umbra' ? 0xc0a897 : 0xc0c5d1, .45, 1.05);
     moonMaterial.flatShading = false;
-    const moon = addMesh(celestial, geometry(THREE.IcosahedronGeometry, sectorPalette.moonRadius, 3), moonMaterial, sectorPalette.moonPosition);
-    moon.name = 'distant-moon'; moon.rotation.set(.1, 1.8, .3); texture('moon', [moonMaterial]);
-    texture('moonNormal', [moonMaterial], { slot: 'normalMap' });
+    const moon = addMesh(celestial, geometry(THREE.SphereGeometry, sectorPalette.moonRadius, 36, 24), moonMaterial, sectorPalette.moonPosition);
+    moon.name = 'distant-moon'; moon.rotation.set(.1, 1.8, .3); texture('moon', [moonMaterial], { bump: .09 });
 
-    // Dust and rocks occupy real metres. This parallax supplies speed cues in inertial flight.
-    const dustPoints = [];
-    for (let i = 0; i < 190; i++) dustPoints.push((random()-.5)*100, (random()-.5)*55, 30-random()*145);
+    // A small luminous sun stays on the celestial layer, so a short traverse
+    // cannot sweep the light source across the player's view.
+    const sunlight = own(new THREE.ShaderMaterial({
+      uniforms: { tint: { value: new THREE.Color(sectorPalette.sun) } },
+      vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader: `uniform vec3 tint;varying vec2 vUv;void main(){float r=length(vUv-.5)*2.;float core=1.-smoothstep(.025,.09,r);float corona=exp(-r*8.)*.28;gl_FragColor=vec4(tint*(1.4+core*2.),(core+corona)*(1.-smoothstep(.7,1.,r)));}`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+    }));
+    const sunDisc = addMesh(celestial, geometry(THREE.PlaneGeometry, 220, 220), sunlight, [-355, 215, -640]);
+    sunDisc.name = 'distant-sun'; sunDisc.lookAt(0,0,0);
+
+    // Metre-scale dust has real parallax. Mineral motes and beacon flecks share
+    // this single, depth-tested point draw instead of stacking transparent fog.
+    const forms = createRockFormations(random);
+    const dustPoints = [], dustColors = [], moteColor = new THREE.Color();
+    const point = (x,y,z,color,intensity=1) => {
+      dustPoints.push(x,y,z); moteColor.set(color).multiplyScalar(intensity); dustColors.push(moteColor.r,moteColor.g,moteColor.b);
+    };
+    for (let i=0;i<210;i++) point((random()-.5)*100,(random()-.5)*48,25-random()*140,sectorPalette.accent,.42+random()*.3);
+    const mote = new THREE.Vector3();
+    for (const form of forms) for (let i=0;i<12;i++) {
+      mote.set((random()-.5)*2.5,.25+(random()-.5)*1.3,(random()-.5)*2.5).applyMatrix4(form.matrix);
+      point(mote.x,mote.y,mote.z,sectorPalette.sun,.4+random()*.6);
+    }
+    for (let i=0;i<18;i++) {
+      const angle=random()*Math.PI*2, radius=1.6+random()*1.1;
+      point(currentLayout.beacon.x+Math.cos(angle)*radius,currentLayout.beacon.y+(random()-.5)*2.5,currentLayout.beacon.z+Math.sin(angle)*radius,0x94f5e0,.7);
+    }
     const dustGeometry = own(new THREE.BufferGeometry());
-    dustGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dustPoints, 3));
-    dust = new THREE.Points(dustGeometry, own(new THREE.PointsMaterial({ color: sectorPalette.accent, size: .045, transparent: true, opacity: .23, depthWrite: false })));
-    dust.name = 'nearby-space-dust'; background.add(dust);
-    createRockFormations(random);
+    dustGeometry.setAttribute('position',new THREE.Float32BufferAttribute(dustPoints,3));
+    dustGeometry.setAttribute('color',new THREE.Float32BufferAttribute(dustColors,3));
+    const dustMaterial = own(new THREE.PointsMaterial({ vertexColors:true,size:.075,transparent:true,opacity:.42,depthWrite:false,toneMapped:false }));
+    dustMaterial.onBeforeCompile = shader => {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <map_particle_fragment>', `
+        #include <map_particle_fragment>
+        float dustRadius = length(gl_PointCoord * 2. - 1.);
+        if (dustRadius >= 1.) discard;
+        diffuseColor.a *= pow(1. - smoothstep(.06, 1., dustRadius), 1.5);
+      `);
+    };
+    dustMaterial.customProgramCacheKey = () => 'soft-mineral-dust-v1';
+    dust = new THREE.Points(dustGeometry, dustMaterial);
+    dust.name='nearby-space-dust';background.add(dust);
   }
 
-  function rockGeometry(flatTop = false) {
-    const shape = geometry(THREE.IcosahedronGeometry, 1, flatTop ? 2 : 1);
+  function rockGeometry(style = 'boulder', detail = 1, variation = 0) {
+    const shape = geometry(THREE.IcosahedronGeometry, 1, detail);
     const positions = shape.attributes.position;
+    const softCut = (a, b) => Math.min(a, b) - Math.max(.16 - Math.abs(a - b), 0) ** 2 / .64;
     for (let i = 0; i < positions.count; i++) {
       const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
-      const bump = 1 + .12 * Math.sin(x * 17 + y * 13 + z * 23) + .065 * Math.sin(x * 31 - z * 11);
-      positions.setXYZ(i, x * bump, flatTop && y > .3 ? .47 + (y - .3) * .15 : y * bump, z * bump);
+      const grain = .038 * Math.sin(x * 14.7 + z * 6.2 + variation) * Math.cos(y * 12.1 - z * 3.7);
+      const fracture = 1 + .16 * Math.sin(x * 4.6 + y * 3.1 + variation) + .09 * Math.sin(z * 7.2 - y * 2.4 + variation*.7) + grain;
+      let px=x*fracture, py=y*fracture, pz=z*fracture;
+      if (style === 'mesa') {
+        // Eroded fracture planes keep the asymmetric silhouette while rounding
+        // their joins; shallow relief prevents broad surfaces reading as slabs.
+        px=softCut(px,.74+y*.12+z*.16+grain);
+        py=softCut(py,.62+x*.24-z*.13+grain);
+        pz=-softCut(-pz,.79-x*.17+y*.11-grain);
+        px += Math.max(0,-y)*.09*Math.sin(variation+1.2);
+      } else if (style === 'shard') {
+        px*=.78+.18*Math.cos(y*3.+variation);pz*=.87+.13*Math.sin(y*2.7+variation);
+        py=softCut(py,.89+x*.2+grain);
+      }
+      positions.setXYZ(i,px,py,pz);
     }
     shape.computeVertexNormals();
+    // Each cut receives a coherent planar UV patch. Flattening the island tops
+    // therefore cannot stretch the old spherical UVs across an entire ledge.
+    const normal = shape.attributes.normal, uv = shape.attributes.uv;
+    const colors = [];
+    for (let i = 0; i < positions.count; i += 3) {
+      const nx = Math.abs(normal.getX(i)), ny = Math.abs(normal.getY(i)), nz = Math.abs(normal.getZ(i));
+      for (let j = 0; j < 3; j++) {
+        const vertex = i + j;
+        const u = nx > ny && nx > nz ? positions.getZ(vertex) : positions.getX(vertex);
+        const v = ny > nx && ny > nz ? positions.getZ(vertex) : positions.getY(vertex);
+        uv.setXY(vertex, u * .5 + .5, v * .5 + .5);
+        const shade = .93 + .04 * Math.sin(positions.getX(vertex) * 4.3 + positions.getY(vertex) * 5.7 + variation * 7.1);
+        colors.push(shade, shade * .985, shade * .97);
+      }
+    }
+    // IcosahedronGeometry duplicates its vertices for UV islands. Average their
+    // normals by position, so those seams never appear as giant flat triangles.
+    const joins = new Map(), keys = [];
+    for (let i = 0; i < positions.count; i++) {
+      const key = [positions.getX(i), positions.getY(i), positions.getZ(i)].map(n => Math.round(n * 1e5)).join(',');
+      keys.push(key);
+      if (!joins.has(key)) joins.set(key, new THREE.Vector3());
+      joins.get(key).add(new THREE.Vector3().fromBufferAttribute(normal, i));
+    }
+    for (const vector of joins.values()) vector.normalize();
+    for (let i = 0; i < positions.count; i++) {
+      const vector = joins.get(keys[i]); normal.setXYZ(i, vector.x, vector.y, vector.z);
+    }
+    shape.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    shape.computeBoundingBox(); shape.computeBoundingSphere();
     return shape;
   }
 
   function createRockFormations(random) {
     const biome = currentLayout.biomeId;
     const transform = new THREE.Object3D();
-    const mesa = rockGeometry(biome === 'nereida');
-    const formations = own(new THREE.InstancedMesh(mesa, materials.ambientRock, 13));
-    formations.name = 'authored-rock-formations';
+    const style = biome === 'nereida' ? 'mesa' : biome === 'umbra' ? 'shard' : 'boulder';
+    const shapes = [0,1.8,4.1].map(variation=>rockGeometry(style,9,variation));
+    const secondary = rockGeometry(style, 4, 1.7);
+    // Nearby silhouettes stay beyond the playable envelope (x ±50, y ±22,
+    // z -90..35). Their tops enter the lower frame, never a mandatory route.
+    // The central formations are beyond the corridor exit at z=-80.
     const islands = [
-      [-58,-49,12,7,10,9], [66,-52,-6,8,11,10],
-      [-30,-48,-91,10,15,12], [37,-49,-124,12,17,14], [-42,-54,-159,12,20,14],
-      [-98,-11,-142,8,17,13], [110,-19,-184,9,18,15],
-      [-65,-65,-202,16,19,17], [58,-67,-224,17,18,19],
-      [-124,16,-251,13,25,18], [137,7,-277,17,18,22],
-      [-18,-89,-302,23,20,22], [84,-73,-343,23,19,21],
+      [-49,-43,-35,21,21,17], [58,-45,-53,17,20,16],
+      [-31,-41,-78,17,16,15], [41,-47,-98,19,17,17],
+      [-71,7,-69,18,24,18], [76,-7,-108,17,23,17],
+      [-85,-24,-145,26,22,22], [103,-29,-183,25,23,25],
+      [-112,38,-226,23,18,19], [51,-81,-239,25,25,28],
+      [-150,4,-267,34,31,29], [169,-17,-291,32,26,28],
+      [-49,-105,-329,39,31,32], [149,60,-351,25,23,28],
     ];
+    const forms = [];
+    const batches=shapes.map((shape,index)=>{
+      const batch=own(new THREE.InstancedMesh(shape,materials.ambientRock,Math.ceil((islands.length-index)/3)));
+      batch.name=index===0?'authored-rock-formations':`fractured-rock-formations-${index}`;
+      batch.castShadow=true;batch.receiveShadow=true;background.add(batch);return batch;
+    });
+    const color = new THREE.Color();
     for (let i = 0; i < islands.length; i++) {
       const [x,y,z,sx,sy,sz] = islands[i];
-      transform.position.set(x,y,z);
-      // All forms remain below/beside the flight bounds, even with their detail chunks.
+      transform.position.set(x,y,z); transform.rotation.set(0, .22+i*.71, 0);
       if (biome === 'vesper') {
-        transform.scale.set(sx * .72, sy * .7, sz * 1.25);
-        if (y < -20) transform.position.y -= 6;
-        transform.rotation.set(.12, .12, x < 0 ? -.25 : .25);
+        transform.scale.set(sx*.9, sy*.64, sz*1.18);
+        transform.rotation.set(.14,.12,x<0 ? -.31 : .31);
+        if (z < -120) transform.position.y += x * .3 + 13;
       } else if (biome === 'umbra') {
-        transform.scale.set(sx * .7, sy * 1.12, sz * .7);
-        transform.position.y -= 12;
-        transform.rotation.set(.06, .6, .1);
-      } else { transform.scale.set(sx,sy,sz); transform.rotation.set(0,.2+i*.71,0); }
-      transform.updateMatrix(); formations.setMatrixAt(i, transform.matrix);
+        transform.scale.set(sx*.74, sy*1.25, sz*.82);
+        transform.rotation.set(.08,.6,i%2 ? -.12 : .1);
+      } else transform.scale.set(sx,sy,sz);
+      // Bound the rotated vertices, rather than assuming a particular shape's
+      // height, so even the tilted Vesper plates cannot breach the flight volume.
+      transform.updateMatrix();
+      const shape=shapes[i%3],formations=batches[i%3];
+      const bound = shape.boundingBox.clone().applyMatrix4(transform.matrix);
+      if (bound.max.z > -94) {
+        if (i === 4 || i === 5) {
+          const shift = x < 0 ? -52-bound.max.x : 52-bound.min.x;
+          transform.position.x += shift;
+        } else transform.position.y -= Math.max(0, bound.max.y + 24);
+      }
+      transform.updateMatrix(); formations.setMatrixAt(Math.floor(i/3), transform.matrix);
+      color.setScalar(.83 + random()*.25); formations.setColorAt(Math.floor(i/3),color);
+      forms.push({ matrix: transform.matrix.clone(), scale: transform.scale.clone() });
     }
-    formations.instanceMatrix.needsUpdate = true; background.add(formations);
+    for(const batch of batches)batch.instanceMatrix.needsUpdate=true;
 
-    const debris = own(new THREE.InstancedMesh(rockGeometry(), materials.ambientRock, 140));
-    debris.name = biome === 'vesper' ? 'diagonal-fracture-belt' : 'decorative-asteroid-belt';
-    for (let i = 0; i < debris.count; i++) {
-      const side = random() < .5 ? -1 : 1;
-      const z = -28 - random() * 300;
-      const size = .18 + random() ** 2 * 2.2;
-      if (biome === 'vesper') {
-        const spread = random() * 2 - 1;
-        transform.position.set(side*(70+random()*58), spread*20 + side*17, z);
-      } else transform.position.set(side*(43+random()*80), -41-random()*38, z);
-      transform.rotation.set(random()*6,random()*6,random()*6);
-      transform.scale.set(size,size*(.55+random()*.55),size*(.65+random()*.55));
-      transform.updateMatrix(); debris.setMatrixAt(i, transform.matrix);
-    }
-    debris.instanceMatrix.needsUpdate = true; background.add(debris);
-
-    // Two tones in fractured ledges give the distant forms depth without texture or draw-call cost.
-    const chips = own(new THREE.InstancedMesh(geometry(THREE.IcosahedronGeometry, 1, 0), materials.rockEdges, 32));
-    chips.name = 'rock-strata';
+    // Satellite slabs stay attached to the same transforms and material family,
+    // giving every large island a broken silhouette in a single additional draw.
+    const chips = own(new THREE.InstancedMesh(secondary, materials.rockEdges, 28));
+    chips.name = 'rock-strata'; chips.receiveShadow = true;
+    const local = new THREE.Object3D(), matrix = new THREE.Matrix4();
     for (let i=0;i<chips.count;i++) {
-      const source = islands[i % islands.length];
-      transform.position.set(source[0]+(random()-.5)*source[3]*1.1, source[1]+(random()-.5)*source[4]*.65, source[2]+(random()-.5)*source[5]*1.1);
-      const size = .5 + random()*1.4;
-      transform.scale.set(size*1.8,size*.38,size);
-      transform.rotation.set(.2,random()*6,(random()-.5)*.3);
-      transform.updateMatrix(); chips.setMatrixAt(i,transform.matrix);
+      const form = forms[i % forms.length];
+      local.position.set((random()-.5)*.8, -.27-random()*.35, (random()-.5)*.8);
+      local.scale.set(.17+random()*.18,.13+random()*.13,.19+random()*.16);
+      local.rotation.set(.12,random()*6,.08);
+      local.updateMatrix(); matrix.multiplyMatrices(form.matrix,local.matrix);
+      chips.setMatrixAt(i,matrix);
     }
     chips.instanceMatrix.needsUpdate = true; background.add(chips);
+
+    const debris = own(new THREE.InstancedMesh(secondary, materials.ambientRock, 176));
+    debris.name = biome === 'vesper' ? 'diagonal-fracture-belt' : 'decorative-asteroid-belt';
+    debris.receiveShadow = false;
+    for (let i = 0; i < debris.count; i++) {
+      const z = -105-random()*260;
+      const size = .28+random()**2*3.2;
+      const x = (random()-.5)*225;
+      if (biome === 'vesper') transform.position.set(x, x*.28-9+(random()-.5)*24,z);
+      else transform.position.set(x,-27-random()*43,z);
+      transform.rotation.set(random()*6,random()*6,random()*6);
+      transform.scale.set(size,size*(biome === 'umbra' ? 1.5 : .7),size*(.7+random()*.5));
+      transform.updateMatrix(); debris.setMatrixAt(i,transform.matrix);
+      color.setScalar(.72+random()*.4); debris.setColorAt(i,color);
+    }
+    debris.instanceMatrix.needsUpdate = true; background.add(debris);
+    return forms;
   }
 
   function createTarget(spec, kind, random) {
@@ -362,25 +594,25 @@ export function createSectorWorld(scene) {
     const radius = spec.radius;
     const isLarge = kind === 'large';
     const isHazard = kind === 'hazard';
-    const body = addMesh(object, geometry(THREE.IcosahedronGeometry, radius * 0.89, isLarge ? 1 : 0), isHazard ? materials.hazardRock : materials.targetRock);
+    let body;
+    if (assetTemplates) {
+      body = assetTemplates[isHazard || isLarge ? 'base' : 'rock'].clone(true);
+      body.scale.setScalar(radius * .94);
+      body.traverse(part => {
+        if (!part.isMesh) return;
+        if (isHazard || isLarge) part.material = isHazard ? materials.importedHazard : materials.importedCore;
+      });
+      object.add(body);
+    } else {
+      const shape = rockGeometry(isHazard ? 'shard' : 'boulder', isLarge ? 2 : 1, random() * 6);
+      const bodyScale = radius * .94 / (shape.boundingSphere.radius + shape.boundingSphere.center.length());
+      shape.scale(bodyScale, bodyScale, bodyScale);
+      body = addMesh(object, shape, isHazard ? materials.hazardRock : materials.targetRock);
+      body.castShadow = true; body.receiveShadow = true;
+    }
     body.rotation.set(random() * 2, random() * 2, random() * 2);
-    body.scale.set(1, 0.88, 0.95);
-    const oreMaterial = isHazard ? materials.hazard : isLarge ? materials.amber : materials.cyan;
-    const ore = own(new THREE.InstancedMesh(geometry(THREE.OctahedronGeometry, radius * (isLarge ? 0.28 : 0.23), 0), oreMaterial, isLarge ? 5 : 3));
-    const transform = new THREE.Object3D();
-    for (let i = 0; i < ore.count; i++) {
-      const angle = (i / ore.count) * Math.PI * 2;
-      transform.position.set(Math.cos(angle) * radius * 0.65, Math.sin(angle) * radius * 0.56, radius * 0.37);
-      transform.rotation.set(0, angle, angle * 0.5);
-      transform.scale.set(0.65, isHazard ? 1.5 : 1.15, 0.8);
-      transform.updateMatrix();
-      ore.setMatrixAt(i, transform.matrix);
-    }
-    body.add(ore);
-    if (!isHazard) {
-      const marker = addRing(object, radius * 1.13, 0.018, isLarge ? materials.amberLine : materials.cyanLine, [0, 0, 0], false, isLarge ? 6 : 32);
-      marker.rotation.set(0.2, 0.25, isLarge ? Math.PI / 6 : 0);
-    }
+    // The imported surface itself defines the target: no floating ore pieces or
+    // decorative circles extend beyond the unchanged collision sphere.
     object.traverse(part => { part.userData.id = spec.id; part.userData.targetId = spec.id; part.userData.kind = kind; });
     object.userData.basePosition = object.position.clone();
     object.userData.driftPhase = random() * Math.PI * 2;
@@ -403,34 +635,43 @@ export function createSectorWorld(scene) {
     beacon.position.copy(positionFrom(currentLayout.beacon));
     beacon.userData.kind = 'beacon';
     beacon.userData.scanProgress = 0;
-    addMesh(beacon, geometry(THREE.CylinderGeometry, 0.75, 1.1, 0.35, 8), materials.graphite, [0, -0.85, 0]);
-    addMesh(beacon, geometry(THREE.CylinderGeometry, 0.3, 0.42, 1.15, 6), materials.ivory, [0, -0.14, 0]);
-    addMesh(beacon, geometry(THREE.CylinderGeometry, 0.51, 0.36, 0.2, 8), materials.copper, [0, 0.49, 0]);
-    addMesh(beacon, geometry(THREE.OctahedronGeometry, 0.42), materials.beaconGlow, [0, 0.94, 0]);
-    addRing(beacon, 0.76, 0.04, materials.ivory, [0, 0.94, 0], true, 12);
-    addRing(beacon, 1.38, 0.025, materials.beaconGlow, [0, -0.73, 0], true);
-    beaconSweep = addRing(beacon, 1.72, 0.018, materials.beaconLine, [0, 0.6, 0], true);
-    const arms = own(new THREE.InstancedMesh(geometry(THREE.BoxGeometry, 0.17, 0.16, 1.12), materials.graphite, 3));
-    const transform = new THREE.Object3D();
-    for (let i = 0; i < 3; i++) {
-      const angle = i * Math.PI * 2 / 3;
-      transform.position.set(Math.sin(angle) * 0.85, -0.58, Math.cos(angle) * 0.85);
-      transform.rotation.y = angle;
-      transform.updateMatrix();
-      arms.setMatrixAt(i, transform.matrix);
+    if (assetTemplates) beacon.add(assetTemplates.beacon.clone(true));
+    else {
+      addMesh(beacon, geometry(THREE.CylinderGeometry, .30, .40, 1.45, 8), materials.ivory, [0, -.18, 0]);
+      addMesh(beacon, geometry(THREE.CylinderGeometry, .45, .34, .24, 8), materials.copper, [0, .64, 0]);
+      for (let i = 0; i < 3; i++) {
+        const angle = i * Math.PI * 2 / 3;
+        const leg = addMesh(beacon, geometry(THREE.BoxGeometry, .15, .15, 1.15), materials.graphite,
+          [Math.sin(angle) * .62, -.96, Math.cos(angle) * .62]);
+        leg.rotation.y = angle;
+      }
     }
-    arms.instanceMatrix.needsUpdate = true;
-    beacon.add(arms);
+    // A compact navigation lamp on the upper housing communicates scanning;
+    // it is geometry on the beacon, not a screen-facing halo or orbiting ring.
+    beaconSignal = addMesh(beacon, geometry(THREE.SphereGeometry, .026, 12, 8), materials.beaconGlow, [0, 1.208, 0]);
+    beaconSignal.name = 'beacon-signal-lamp';
+    beaconLight = new THREE.PointLight(0x83f4e5, 1.2, 3.5, 2); beaconLight.position.copy(beaconSignal.position); beacon.add(beaconLight);
   }
 
   function createGem() {
     gem.position.copy(positionFrom(currentLayout.gem));
     gem.userData.kind = 'gem';
-    gemCrystal = addMesh(gem, geometry(THREE.OctahedronGeometry, 0.66), materials.gem);
-    gemCrystal.scale.set(0.72, 1.45, 0.72);
-    addRing(gem, 1.22, 0.023, materials.cyanLine, [0, 0, 0], true);
-    const outerRing = addRing(gem, 1.38, 0.017, materials.cyanLine);
-    outerRing.rotation.y = Math.PI / 4;
+    const rings = [[-.66, 0], [-.27, .30], [.19, .38], [.47, .23], [.68, 0]], positions = [];
+    const vertex = (ring, side) => {
+      const [y, radius] = rings[ring], angle = side * Math.PI / 3;
+      return [Math.cos(angle) * radius, y, Math.sin(angle) * radius * .86];
+    };
+    for (let row = 0; row < rings.length - 1; row++) for (let side = 0; side < 6; side++) {
+      const a = vertex(row, side), b = vertex(row, side + 1), c = vertex(row + 1, side), d = vertex(row + 1, side + 1);
+      if (rings[row][1] > 0) positions.push(...a, ...c, ...b);
+      if (rings[row + 1][1] > 0) positions.push(...b, ...c, ...d);
+    }
+    const crystalShape = own(new THREE.BufferGeometry());
+    crystalShape.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); crystalShape.computeVertexNormals();
+    gemCrystal = new THREE.Group(); gemCrystal.name = 'faceted-relic-crystal'; gem.add(gemCrystal);
+    const shell = addMesh(gemCrystal, crystalShape, materials.gem); shell.renderOrder = 2;
+    const heart = addMesh(gemCrystal, geometry(THREE.OctahedronGeometry, .19), materials.gemHeart);
+    heart.scale.set(.8, 1.5, .7); heart.rotation.y = Math.PI / 6;
   }
 
   function createCorridor() {
@@ -459,12 +700,18 @@ export function createSectorWorld(scene) {
     }
     brackets.instanceMatrix.needsUpdate = true;
     gate.add(brackets);
-    const guidePoints = [];
-    for (const side of [-1, 1]) {
-      guidePoints.push(new THREE.Vector3(side * 8.7, -0.35, 0), new THREE.Vector3(side * 8.7 + corridorEnd.x, corridorEnd.y - 0.35, corridorEnd.z));
+    const railPoints=[];
+    for (let i=0;i<12;i++) {
+      const angle=i*Math.PI/6;const x=Math.cos(angle)*8.7,y=Math.sin(angle)*8.7;
+      railPoints.push(new THREE.Vector3(x,y,0),new THREE.Vector3(x,y,0).add(corridorEnd));
     }
-    const guides = new THREE.LineSegments(own(new THREE.BufferGeometry().setFromPoints(guidePoints)), own(new THREE.LineBasicMaterial({ color: sectorPalette.accent, transparent: true, opacity: 0.22, depthWrite: false })));
-    gate.add(guides);
+    const rails=new THREE.LineSegments(own(new THREE.BufferGeometry().setFromPoints(railPoints)),materials.gateRail);
+    rails.name='corridor-depth-rails';gate.add(rails);
+    const streakPositions=new Float32Array(48*6);
+    const streakGeometry=own(new THREE.BufferGeometry());
+    streakGeometry.setAttribute('position',new THREE.BufferAttribute(streakPositions,3).setUsage(THREE.DynamicDrawUsage));
+    transitStreaks=new THREE.LineSegments(streakGeometry,own(new THREE.LineBasicMaterial({ color:sectorPalette.accent,transparent:true,opacity:.55,depthWrite:false,toneMapped:false })));
+    transitStreaks.name='transit-star-streaks';transitStreaks.visible=false;transitStreaks.frustumCulled=false;gate.add(transitStreaks);
   }
 
   function load(layout) {
@@ -477,26 +724,41 @@ export function createSectorWorld(scene) {
     const random = randomForLayout(layout);
     materials = {
       ivory: surface(0xe5e1cd), graphite: surface(0x22333e), copper: surface(0xba8154, { metalness: 0.55 }),
-      ambientRock: mineral(sectorPalette.rock),
-      rockEdges: surface(new THREE.Color(sectorPalette.rock).multiplyScalar(1.26), { roughness: .96, metalness: 0 }),
+      ambientRock: triplanarMineral(sectorPalette.rock, 0x000000, 0),
+      rockEdges: triplanarMineral(new THREE.Color(sectorPalette.rock).multiplyScalar(1.07), 0x000000, 0),
       hazardTrail: own(new THREE.LineBasicMaterial({ color: 0xb67957, transparent: true, opacity: .16, depthWrite: false })),
       targetRock: mineral(0x859294),
       hazardRock: mineral(0x765646),
       cyan: surface(0x8de7ef, { emissive: 0x45cbd7, emissiveIntensity: 0.75, roughness: 0.3 }),
       amber: surface(0xffd180, { emissive: 0xffa52d, emissiveIntensity: 0.9, roughness: 0.3 }),
       hazard: surface(0xff8853, { emissive: 0xef4428, emissiveIntensity: 1.2 }),
-      gem: surface(0xbbfff0, { emissive: 0x4de0c9, emissiveIntensity: 1.15, metalness: 0.4, roughness: 0.2 }),
+      gem: own(new THREE.MeshPhysicalMaterial({ color: 0x94efd9, emissive: 0x167c74, emissiveIntensity: .22,
+        metalness: .08, roughness: .12, clearcoat: 1, clearcoatRoughness: .08, ior: 1.46,
+        transparent: true, opacity: .83, depthWrite: false, flatShading: true })),
+      gemHeart: surface(0xd7fff2, { emissive: 0x54d9bf, emissiveIntensity: .95, roughness: .24, metalness: .15 }),
+      importedCore: triplanarMineral(new THREE.Color(sectorPalette.rock).multiplyScalar(1.14), sectorPalette.accent),
+      importedHazard: triplanarMineral(new THREE.Color(sectorPalette.rock).lerp(new THREE.Color(0x9b6144), .28), 0xb46839),
       cyanLine: glow(0x7ee6e0, 0.55), amberLine: glow(0xffcd79, 0.6),
-      beaconGlow: glow(0x7ff2e6), beaconLine: glow(0x7ff2e6, 0.5), gateLine: glow(0x496976, 0.45),
+      beaconGlow: surface(0x7ff2e6, { emissive: 0x7ff2e6, emissiveIntensity: 1.8, roughness: .22, metalness: .05, flatShading: false }),
+      beaconLine: glow(0x7ff2e6, 0.5), gateLine: glow(0x496976, 0.45),
+      gateRail: own(new THREE.LineBasicMaterial({ color:sectorPalette.accent,transparent:true,opacity:.07,depthWrite:false })),
     };
     createBackground(random);
-    texture('rock', [materials.ambientRock, materials.targetRock, materials.hazardRock], { repeat: 2.5, bump: .16 });
+    for (const material of [materials.ambientRock,materials.rockEdges,materials.targetRock,materials.hazardRock]) material.vertexColors = true;
+    const neutralGrain = own(new THREE.DataTexture(new Uint8Array([155, 155, 155, 255]), 1, 1));
+    neutralGrain.needsUpdate = true; mineralMap.value = neutralGrain;
+    texture('rock', [materials.targetRock,materials.hazardRock], {
+      repeat: 1.2, bump: .16, onLoad: image => { image.wrapS = image.wrapT = THREE.RepeatWrapping; mineralMap.value = image; },
+    });
     for (const spec of layout.small) createTarget(spec, 'small', random);
     for (const spec of layout.large) createTarget(spec, 'large', random);
     for (const spec of layout.hazards) createTarget(spec, 'hazard', random);
     createBeacon();
     createGem();
     createCorridor();
+    for (const group of [beacon,gem,gate]) group.traverse(object => {
+      if (object.isMesh && object.material.isMeshStandardMaterial) { object.castShadow = true; object.receiveShadow = true; }
+    });
     sync({ phase: 'scan', destroyed: [] }, 0);
   }
 
@@ -527,8 +789,10 @@ export function createSectorWorld(scene) {
     materials.beaconGlow.color.set(scanning ? 0x83f4e5 : 0xc6a36d);
     materials.beaconLine.color.copy(materials.beaconGlow.color);
     materials.beaconLine.opacity = scanning ? 0.25 + Math.sin(time * 2) * 0.14 : 0.12;
-    beaconSweep.position.y = scanning ? -0.2 + Math.sin(time * 1.4) * 0.9 : 0.6;
-    beaconSweep.scale.setScalar(scanning ? 1 + Math.sin(time * 1.4) * 0.09 : 0.65);
+    const signal = scanning ? .65 + Math.sin(time * 2.8) * .25 : .24;
+    beaconSignal.material.emissive.copy(materials.beaconGlow.color);
+    beaconSignal.material.emissiveIntensity = .8 + signal * 1.8;
+    beaconLight.color.set(scanning ? 0x83f4e5 : 0xc6a36d); beaconLight.intensity = signal * 1.35;
     gem.visible = state.phase === 'gem';
     gem.userData.active = gem.visible;
     gem.position.copy(positionFrom(currentLayout.gem));
@@ -539,12 +803,24 @@ export function createSectorWorld(scene) {
     gate.userData.active = open;
     materials.gateLine.color.set(open ? sectorPalette.accent : 0x496976);
     materials.gateLine.opacity = open ? 0.65 + Math.sin(time * 2) * 0.13 : 0.2;
+    materials.gateRail.opacity = open ? .24 : .045;
     for (let i = 0; i < gateRings.length; i++) {
-      gateRings[i].scale.setScalar(open ? 1 + Math.sin(time * 2 - i * 0.8) * 0.013 : 1);
+      gateRings[i].scale.setScalar(open && !reducedMotion ? 1 + Math.sin(time * 2 - i * 0.8) * 0.013 : 1);
+    }
+    transitStreaks.visible = state.phase === 'transit' && !reducedMotion;
+    if (transitStreaks.visible) {
+      const points=transitStreaks.geometry.attributes.position;
+      for (let i=0;i<48;i++) {
+        const angle=i*2.399963, radius=6.2+(i%7)*.22;
+        const z=-((time*18+i*2.13)%38)+6;
+        const x=Math.cos(angle)*radius,y=Math.sin(angle)*radius;
+        points.setXYZ(i*2,x,y,z);points.setXYZ(i*2+1,x,y,z-1.1-(i%4)*.35);
+      }
+      points.needsUpdate=true;
     }
     primaryPlanet.rotation.y = -.4 + time * .00065;
     if (clouds) clouds.rotation.y = -.4 + time * .00092;
-    if (dust) dust.rotation.y = reducedMotion ? 0 : Math.sin(time * .015) * .005;
+    if (dust) dust.material.opacity = reducedMotion ? .37 : .39+Math.sin(time*.45)*.025;
   }
 
   function updateSky(camera) {
@@ -558,10 +834,12 @@ export function createSectorWorld(scene) {
   function dispose() {
     if (disposed) return;
     clearSector();
+    for (const resource of assetResources) resource.dispose();
+    assetResources.clear(); assetTemplates = undefined; mineralMap.value = null;
     root.removeFromParent();
     disposed = true;
     currentLayout = undefined;
   }
 
-  return { load, sync, targets, beacon, gem, gate, hazards, skyScene, skyCamera, updateSky, lighting, dispose };
+  return { loadAssets, load, sync, targets, beacon, gem, gate, hazards, skyScene, skyCamera, updateSky, lighting, dispose };
 }

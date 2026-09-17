@@ -1,0 +1,75 @@
+{
+  "version": "meshy-integrated-v1",
+  "models": [
+    {
+      "file": "asteroide-base.glb",
+      "bytes": 17266736,
+      "triangles": 205612,
+      "sha256": "03c3ee737aaee74c4888e0911d60e6ecc15f1cb4df49b72c887f6c9e84563fed",
+      "images": 0
+    },
+    {
+      "file": "asteroide-marron.glb",
+      "bytes": 13955052,
+      "triangles": 205612,
+      "sha256": "0a410dbaee489552f41e9094e9358a270b1581d3b03014ce86463308f6f85b47",
+      "images": 3
+    },
+    {
+      "file": "astronauta-armado.glb",
+      "bytes": 23448468,
+      "triangles": 215082,
+      "sha256": "4ff5770bf9889f8714bf35f417e7555284057334f4d7d7c2db4031c1c1b8c5a6",
+      "images": 6
+    },
+    {
+      "file": "astronauta-brazos-armado.glb",
+      "bytes": 19548012,
+      "triangles": 128500,
+      "sha256": "698ef8902148e44b9cdefc893742129117012f85a1ac9052d06e3a07c5fcbe35",
+      "images": 6
+    },
+    {
+      "file": "baliza.glb",
+      "bytes": 10225840,
+      "triangles": 124940,
+      "sha256": "14ed72619950c51f798706391ca8b3ead10f54d5e8a2248339e5174da47a5afc",
+      "images": 3
+    },
+    {
+      "file": "cabina-integrada.glb",
+      "bytes": 18778952,
+      "triangles": 348936,
+      "sha256": "4b3efc37e7f0438c3f66e9c2d7b5ca22fe42e00b8cced15aecd7633256191e7d",
+      "images": 5
+    },
+    {
+      "file": "capsula.glb",
+      "bytes": 26803532,
+      "triangles": 643450,
+      "sha256": "e58cee7a9c00245470a0ae420ac27afccc15535b5bb973e2fed48a9f7122cc7b",
+      "images": 3
+    },
+    {
+      "file": "habitat.glb",
+      "bytes": 25996400,
+      "triangles": 609962,
+      "sha256": "d4cb26340638ca627eaf8635458cc498ffa5455b1aa6b687746255ed8bf0ce7f",
+      "images": 3
+    },
+    {
+      "file": "propulsion.glb",
+      "bytes": 39651188,
+      "triangles": 1061624,
+      "sha256": "77cac3af81234dbdda8ed3db3d0d98ddb16280a8a6a8050fd46c20e9a9695df0",
+      "images": 3
+    },
+    {
+      "file": "robot.glb",
+      "bytes": 11131080,
+      "triangles": 148474,
+      "sha256": "9a0d3b2f9a431b687e462bf66a5812ba883427e8f12b597f0dc5386be1e50289",
+      "images": 3
+    }
+  ]
+}

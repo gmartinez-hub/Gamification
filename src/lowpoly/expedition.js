@@ -1,4 +1,5 @@
 import { sweptSphereHit } from './hazards.js';
+import { validCheckpoint } from './checkpoint.js';
 
 // Mission rules use world-space metres and plain data, independently of camera or renderer.
 export const AIM_RANGES = Object.freeze({ astronaut: 30, ship: 70 });
@@ -174,6 +175,16 @@ export function createExpedition(seed = 712069) {
     return true;
   }
 
+  function restoreCheckpoint(saved) {
+    if (!validCheckpoint(saved)) return false;
+    const layout = createLayout(saved.seed, saved.sector);
+    Object.assign(state, { seed: saved.seed, sector: saved.sector, moduleStage: saved.sector + 1,
+      gems: saved.complete ? 3 : saved.sector + Number(saved.gemRecovered),
+      phase: saved.complete ? 'complete' : saved.gemRecovered ? 'return' : 'scan',
+      destroyed: saved.gemRecovered ? [...layout.small, ...layout.large].map(target => target.id) : [], layout });
+    return true;
+  }
+
   function hit(id, actor) {
     const kind = state.phase;
     if (kind !== "small" && kind !== "large") return false;
@@ -215,5 +226,5 @@ export function createExpedition(seed = 712069) {
   }
 
   reset(seed);
-  return { state, scan, hit, collectGem, enterCorridor, finishTransit, reset };
+  return { state, scan, hit, collectGem, enterCorridor, finishTransit, reset, restoreCheckpoint };
 }

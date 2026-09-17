@@ -1,20 +1,15 @@
 import * as THREE from '../../vendor/three.module.js';
 import { SHIP_SCALE, COMPANION_SCALE } from './spatial.js';
+import { palette } from './materials.js';
 
 // All actors face -Z. Navigation owns the outer group; animation only moves
 // its children. The shared palette keeps independently replaceable parts coherent.
-const palette = {
-  ivory: new THREE.MeshStandardMaterial({ color: 0xe5e1cd, roughness: 0.58, metalness: 0.25, flatShading: true }),
-  white: new THREE.MeshStandardMaterial({ color: 0xfff7df, roughness: 0.48, metalness: 0.2, flatShading: true }),
-  graphite: new THREE.MeshStandardMaterial({ color: 0x222e37, roughness: 0.7, metalness: 0.45, flatShading: true }),
-  seam: new THREE.MeshStandardMaterial({ color: 0x101c25, roughness: 0.8, metalness: 0.2 }),
-  teal: new THREE.MeshStandardMaterial({ color: 0x287c82, roughness: 0.5, metalness: 0.38, flatShading: true }),
-  copper: new THREE.MeshStandardMaterial({ color: 0xb87a46, roughness: 0.4, metalness: 0.7, flatShading: true }),
-  glass: new THREE.MeshStandardMaterial({ color: 0x092b4b, emissive: 0x063657, emissiveIntensity: 0.32, roughness: 0.18, metalness: 0.8, flatShading: true }),
-  cyan: new THREE.MeshStandardMaterial({ color: 0x8de7ef, emissive: 0x39bfe9, emissiveIntensity: 2.4, roughness: 0.25, metalness: 0.15 }),
-  amber: new THREE.MeshStandardMaterial({ color: 0xffda7d, emissive: 0xffa72e, emissiveIntensity: 2, roughness: 0.25, metalness: 0.2 }),
-  exhaust: new THREE.MeshStandardMaterial({ color: 0x9feaff, emissive: 0x2caeea, emissiveIntensity: 2.5, transparent: true, opacity: 0.66, depthWrite: false, flatShading: true }),
-};
+const geometryCache = new Map();
+
+function cachedGeometry(key, create) {
+  if (!geometryCache.has(key)) geometryCache.set(key, create());
+  return geometryCache.get(key);
+}
 
 function mesh(parent, name, geometry, material, position = [0, 0, 0]) {
   const part = new THREE.Mesh(geometry, material);
@@ -35,17 +30,35 @@ function group(parent, name, position = [0, 0, 0]) {
 }
 
 function box(parent, name, size, material, position) {
-  return mesh(parent, name, new THREE.BoxGeometry(...size), material, position);
+  const chamfer = Math.min(...size) > .04 && Math.max(...size) > .12
+    && [palette.ivory, palette.white, palette.teal, palette.graphite, palette.rubber, palette.copper].includes(material);
+  const geometry = cachedGeometry(`${chamfer ? 'armor' : 'box'}:${size.join(',')}`, () => {
+    if (!chamfer) return new THREE.BoxGeometry(...size);
+    const [w, h, d] = size;
+    const bevel = Math.min(Math.min(w, h, d) * .18, .045);
+    const shape = new THREE.Shape();
+    shape.moveTo(-w / 2 + bevel, -h / 2 + bevel);
+    shape.lineTo(w / 2 - bevel, -h / 2 + bevel);
+    shape.lineTo(w / 2 - bevel, h / 2 - bevel);
+    shape.lineTo(-w / 2 + bevel, h / 2 - bevel);
+    shape.closePath();
+    const result = new THREE.ExtrudeGeometry(shape, { depth: d - 2 * bevel, bevelEnabled: true, bevelSegments: 1, bevelSize: bevel, bevelThickness: bevel, steps: 1, curveSegments: 1 });
+    result.translate(0, 0, -d / 2 + bevel);
+    return result;
+  });
+  return mesh(parent, name, geometry, material, position);
 }
 
 function cylinder(parent, name, radius, length, material, position, alongZ = false, radiusBack = radius) {
-  const part = mesh(parent, name, new THREE.CylinderGeometry(radius, radiusBack, length, 8), material, position);
+  const geometry = cachedGeometry(`cylinder:${radius},${radiusBack},${length}`, () => new THREE.CylinderGeometry(radius, radiusBack, length, 12));
+  const part = mesh(parent, name, geometry, material, position);
   if (alongZ) part.rotation.x = Math.PI / 2;
   return part;
 }
 
 function ring(parent, name, radius, thickness, material, position, scaleY = 1) {
-  const part = mesh(parent, name, new THREE.TorusGeometry(radius, thickness, 4, 8), material, position);
+  const geometry = cachedGeometry(`ring:${radius},${thickness}`, () => new THREE.TorusGeometry(radius, thickness, 6, 16));
+  const part = mesh(parent, name, geometry, material, position);
   part.scale.y = scaleY;
   return part;
 }
@@ -56,23 +69,96 @@ function hull(parent, name, sections, material) {
   const outline = [[0.68, 1], [-0.68, 1], [-1, 0.52], [-1, -0.52], [-0.68, -1], [0.68, -1], [1, -0.52], [1, 0.52]];
   const vertices = sections.map(({ z, w, h, y = 0 }) => outline.map(([x, sy]) => [x * w, sy * h + y, z]));
   const positions = [];
-  const triangle = (a, b, c) => positions.push(...a, ...b, ...c);
+  const uvs = [];
+  const triangle = (a, b, c, ta, tb, tc) => { positions.push(...a, ...b, ...c); uvs.push(...ta, ...tb, ...tc); };
+  // One continuous strip around the octagonal body, measured in model units.
+  // Caps use planar coordinates; neither bevels nor end faces collapse their UVs.
+  const perimeter = [0];
+  for (let i = 0; i < 8; i++) {
+    const a = vertices[0][i]; const b = vertices[0][(i + 1) % 8];
+    perimeter.push(perimeter[i] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+  }
   for (let s = 0; s < sections.length - 1; s++) {
     for (let i = 0; i < 8; i++) {
       const j = (i + 1) % 8;
-      triangle(vertices[s][i], vertices[s][j], vertices[s + 1][j]);
-      triangle(vertices[s][i], vertices[s + 1][j], vertices[s + 1][i]);
+      const a = [perimeter[i], sections[s].z]; const b = [perimeter[i + 1], sections[s].z];
+      const c = [perimeter[i + 1], sections[s + 1].z]; const d = [perimeter[i], sections[s + 1].z];
+      triangle(vertices[s][i], vertices[s][j], vertices[s + 1][j], a, b, c);
+      triangle(vertices[s][i], vertices[s + 1][j], vertices[s + 1][i], a, c, d);
     }
   }
   for (let i = 1; i < 7; i++) {
-    triangle(vertices[0][0], vertices[0][i + 1], vertices[0][i]);
+    const front = [vertices[0][0], vertices[0][i + 1], vertices[0][i]];
+    triangle(...front, ...front.map(v => [v[0], v[1]]));
     const last = vertices.length - 1;
-    triangle(vertices[last][0], vertices[last][i], vertices[last][i + 1]);
+    const back = [vertices[last][0], vertices[last][i], vertices[last][i + 1]];
+    triangle(...back, ...back.map(v => [v[0], v[1]]));
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
   return mesh(parent, name, geometry, material);
+}
+
+// Flat polygon panels retain deliberate hard edges and real, non-overlapping
+// glazing. Frame strips and bevels can be merged into a single material draw.
+function panelGeometry(polygons) {
+  const positions = [], uvs = [];
+  for (const polygon of polygons) {
+    const points = polygon.map(p => new THREE.Vector3(...p));
+    const axisU = points[1].clone().sub(points[0]).normalize();
+    const normal = axisU.clone().cross(points[2].clone().sub(points[0])).normalize();
+    const axisV = normal.clone().cross(axisU);
+    const coordinates = points.map(p => { const relative = p.clone().sub(points[0]); return [relative.dot(axisU), relative.dot(axisV)]; });
+    for (let i = 1; i < points.length - 1; i++) for (const index of [0, i, i + 1]) {
+      positions.push(...points[index].toArray()); uvs.push(...coordinates[index]);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function beam(parent, name, start, end, radius, material) {
+  const a = new THREE.Vector3(...start), b = new THREE.Vector3(...end);
+  const direction = b.clone().sub(a);
+  const part = cylinder(parent, name, radius, direction.length(), material, a.add(b).multiplyScalar(.5).toArray());
+  part.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+  return part;
+}
+
+function glazedCanopy(parent) {
+  const front = [[-.57, .13, -1.095], [-.47, .60, -.72], [.47, .60, -.72], [.57, .13, -1.095]];
+  const starboard = [[.57, .13, -1.095], [.47, .60, -.72], [.60, .64, .20], [.885, .16, .22]];
+  const port = starboard.map(([x, y, z]) => [-x, y, z]).reverse();
+  const glass = [], seams = [], frames = [];
+  for (const pane of [front, starboard, port]) {
+    const points = pane.map(p => new THREE.Vector3(...p));
+    const center = points.reduce((sum, p) => sum.add(p), new THREE.Vector3()).multiplyScalar(.25);
+    const normal = points[1].clone().sub(points[0]).cross(points[2].clone().sub(points[0])).normalize();
+    const edge = points.map(p => p.clone().lerp(center, .07).addScaledVector(normal, .008));
+    const inner = points.map(p => p.clone().lerp(center, .11).addScaledVector(normal, .01));
+    glass.push(inner.map(p => p.toArray()));
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      frames.push([points[i], points[j], edge[j], edge[i]].map(p => p.toArray()));
+      seams.push([edge[i], edge[j], inner[j], inner[i]].map(p => p.toArray()));
+    }
+  }
+  mesh(parent, 'panoramic-canopy-frame', panelGeometry(frames), palette.ivory);
+  mesh(parent, 'canopy-pressure-gaskets', panelGeometry(seams), palette.rubber);
+  mesh(parent, 'panoramic-canopy-glass', panelGeometry(glass), palette.glass);
+  mesh(parent, 'canopy-armored-roof', panelGeometry([[
+    [-.47, .60, -.72], [-.60, .64, .20], [.60, .64, .20], [.47, .60, -.72],
+  ]]), palette.white);
+  beam(parent, 'windshield-mullion', [0, .148, -1.078], [0, .587, -.728], .011, palette.graphite);
+  for (const side of [-1, 1]) {
+    beam(parent, `canopy-aft-copper-seal-${side}`, [side * .607, .637, .206], [side * .88, .17, .228], .017, palette.copper);
+    beam(parent, `canopy-blue-edge-reflection-${side}`, [side * .49, .568, -.745], [side * .62, .585, .125], .005, palette.glassReflection);
+  }
 }
 
 function fin(parent, name, points, thickness, material, position = [0, 0, 0]) {
@@ -139,30 +225,28 @@ export function createShip() {
   root.userData.modules = modules.map(part => part.name);
 
   hull(cockpit, 'cockpit-pressure-shell', [
-    { z: -1.1, w: 0.42, h: 0.35, y: -0.02 },
-    { z: -0.48, w: 0.84, h: 0.4, y: -0.16 },
-    { z: 0.78, w: 0.9, h: 0.63 },
-    { z: 1, w: 0.69, h: 0.5 },
+    { z: -1.1, w: .60, h: .285, y: -.135 },
+    { z: -.48, w: .86, h: .365, y: -.205 },
+    { z: .25, w: .90, h: .39, y: -.23 },
+    { z: .49, w: .90, h: .625 },
+    { z: .78, w: .90, h: .63 },
+    { z: 1, w: .69, h: .50 },
   ], palette.ivory);
-  hull(cockpit, 'panoramic-canopy-frame', [
-    { z: -0.97, w: 0.37, h: 0.1, y: 0.18 },
-    { z: -0.48, w: 0.75, h: 0.13, y: 0.3 },
-    { z: 0.23, w: 0.74, h: 0.13, y: 0.34 },
-  ], palette.graphite);
-  hull(cockpit, 'panoramic-canopy-glass', [
-    { z: -0.94, w: 0.34, h: 0.14, y: 0.235 },
-    { z: -0.47, w: 0.705, h: 0.235, y: 0.385 },
-    { z: 0.16, w: 0.695, h: 0.208, y: 0.414 },
-  ], palette.glass);
-  box(cockpit, 'canopy-spine', [0.065, 0.055, 0.7], palette.ivory, [0, 0.649, -0.14]);
-  const windshieldMullion = box(cockpit, 'windshield-mullion', [0.052, 0.035, 0.535], palette.ivory, [0, 0.512, -0.713]);
-  windshieldMullion.rotation.x = -0.48;
-  box(cockpit, 'canopy-rear-frame', [1.4, 0.06, 0.065], palette.copper, [0, 0.635, 0.2]);
+  glazedCanopy(cockpit);
+  hull(cockpit, 'cockpit-copper-coupling-band', [
+    { z: .91, w: .785, h: .562 }, { z: 1.04, w: .722, h: .524 },
+  ], palette.copper);
   box(cockpit, 'nose-dark-inset', [0.43, 0.13, 0.035], palette.graphite, [0, -0.13, -1.107]);
   box(cockpit, 'nose-navigation-light', [0.22, 0.028, 0.045], palette.cyan, [0, -0.12, -1.13]);
   ring(cockpit, 'cockpit-docking-ring', 0.66, 0.055, palette.copper, [0, 0, 1.04], 0.79);
-  cylinder(cockpit, 'cockpit-docking-collar', 0.56, 0.4, palette.graphite, [0, 0, 1.12], true);
+  cylinder(cockpit, 'cockpit-docking-collar', 0.56, 0.36, palette.graphite, [0, 0, 1.12], true);
+  cylinder(cockpit, 'docking-pressure-bulkhead', .47, .018, palette.ivory, [0, 0, 1.305], true);
+  ring(cockpit, 'docking-bulkhead-seal', .415, .004, palette.seam, [0, 0, 1.316]);
+  box(cockpit, 'docking-bulkhead-crossbar', [.45, .078, .006], palette.copper, [0, -.03, 1.317]);
+  box(cockpit, 'docking-bulkhead-telemetry', [.18, .055, .006], palette.teal, [0, .22, 1.317]);
   for (const side of [-1, 1]) {
+    const chin = box(cockpit, `nose-chin-armor-${side}`, [.32, .075, .60], palette.white, [side * .46, -.375, -.55]);
+    chin.rotation.z = side * .25;
     box(cockpit, `cockpit-side-panel-${side}`, [0.055, 0.24, 0.66], palette.teal, [side * 0.897, -0.12, 0.28]);
     box(cockpit, `cockpit-panel-sill-${side}`, [0.07, 0.04, 0.65], palette.copper, [side * 0.899, -0.265, 0.28]);
     box(cockpit, `cockpit-aft-seam-${side}`, [0.026, 0.45, 0.028], palette.graphite, [side * 0.893, 0, 0.67]);
@@ -204,6 +288,11 @@ export function createShip() {
     { z: 0.68, w: 1.0, h: 0.68 },
     { z: 0.9, w: 0.71, h: 0.54 },
   ], palette.ivory);
+  for (const z of [-.76, .71]) {
+    hull(body, `habitat-octagonal-belt-${z}`, [
+      { z: z - .045, w: 1.018, h: .692 }, { z: z + .045, w: 1.018, h: .692 },
+    ], palette.graphite);
+  }
   ring(body, 'habitat-front-seal', 0.71, 0.05, palette.copper, [0, 0, -0.95], 0.79);
   ring(body, 'habitat-rear-seal', 0.72, 0.055, palette.copper, [0, 0, 0.92], 0.79);
   box(body, 'habitat-roof-service-panel', [1.02, 0.055, 1.03], palette.graphite, [0, 0.705, 0.03]);
@@ -237,6 +326,9 @@ export function createShip() {
     { z: 0.52, w: 0.76, h: 0.56 },
     { z: 0.65, w: 0.61, h: 0.46 },
   ], palette.ivory);
+  hull(propulsion, 'propulsion-octagonal-belt', [
+    { z: -.46, w: .885, h: .63 }, { z: -.36, w: .885, h: .63 },
+  ], palette.graphite);
   box(propulsion, 'reactor-spine', [0.5, 0.14, 0.91], palette.graphite, [0, 0.65, 0]);
   box(propulsion, 'reactor-power-strip', [0.17, 0.03, 0.58], palette.cyan, [0, 0.736, -0.04]);
   const mainJets = [];
@@ -249,6 +341,8 @@ export function createShip() {
     box(propulsion, `engine-mount-${side}`, [0.32, 0.38, 0.86], palette.graphite, [side * 0.82, -0.12, 0.22]);
     mainJets.push(engine(propulsion, `main-engine-${side}`, [side * 0.9, -0.13, 0.52], 0.29, 0.56));
     box(propulsion, `engine-armored-cowl-${side}`, [0.42, 0.12, 0.55], palette.ivory, [side * 0.9, 0.21, 0.39]);
+    const armor = box(propulsion, `reactor-lower-teal-armor-${side}`, [.068, .24, .50], palette.teal, [side * .786, -.275, .02]);
+    armor.rotation.z = side * .24;
     for (let vent = 0; vent < 3; vent++) {
       box(propulsion, `reactor-vent-${side}-${vent}`, [0.045, 0.25, 0.085], palette.graphite, [side * 0.858, 0.05, -0.31 + vent * 0.16]);
     }
@@ -313,7 +407,7 @@ export function createAstronaut() {
   root.name = 'astronaut';
   root.userData.kind = 'astronaut';
   const suit = group(root, 'astronaut-rig');
-  box(suit, 'waist-flexible-seal', [0.43, 0.2, 0.31], palette.graphite, [0, 0.82, 0]);
+  box(suit, 'waist-flexible-seal', [0.43, 0.2, 0.31], palette.rubber, [0, 0.82, 0]);
   hull(suit, 'torso-armor', [
     { z: -0.23, w: 0.25, h: 0.22, y: 1.095 },
     { z: -0.15, w: 0.33, h: 0.25, y: 1.095 },
@@ -327,11 +421,13 @@ export function createAstronaut() {
     box(suit, `utility-pouch-${side}`, [0.14, 0.14, 0.16], palette.teal, [side * 0.27, 0.865, -0.03]);
   }
   cylinder(suit, 'helmet-locking-ring', 0.235, 0.105, palette.copper, [0, 1.335, 0]);
-  const helmet = mesh(suit, 'faceted-helmet', new THREE.DodecahedronGeometry(0.345, 0), palette.white, [0, 1.58, 0]);
+  const helmet = mesh(suit, 'faceted-helmet', new THREE.DodecahedronGeometry(0.33, 1), palette.white, [0, 1.58, 0]);
   helmet.scale.set(1, 1.03, 0.98);
-  const visor = mesh(suit, 'panoramic-dark-blue-visor', new THREE.SphereGeometry(0.352, 9, 4, Math.PI * 1.05, Math.PI * 0.9, 0.83, 1.47), palette.glass, [0, 1.58, -0.004]);
+  const visor = mesh(suit, 'panoramic-dark-blue-visor', new THREE.SphereGeometry(0.352, 12, 6, Math.PI * 1.05, Math.PI * 0.9, 0.83, 1.47), palette.glass, [0, 1.58, -0.004]);
   visor.scale.set(1.01, 1.02, 1.01);
   mesh(suit, 'visor-upper-copper-edge', new THREE.SphereGeometry(0.36, 9, 1, Math.PI * 1.05, Math.PI * 0.9, 0.81, 0.055), palette.copper, [0, 1.58, -0.004]);
+  mesh(suit, 'visor-lower-seal', new THREE.SphereGeometry(0.36, 9, 1, Math.PI * 1.05, Math.PI * .9, 2.245, .055), palette.rubber, [0, 1.58, -.004]);
+  mesh(suit, 'visor-sky-reflection', new THREE.SphereGeometry(.358, 4, 1, Math.PI * 1.42, .32, .99, .055), palette.glassReflection, [0, 1.58, -.004]);
   for (const side of [-1, 1]) {
     const earpiece = cylinder(suit, `helmet-comm-${side}`, 0.108, 0.06, palette.graphite, [side * 0.324, 1.565, 0]);
     earpiece.rotation.z = Math.PI / 2;
@@ -346,6 +442,7 @@ export function createAstronaut() {
   box(pack, 'backpack-charge-light', [0.045, 0.13, 0.016], palette.cyan, [0, 0.08, 0.31]);
   cylinder(pack, 'backpack-tether-socket', .058, .045, palette.copper, [0, -.14, .31], true);
   box(pack, 'backpack-top-handle', [.23, .045, .065], palette.copper, [0, .27, .17]);
+  fasteners(pack, 'backpack-shell-fasteners', [[-.13, .18, .281], [.13, .18, .281], [-.13, -.17, .281], [.13, -.17, .281]], .012);
   const jets = [];
   for (const side of [-1, 1]) {
     cylinder(pack, `oxygen-tank-${side}`, 0.105, 0.38, palette.ivory, [side * 0.245, 0.04, 0.14]);
@@ -360,25 +457,29 @@ export function createAstronaut() {
   const shins = [];
   for (const side of [-1, 1]) {
     const arm = group(suit, `shoulder-pivot-${side}`, [side * 0.37, 1.265, 0]);
-    mesh(arm, `shoulder-joint-${side}`, new THREE.IcosahedronGeometry(0.145, 0), palette.graphite);
+    mesh(arm, `shoulder-joint-${side}`, new THREE.IcosahedronGeometry(0.145, 0), palette.rubber);
     box(arm, `shoulder-plate-${side}`, [0.26, 0.16, 0.29], palette.ivory, [side * 0.018, -0.015, -0.006]);
-    box(arm, `upper-arm-${side}`, [0.18, 0.22, 0.2], palette.ivory, [0, -0.18, 0]);
+    const upperArm = cylinder(arm, `upper-arm-${side}`, .12, .22, palette.ivory, [0, -.18, 0], false, .10);
+    upperArm.scale.x = .88;
     const elbow = group(arm, `elbow-pivot-${side}`, [0, -0.32, 0]);
-    mesh(elbow, `elbow-seal-${side}`, new THREE.IcosahedronGeometry(0.105, 0), palette.graphite);
-    box(elbow, `forearm-plate-${side}`, [0.19, 0.23, 0.22], palette.ivory, [0, -0.135, -0.012]);
+    mesh(elbow, `elbow-seal-${side}`, new THREE.IcosahedronGeometry(0.105, 0), palette.rubber);
+    const forearm = cylinder(elbow, `forearm-plate-${side}`, .124, .23, palette.ivory, [0, -.135, -.012], false, .102);
+    forearm.scale.x = .88;
     box(elbow, `forearm-teal-inlay-${side}`, [0.12, 0.13, 0.025], palette.teal, [0, -0.125, -0.13]);
     cylinder(elbow, `wrist-copper-lock-${side}`, 0.099, 0.055, palette.copper, [0, -0.26, 0]);
-    box(elbow, `glove-${side}`, [0.16, 0.14, 0.18], palette.graphite, [0, -0.345, -0.005]);
-    box(elbow, `glove-thumb-${side}`, [0.075, 0.1, 0.09], palette.graphite, [-side * 0.093, -0.325, -0.03]);
+    box(elbow, `glove-${side}`, [0.16, 0.14, 0.18], palette.rubber, [0, -0.345, -0.005]);
+    box(elbow, `glove-thumb-${side}`, [0.075, 0.1, 0.09], palette.rubber, [-side * 0.093, -0.325, -0.03]);
     const leg = group(suit, `hip-pivot-${side}`, [side * 0.175, 0.78, 0]);
-    box(leg, `thigh-armor-${side}`, [0.24, 0.3, 0.27], palette.ivory, [0, -0.15, 0]);
+    const thigh = cylinder(leg, `thigh-armor-${side}`, .155, .30, palette.ivory, [0, -.15, 0], false, .13);
+    thigh.scale.x = .88;
     box(leg, `thigh-teal-panel-${side}`, [0.135, 0.17, 0.025], palette.teal, [0, -0.14, -0.149]);
     const knee = group(leg, `knee-pivot-${side}`, [0, -0.345, 0]);
-    mesh(knee, `knee-joint-${side}`, new THREE.IcosahedronGeometry(0.13, 0), palette.graphite);
+    mesh(knee, `knee-joint-${side}`, new THREE.IcosahedronGeometry(0.13, 0), palette.rubber);
     box(knee, `knee-front-guard-${side}`, [0.17, 0.13, 0.055], palette.copper, [0, 0, -0.135]);
-    box(knee, `shin-armor-${side}`, [0.235, 0.26, 0.245], palette.ivory, [0, -0.15, 0]);
+    const shin = cylinder(knee, `shin-armor-${side}`, .14, .26, palette.ivory, [0, -.15, 0], false, .119);
+    shin.scale.x = .92;
     cylinder(knee, `ankle-lock-${side}`, 0.116, 0.05, palette.copper, [0, -0.3, 0]);
-    box(knee, `boot-${side}`, [0.265, 0.13, 0.35], palette.graphite, [0, -0.36, -0.045]);
+    box(knee, `boot-${side}`, [0.265, 0.13, 0.35], palette.rubber, [0, -0.36, -0.045]);
     box(knee, `boot-armored-toe-${side}`, [0.245, 0.07, 0.17], palette.ivory, [0, -0.32, -0.115]);
     arms.push(arm);
     forearms.push(elbow);
@@ -416,10 +517,12 @@ export function createCompanion() {
   shell.scale.set(1, 1.03, 0.88);
   cylinder(orb, 'eye-dark-socket', 0.215, 0.08, palette.graphite, [0, 0, -0.303], true);
   ring(orb, 'eye-copper-rim', 0.178, 0.033, palette.copper, [0, 0, -0.355]);
+  ring(orb, 'optic-rubber-seal', .217, .017, palette.rubber, [0, 0, -.332]);
   const eye = mesh(orb, 'amber-optic', new THREE.IcosahedronGeometry(0.139, 1), palette.amber, [0, 0, -0.371]);
   eye.scale.z = 0.47;
   const iris = mesh(orb, 'optic-highlight', new THREE.IcosahedronGeometry(0.042, 0), palette.white, [-0.035, 0.03, -0.437]);
   iris.scale.z = 0.3;
+  fasteners(orb, 'optic-fasteners', [[-.23, .18, -.275], [.23, .18, -.275], [-.23, -.18, -.275], [.23, -.18, -.275]], .015);
   for (const side of [-1, 1]) {
     const vane = fin(orb, `steering-fin-${side}`, [[0.29, -0.09], [0.47, 0.08], [0.43, 0.28], [0.31, 0.19]], 0.055, palette.ivory);
     vane.scale.x = side;
@@ -449,18 +552,20 @@ export function createCockpit() {
   root.name = 'pilot-cockpit';
   const frame = group(root, 'cockpit-interior');
   frame.position.y = .20;
-  const screenMaterial = new THREE.MeshBasicMaterial({ color: 0x092a36 });
-  const illuminated = new THREE.MeshBasicMaterial({ color: 0x8ee9df, toneMapped: false });
-  const warning = new THREE.MeshBasicMaterial({ color: 0xffc58d, toneMapped: false });
+  const screenMaterial = palette.display;
+  const illuminated = palette.readout;
+  const warning = palette.warning;
 
   // Recessed instrument brow sits below the flight sightline.
   hull(frame, 'instrument-brow', [
     { z: -1.32, w: .77, h: .11, y: -.53 },
     { z: -1.08, w: .71, h: .13, y: -.57 },
     { z: -.82, w: .60, h: .11, y: -.64 },
-  ], palette.graphite);
+  ], palette.ivory);
   box(frame, 'brow-ivory-trim', [1.36, .034, .055], palette.ivory, [0, -.426, -1.20]);
   box(frame, 'brow-copper-seam', [1.19, .013, .030], palette.copper, [0, -.405, -1.22]);
+  box(frame, 'console-lower-teal-apron', [1.06, .13, .14], palette.teal, [0, -.67, -.88]);
+  box(frame, 'console-lower-pressure-seal', [.94, .03, .035], palette.rubber, [0, -.727, -.8]);
   box(frame, 'flight-display-surround', [.44, .20, .035], palette.seam, [0, -.54, -.94]);
   box(frame, 'flight-display-glass', [.40, .16, .013], screenMaterial, [0, -.54, -.916]);
   box(frame, 'display-horizon', [.27, .008, .008], illuminated, [0, -.515, -.905]);
@@ -470,6 +575,8 @@ export function createCockpit() {
   }
   const brakeLamp = box(frame, 'brake-indicator', [.045, .012, .01], warning, [.155, -.483, -.903]);
   for (const side of [-1, 1]) {
+    box(frame, `side-console-armor-${side}`, [.25, .22, .065], palette.teal, [side * .40, -.47, -.78]);
+    box(frame, `side-console-copper-edge-${side}`, [.23, .011, .020], palette.copper, [side * .40, -.345, -.736]);
     const console = box(frame, `side-instrument-panel-${side}`, [.19, .13, .025], screenMaterial, [side * .39, -.56, -.95]);
     console.rotation.z = -side * .06;
     box(frame, `side-readout-${side}`, [.12, .010, .015], illuminated, [side * .39, -.54, -.93]);
@@ -495,10 +602,64 @@ export function createCockpit() {
   for (let i = 0; i < 3; i++) box(frame, `systems-status-${i}`, [.013, .018, .008], i === 2 ? warning : illuminated, [.35 + i * .031, -.442, -.725]);
   box(frame, 'canopy-overhead-frame', [1.75, .065, .10], palette.ivory, [0, .52, -1.54]);
   box(frame, 'canopy-overhead-seal', [1.62, .021, .105], palette.graphite, [0, .474, -1.536]);
-  function update(time, { speed = 0, braking = false } = {}) {
+  root.traverse(part => { if (part.isMesh) { part.castShadow = false; part.receiveShadow = false; } });
+  function update(time, { speed = 0, braking = false, aspect = 1.6 } = {}) {
+    frame.scale.x = THREE.MathUtils.clamp(aspect / 1.55, .28, 1.4);
     const level = THREE.MathUtils.clamp(speed / 12, 0, 1);
     speedBars.forEach((bar, index) => { bar.visible = index / speedBars.length < level; });
     brakeLamp.visible = braking;
+  }
+  update(0);
+  return { group: root, update };
+}
+
+/** The camera owns visibility and world pose. The helmet only touches the
+ * perimeter; the hand/tool is deliberately below and right of the target. */
+export function createVisorRig() {
+  const root = new THREE.Group();
+  root.name = 'eva-visor';
+  root.visible = false;
+  const border = group(root, 'helmet-interior-border');
+  const rim = (name, inner, outer, material, z) => mesh(border, name,
+    cachedGeometry(`visor-rim:${inner}:${outer}`, () => new THREE.RingGeometry(inner, outer, 8, 1, Math.PI / 8)), material, [0, 0, z]);
+  rim('helmet-inner-rubber-seal', .479, .511, palette.rubber, -.95);
+  rim('helmet-ivory-shell-edge', .512, .540, palette.ivory, -.953);
+  rim('helmet-copper-pressure-ring', .508, .512, palette.copper, -.949);
+  for (const side of [-1, 1]) {
+    const cheek = box(border, `helmet-cheek-pad-${side}`, [.125, .058, .045], palette.rubber, [side * .307, -.382, -.91]);
+    cheek.rotation.z = side * .36;
+    const status = box(border, `helmet-status-${side}`, [.033, .005, .008], side < 0 ? palette.readout : palette.warning, [side * .332, -.365, -.883]);
+    status.rotation.z = side * .36;
+  }
+
+  const tool = group(root, 'eva-hand-tool');
+  const wrist = cylinder(tool, 'tool-wrist-copper-lock', .052, .075, palette.copper, [0, -.085, .09]);
+  wrist.rotation.x = -.55;
+  const forearm = box(tool, 'tool-forearm-armor', [.10, .18, .11], palette.ivory, [0, -.176, .14]);
+  forearm.rotation.x = -.55;
+  box(tool, 'tool-glove-palm', [.092, .09, .095], palette.rubber, [0, -.035, .07]);
+  box(tool, 'tool-grip', [.049, .12, .054], palette.graphite, [0, -.026, .025]);
+  box(tool, 'tool-glove-thumb', [.041, .056, .046], palette.rubber, [-.044, -.023, .013]);
+  box(tool, 'tool-pressure-body', [.12, .092, .24], palette.ivory, [0, .025, -.044]);
+  box(tool, 'tool-teal-side-panel', [.018, .051, .13], palette.teal, [-.067, .028, -.047]);
+  box(tool, 'tool-top-service-panel', [.062, .015, .11], palette.graphite, [0, .077, -.045]);
+  cylinder(tool, 'tool-copper-nozzle', .045, .085, palette.copper, [0, .025, -.202], true);
+  cylinder(tool, 'tool-dark-aperture', .031, .013, palette.seam, [0, .025, -.25], true);
+  const indicator = box(tool, 'tool-charge-indicator', [.012, .008, .065], palette.readout, [0, .088, -.03]);
+  const brakeStatus = border.getObjectByName('helmet-status-1');
+  root.traverse(part => { if (part.isMesh) { part.castShadow = false; part.receiveShadow = false; } });
+  function update(time, { speed = 0, aiming = false, interacting = false, braking = false, aspect = 1.6 } = {}) {
+    const width = THREE.MathUtils.clamp(Number(aspect) || 1.6, .3, 3);
+    border.scale.x = width;
+    border.position.y = Math.sin(time * .8) * .0012;
+    brakeStatus.material = braking ? palette.warning : palette.readout;
+    tool.visible = Boolean(aiming || interacting);
+    const portrait = Math.min(1, width / .85);
+    tool.scale.setScalar(.78 * portrait);
+    tool.position.set(width * .192, -.205, -.63);
+    tool.position.y += Math.sin(time * 1.5) * .002 * (1 + Math.min(1, Math.max(0, speed) / 12));
+    tool.rotation.set(interacting ? -.1 : .035, -.12, interacting ? -.10 : -.045);
+    indicator.material = interacting ? palette.warning : palette.readout;
   }
   update(0);
   return { group: root, update };

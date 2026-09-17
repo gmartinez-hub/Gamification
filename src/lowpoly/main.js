@@ -1,5 +1,5 @@
 import * as THREE from '../../vendor/three.module.js';
-import { createShip, createAstronaut, createCompanion, createCockpit } from './models.js';
+import { loadActorAssets, createAssetShip, createAssetAstronaut, createAssetCompanion, createAssetCockpit, createAssetVisor } from './asset-actors.js';
 import { createSectorWorld } from './sector-world.js';
 import { createExpedition, createRandom, aimChance } from './expedition.js';
 import { createFlight, EVA_CENTER_Y, EVA_RADIUS } from './flight.js';
@@ -10,11 +10,14 @@ import { shipPoint, shipCollisionSpheres, shipFrameRadius } from './spatial.js';
 import { sweptSphereContact, closestApproach } from './hazards.js';
 import { createPresentation, createReflectionEnvironment } from './presentation.js';
 import { createEffects } from './effects.js';
-import { AudioManager } from '../../nave_three_audio_pack_v2_refined/AudioManager.js';
+import { createDestruction } from './destruction.js';
+import { createExpeditionAudio } from './audio.js';
+import { createCheckpointStore, DEFAULT_SETTINGS } from './checkpoint.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mobileGPU = matchMedia('(pointer:coarse)').matches;
 let renderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
 catch (error) {
@@ -22,48 +25,73 @@ catch (error) {
   $('loading').querySelector('p').textContent = 'No pudimos iniciar el mundo 3D. Probá con WebGL 2 y aceleración gráfica activada.';
   throw error;
 }
-renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 900 ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1280 / innerWidth, 720 / innerHeight));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;
 const scene = new THREE.Scene();
 scene.background = null;
 const reflection = createReflectionEnvironment(renderer);
-scene.environment = reflection.texture; scene.environmentIntensity = .45;
+scene.environment = reflection.texture; scene.environmentIntensity = .32;
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, .1, 600);
-scene.add(new THREE.HemisphereLight(0xc7e7ef, 0x18203a, 1.45));
-const sun = new THREE.DirectionalLight(0xffe2bb, 3.8);
+scene.add(new THREE.HemisphereLight(0xc7e7ef, 0x18203a, .72));
+const sun = new THREE.DirectionalLight(0xffe2bb, 3);
 sun.position.set(-30, 45, 20); scene.add(sun);
-const rim = new THREE.DirectionalLight(0x6bbfcf, 1.25);
+sun.castShadow = true;
+sun.shadow.mapSize.setScalar(mobileGPU ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left: -36, right: 36, top: 36, bottom: -36, near: 1, far: 150 });
+sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias = -.0002; sun.shadow.normalBias = .08;
+scene.add(sun.target);
+const rim = new THREE.DirectionalLight(0x6bbfcf, 1);
 rim.position.set(15, 9, -20); scene.add(rim);
-const ship = createShip(), astronaut = createAstronaut(), companion = createCompanion();
+let actorAssets;
+try { actorAssets = await loadActorAssets((done,total) => { $('loading').querySelector('p').textContent = `Preparando modelos y texturas · ${done} / ${total}`; }); }
+catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo completar la descarga de los modelos. Recargá para volver a intentar.'; throw error; }
+const ship = createAssetShip(actorAssets), astronaut = createAssetAstronaut(actorAssets), companion = createAssetCompanion(actorAssets);
 scene.add(ship.group, astronaut.group, companion.group, camera);
-const cockpit = createCockpit(); camera.add(cockpit.group); cockpit.group.visible = false;
+const cockpit = createAssetCockpit(actorAssets); camera.add(cockpit.group); cockpit.group.visible = false;
+const visor = createAssetVisor(actorAssets); camera.add(visor.group);
+const eventLight = new THREE.PointLight(0x7deaff, 0, 26, 2); scene.add(eventLight);
+let eventLightUntil = 0;
 const presentation = createPresentation(renderer);
 const params = new URLSearchParams(location.search);
 const seedParam = params.get('seed');
 const seed = seedParam ? /^\d+$/.test(seedParam) ? Number(seedParam) : seedParam : 712069;
 const mission = createExpedition(seed);
 const { state } = mission;
+const checkpoint = createCheckpointStore();
+const saved = checkpoint.load(seedParam ? { seed: state.seed } : {});
+const settings = { ...DEFAULT_SETTINGS, ...saved?.settings };
+if (saved) mission.restoreCheckpoint(saved);
 const flight = createFlight();
+if (saved) flight.reset({ aboard: true });
+flight.setStage(state.moduleStage);
 let shotRandom = createRandom(`${state.seed}:combat`);
 const combat = createCombat(() => shotRandom());
 const world = createSectorWorld(scene);
+$('loading').querySelector('p').textContent = 'Preparando baliza, minerales y biomas…';
+try { await world.loadAssets(); } catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo descargar el escenario. Recargá para volver a intentar.'; throw error; }
 world.load(state.layout);
-const audio = new AudioManager({ manifestUrl: new URL('../../nave_three_audio_pack_v2_refined/audio_manifest.json', import.meta.url).href });
-audio.setMuted(true);
-let soundEnabled = false, audioReady = false, audioLoading;
-let paused = false, inspecting = false, firstPerson = false;
+const audio = createExpeditionAudio();
+let soundEnabled = settings.soundEnabled;
+audio.setEnabled(soundEnabled); audio.setVolumes({ effects: settings.effectsVolume, ambience: settings.ambienceVolume });
+let paused = false, inspecting = false, firstPerson = settings.firstPerson;
 let mobileAction = { action: 'none', disabled: true };
+let viewBeforeInspect = null;
 let flightMenuOpen = false, wasPausedBeforeMenu = false;
 const compactHUD = matchMedia('(pointer: coarse), (max-width: 700px)');
 let time = 0, lastFrame = performance.now(), toastUntil = 0, damageUntil = 0, invulnerableUntil = 0;
-let orbit = -.9, elevation = .28, zoom = 1, targetZoom = 1;
+let orbit = firstPerson ? 0 : -.9, elevation = firstPerson ? 0 : .28, zoom = 1, targetZoom = 1;
 let selectedId = null, navigating = false, scanProgress = 0, scanning = false;
 let health = 100, assemblyUntil = 0, transitStart = 0;
 let pendingModule = 0, attachAt = 0, arrivalVeilUntil = 0;
 let previousActor = flight.actor, previousPhase = state.phase, hudTimer = 0, frames = 0;
+let tutorialUntil = settings.introSeen ? 0 : 9, qualityElapsed = 0, qualityFrames = 0;
+let qualityScale = 1;
 const direction = new THREE.Vector3(), right = new THREE.Vector3(), forward = new THREE.Vector3();
 const cameraTarget = new THREE.Vector3(2, .8, 10), cameraPosition = new THREE.Vector3();
 const lookTarget = new THREE.Vector3(), projected = new THREE.Vector3(), temp = new THREE.Vector3();
@@ -83,10 +111,21 @@ scene.add(selection);
 const projectile = new THREE.Mesh(new THREE.SphereGeometry(.14, 6, 4), new THREE.MeshBasicMaterial({ color: 0xb5fff1, toneMapped: false }));
 projectile.visible = false; scene.add(projectile);
 const effects = createEffects(scene);
+const destruction = createDestruction(scene);
+for(const record of world.targets) destruction.prepare(record);
 
 function notify(message, duration = 4) { $('toast').textContent = message; $('toast').classList.add('visible'); toastUntil = time + duration; }
-function say(message) { $('companionMessage').textContent = message; }
-function play(id, volume = .25) { if (soundEnabled && audioReady && !paused) audio.playOneShot(id, { volume }); }
+function say(message) { $('companionMessage').textContent = message; play('companionHint'); }
+function play(id, volume = 1) { if (soundEnabled && !paused) audio.play(id, { volume }); }
+function saveProgress() {
+  settings.firstPerson = firstPerson; settings.soundEnabled = soundEnabled;
+  const ok = checkpoint.save(state, settings);
+  if ($('saveStatus')) $('saveStatus').textContent = ok ? `Guardado · ${state.layout.name.split(' · ')[0]}${state.gems ? ` · ${state.gems} gema${state.gems === 1 ? '' : 's'}` : ''}` : 'Guardado no disponible en este navegador';
+}
+function illuminate(position, color = 0x7deaff, duration = .7) {
+  eventLight.position.copy(position); eventLight.color.setHex(color);
+  eventLightUntil = time + duration;
+}
 function blocked() { return paused || inspecting || state.phase === 'transit' || time < assemblyUntil; }
 function forcedExterior() { return inspecting || time < assemblyUntil || state.phase === 'transit' || state.phase === 'complete'; }
 function visorActive() { return firstPerson && !forcedExterior(); }
@@ -98,7 +137,7 @@ function targetNext() {
   if (!targets.length) return;
   const index = targets.findIndex(target => target.id === selectedId);
   selectedId = targets[(index + 1) % targets.length].id;
-  play('ui_hover_sonar', .12);
+  play('target');
 }
 function ensureTarget() {
   if (!selectedTarget()) selectedId = validTargets().sort((a, b) => a.position.distanceToSquared(flight.position) - b.position.distanceToSquared(flight.position))[0]?.id || null;
@@ -125,6 +164,7 @@ function returnToShip() {
     navigating = false; scanning = false; controls.clear();
     say('Volvemos al acceso de la nave. Recojo el cable al abordar.');
     notify('Regreso asistido · Recogiendo cable');
+    play('return');
   }
 }
 function deploy() {
@@ -133,7 +173,7 @@ function deploy() {
     previousActor = flight.actor;
     navigating = false; scanning = false; controls.clear();
     say('Conectados por cable. Podés subir, bajar y explorar alrededor de la nave.');
-    play('ui_mission_click', .18);
+    play('evaExit');
   }
 }
 function stopNavigation() {
@@ -151,7 +191,7 @@ function navigate() {
   if (state.phase === 'gem' && flight.actor === 'ship' && flight.position.distanceTo(world.gem.position) < 12) deploy();
   navigating = true; scanning = false;
   say('Sigo la ruta. Movete con los controles para recuperar el vuelo libre.');
-  play('ui_mission_click', .16);
+  play('ui');
 }
 function interact() {
   if (blocked() || flight.returning || combat.shot) return;
@@ -160,11 +200,15 @@ function interact() {
     if (flight.position.distanceTo(world.beacon.position) > 3.8) { notify('Acercate a menos de 4 m de la baliza.'); return; }
     scanning = !scanning; navigating = false; scanProgress = 0;
     say(scanning ? 'Escaneando. Mantenete cerca mientras decodifico la señal.' : 'Escaneo interrumpido.');
+    if (scanning) play('scan');
   } else if (state.phase === 'gem') {
     if (flight.position.distanceTo(world.gem.position) > 3) { notify('Acercate a menos de 3 m de la gema.'); return; }
     if (mission.collectGem()) {
-      navigating = false; triggerBurst(world.gem.position, 'gem');
-      play('reward_unlock_sparkle', .3);
+      navigating = false;
+      if (effects.collect) effects.collect(world.gem.position, flight.position.clone().add(new THREE.Vector3(0, 1.05, 0)), time);
+      else triggerBurst(world.gem.position, 'gem');
+      illuminate(world.gem.position, 0x75f9e9, 1.4);
+      play('gemCollect'); saveProgress();
       notify('Gema recuperada · Corredor habilitado');
       say('La ruta está abierta. Volvé a abordar; el módulo nos espera en el corredor.');
     }
@@ -186,21 +230,25 @@ function fire() {
       combat.shot.lockTime = Math.max(1.6, forward.angleTo(temp) / (65 * Math.PI / 180) + 1.05);
     }
     navigating = false; scanning = false; controls.clear();
-    play('ui_hover_sonar', .16);
+    play('target');
   }
 }
 function triggerBurst(position, kind = 'scan') { effects.burst(position, kind, time); }
 function setView() {
   if (paused || time < assemblyUntil || state.phase === 'transit' || state.phase === 'complete') return;
+  const wasInspecting = inspecting;
   if (inspecting) setInspect(false);
-  firstPerson = !firstPerson;
+  firstPerson = wasInspecting || !firstPerson;
+  saveProgress();
   if (flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
   else if (firstPerson) { orbit = astronaut.group.rotation.y; elevation = 0; }
   notify(firstPerson ? flight.actor === 'ship' ? 'Vista de cabina · Arrastrá para orientar la nave' : 'Vista de visor · Arrastrá para mirar' : 'Vista exterior');
 }
 function setInspect(value) {
   if (paused || combat.shot || state.phase === 'transit') return;
-  inspecting = value; stopNavigation(); scanning = false; firstPerson = false; controls.clear();
+  if (value && !inspecting) { viewBeforeInspect = { orbit, elevation }; orbit = -.9; elevation = .28; }
+  else if (!value && viewBeforeInspect) { orbit = viewBeforeInspect.orbit; elevation = viewBeforeInspect.elevation; viewBeforeInspect = null; }
+  inspecting = value; stopNavigation(); scanning = false; controls.clear();
   if (!value && flight.actor === 'ship') { orbit = flight.shipYaw; elevation = -flight.shipPitch; }
   document.body.classList.toggle('inspecting', value);
   $('inspectButton').setAttribute('aria-pressed', String(value));
@@ -212,35 +260,33 @@ function setPaused(value) {
   $('pauseOverlay').hidden = !value || flightMenuOpen || $('helpDialog').open;
   $('pauseButton').setAttribute('aria-pressed', String(value));
   $('pauseButton').setAttribute('aria-label', value ? 'Continuar' : 'Pausar');
-  audio.setMuted(!soundEnabled || value);
+  audio.setPaused(value || document.hidden);
+  if (!value && soundEnabled && !document.hidden) void audio.unlock();
 }
 async function toggleSound() {
   soundEnabled = !soundEnabled;
   $('soundButton').setAttribute('aria-pressed', String(soundEnabled));
   $('soundButton').setAttribute('aria-label', soundEnabled ? 'Silenciar sonido' : 'Activar sonido');
-  audio.setMuted(!soundEnabled || paused);
-  if (!soundEnabled) return;
-  try {
-    await audio.init(); audioLoading ??= audio.preloadManifest(); await audioLoading; audioReady = true;
-    if (soundEnabled && !paused) audio.setEngineState('idle');
-  } catch {
-    soundEnabled = false; audioLoading = null; audio.setMuted(true);
-    $('soundButton').setAttribute('aria-pressed', 'false');
-    $('soundButton').setAttribute('aria-label', 'Activar sonido');
-    notify('No se pudo cargar el audio. La expedición sigue disponible.');
+  audio.setEnabled(soundEnabled); saveProgress();
+  $('mobileSoundInvite').hidden = soundEnabled;
+  if (soundEnabled) {
+    const ready = await audio.unlock();
+    if (!ready) notify('El sonido se activará al continuar la expedición.');
+    else play('ui');
   }
 }
 function resetExpedition() {
   const randomSeed = crypto.getRandomValues(new Uint32Array(1))[0];
   mission.reset(randomSeed); flight.reset(); flight.setStage(1); combat.reset(); world.load(state.layout); ship.setStage(1, false);
   shotRandom = createRandom(`${state.seed}:combat`);
-  paused = false; inspecting = false; firstPerson = false; navigating = false; scanning = false; scanProgress = 0;
+  paused = false; inspecting = false; firstPerson = settings.firstPerson; navigating = false; scanning = false; scanProgress = 0;
   selectedId = null; health = 100; assemblyUntil = 0; pendingModule = 0; arrivalVeilUntil = 0; invulnerableUntil = time + 2; damageUntil = 0;
-  previousPhase = state.phase; previousActor = flight.actor; orbit = -.9; elevation = .28; targetZoom = 1;
+  previousPhase = state.phase; previousActor = flight.actor; orbit = firstPerson ? 0 : -.9; elevation = firstPerson ? 0 : .28; targetZoom = 1;
   document.body.classList.remove('inspecting'); document.querySelector('.mission-panel').inert = false;
   $('inspectButton').setAttribute('aria-pressed', 'false'); $('inspectButton').textContent = 'Inspeccionar nave ↗';
   controls.clear(); setPaused(false); updateMissionUI();
   const url = new URL(location.href); url.searchParams.set('seed', state.seed); history.replaceState(null, '', url);
+  checkpoint.clear(); saveProgress();
   say('Una señal nueva. Mismo recorrido, otra distribución.'); notify('Nueva expedición preparada');
 }
 const controls = createControls(canvas, { onAction: interact, onFire: fire, onTarget: targetNext, onView: setView,
@@ -253,6 +299,18 @@ $('zoomIn').onclick = () => { targetZoom = Math.max(.6, targetZoom - .15); };
 $('zoomOut').onclick = () => { targetZoom = Math.min(1.6, targetZoom + .15); };
 $('cameraButton').onclick = () => { orbit = 0; elevation = .3; targetZoom = 1; };
 $('soundButton').onclick = toggleSound; $('pauseButton').onclick = () => setPaused(!paused); $('resumeButton').onclick = () => setPaused(false);
+$('mobileSoundInvite').onclick = toggleSound;
+$('settingsButton').onclick = openFlightMenu;
+for (const [id, key] of [['effectsVolume', 'effectsVolume'], ['ambienceVolume', 'ambienceVolume']]) {
+  $(id).value = settings[key];
+  $(id).addEventListener('input', () => {
+    settings[key] = Number($(id).value);
+    audio.setVolumes({ effects: settings.effectsVolume, ambience: settings.ambienceVolume }); saveProgress();
+  });
+}
+const unlockSound = () => { if (soundEnabled) void audio.unlock(); };
+document.addEventListener('pointerdown', unlockSound, { capture: true, passive: true });
+document.addEventListener('keydown', unlockSound, { capture: true });
 let wasPausedBeforeHelp = false;
 $('helpButton').onclick = () => { wasPausedBeforeHelp = paused; setPaused(true); $('pauseOverlay').hidden = true; $('helpDialog').showModal(); };
 $('closeHelp').onclick = () => $('helpDialog').close();
@@ -284,6 +342,7 @@ $('mobileGuideButton').onclick = () => fromFlightMenu(navigate);
 $('mobileReturnButton').onclick = () => fromFlightMenu(returnToShip);
 $('mobileDeployButton').onclick = () => fromFlightMenu(deploy);
 $('mobileViewButton').onclick = () => fromFlightMenu(setView);
+$('mobileQuickViewButton').onclick = () => { setView(); updateHUD(); };
 $('mobileInspectButton').onclick = () => fromFlightMenu(() => setInspect(!inspecting));
 $('mobileSoundButton').onclick = async () => { await toggleSound(); updateHUD(); };
 $('mobileHelpButton').onclick = () => fromFlightMenu(() => $('helpButton').click());
@@ -293,6 +352,7 @@ $('mobileZoomOut').onclick = () => fromFlightMenu(() => $('zoomOut').click());
 $('mobileZoomReset').onclick = () => fromFlightMenu(() => $('cameraButton').click());
 window.addEventListener('blur', () => { if (!$('helpDialog').open && !flightMenuOpen) setPaused(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
+window.addEventListener('pagehide', saveProgress);
 canvas.addEventListener('wheel', event => { event.preventDefault(); if (!paused) targetZoom = THREE.MathUtils.clamp(targetZoom + event.deltaY * .0007, .6, 1.6); }, { passive: false });
 canvas.addEventListener('pointerdown', event => pointerStart.set(event.clientX, event.clientY));
 canvas.addEventListener('pointerup', event => {
@@ -304,7 +364,7 @@ canvas.addEventListener('pointerup', event => {
 });
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 900 ? 1.5 : 2)); renderer.setSize(innerWidth, innerHeight); presentation.resize();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1280 / innerWidth, 720 / innerHeight) * qualityScale); renderer.setSize(innerWidth, innerHeight); presentation.resize();
 });
 canvas.addEventListener('webglcontextlost', event => {
   event.preventDefault(); setPaused(true); $('loading').hidden = false; $('loading').style.opacity = '1';
@@ -347,12 +407,12 @@ function updateFlight(dt, input) {
     previousActor = flight.actor; controls.clear(); navigating = false;
     if (flight.actor === 'ship') {
       orbit = flight.shipYaw; elevation = -flight.shipPitch;
-      notify('A bordo · Cable recogido'); say(state.phase === 'large' ? 'Cañón disponible. Seleccioná un núcleo y prepará el disparo.' : 'Al mando. Busquemos nuestro siguiente destino.'); play('ship_module_attach', .13);
+      notify('A bordo · Cable recogido'); say(state.phase === 'large' ? 'Cañón disponible. Seleccioná un núcleo y prepará el disparo.' : 'Al mando. Busquemos nuestro siguiente destino.'); play('return', .65);
     }
   }
   if (flight.tension > .9 && navigating && flight.velocity.length() < .25) { navigating = false; notify('Límite del cable · Volvé y acercá la nave'); }
   if (state.phase === 'return' && flight.actor === 'ship' && flight.position.distanceTo(world.gate.position) < 4) {
-    if (mission.enterCorridor('ship')) { navigating = false; transitStart = time; transitEntry.copy(flight.shipPosition); firstPerson = false; controls.clear(); play('motion_liftoff', .25); say('Entramos al corredor. Preparando el acople.'); }
+    if (mission.enterCorridor('ship')) { navigating = false; transitStart = time; transitEntry.copy(flight.shipPosition); controls.clear(); play('transit'); triggerBurst(world.gate.position, 'warp'); say('Entramos al corredor. Preparando el acople.'); saveProgress(); }
   }
 }
 function updateTransit(dt) {
@@ -364,7 +424,7 @@ function updateTransit(dt) {
   if (age >= 5) {
     mission.finishTransit(); combat.reset(); selectedId = null; navigating = false; scanning = false; scanProgress = 0;
     if (state.phase === 'complete') {
-      flight.velocity.set(0, 0, 0); notify('Tres gemas. Una nave completa. Expedición terminada.', 8); say('Llegamos juntos. Podés inspeccionar la nave o iniciar otra expedición.');
+      flight.velocity.set(0, 0, 0); flight.thrust.set(0, 0, 0); notify('Tres gemas. Una nave completa. Expedición terminada.', 8); say('Llegamos juntos. Podés inspeccionar la nave o iniciar otra expedición.'); play('complete'); triggerBurst(flight.shipPosition, 'attach');
     } else {
       // The next sector begins aboard after crossing its entry corridor.
       world.load(state.layout); flight.reset({ aboard: true }); flight.setStage(state.moduleStage); previousActor = 'ship';
@@ -378,6 +438,7 @@ function updateTransit(dt) {
       notify(state.moduleStage === 2 ? 'HÁBITAT ACOPLADO · Entramos en Vesper' : 'PROPULSIÓN ACOPLADA · Entramos en Umbra', 5);
       say('Nuevo módulo conectado. Salí cuando estés listo para explorar el sector.');
     }
+    saveProgress();
   }
 }
 function updateScan(dt) {
@@ -385,7 +446,7 @@ function updateScan(dt) {
   if (flight.actor !== 'astronaut' || flight.returning || flight.position.distanceTo(world.beacon.position) > 3.8 || state.phase !== 'scan') { scanning = false; scanProgress = 0; return; }
   scanProgress = Math.min(1, scanProgress + dt / 2.2);
   if (scanProgress === 1) {
-    mission.scan(); scanning = false; play('ui_mission_accept', .25);
+    mission.scan(); scanning = false; play('scan');
     triggerBurst(world.beacon.position, 'scan'); notify('Señal decodificada · Tres asteroides localizados');
     say('Tres objetivos pequeños. Seleccioná uno, acercate y dispará con el astronauta.');
   }
@@ -404,17 +465,22 @@ function updateCombat(dt) {
       projectile.visible = true;
     }
     if (shot.elapsed < shot.lockTime && shot.elapsed + dt >= shot.lockTime) {
-      const origin = shot.actor === 'ship' ? shipPoint('muzzle', flight.shipPosition, flight.shipQuaternion) : flight.position.clone().add(new THREE.Vector3(.25, 1.05, 0));
+      const mount = shot.actor === 'ship' ? ship.muzzle : visorActive() ? visor.muzzle : astronaut.muzzle;
+      mount.updateWorldMatrix(true,false);
+      const origin = mount.getWorldPosition(new THREE.Vector3());
+      if(shot.actor === 'astronaut' && visorActive()) visor.kick();
+      illuminate(origin, shot.actor === 'ship' ? 0xffbd75 : 0x80e8ff, .18);
       Object.assign(shot.origin, { x: origin.x, y: origin.y, z: origin.z });
-      play('motion_liftoff', .15);
+      play(shot.actor === 'ship' ? 'shipFire' : 'evaFire');
     }
   }
   const result = combat.update(dt);
   if (result) {
     const target = world.targets.find(item => item.id === result.id);
     if (result.hit && mission.hit(result.id, result.actor)) {
-      if (target) triggerBurst(target.position, result.actor === 'ship' ? 'ship' : 'eva');
-      play('reward_unlock_sparkle', .18); notify(result.actor === 'ship' ? 'Núcleo destruido' : 'Asteroide destruido', 2);
+      if (target) { destruction.burst(target,time); triggerBurst(target.position, result.actor === 'ship' ? 'ship' : 'eva'); }
+      if (target) illuminate(target.position, result.actor === 'ship' ? 0xffbb78 : 0x7deaff, result.actor === 'ship' ? 1 : .45);
+      play(result.actor === 'ship' ? 'largeBreak' : 'smallBreak'); notify(result.actor === 'ship' ? 'Núcleo destruido' : 'Asteroide destruido', 2);
     } else { notify('Disparo fallido · Acercate para mejorar la probabilidad', 3); say('Podemos volver a intentarlo. Acercarnos mejora el disparo.'); }
   }
 }
@@ -445,19 +511,21 @@ function updateHazards() {
       if (time < invulnerableUntil) break;
       const impact = Math.round(THREE.MathUtils.clamp(12 + relativeVelocity.length() * 2.5, 15, 38));
       health = Math.max(0, health - impact); invulnerableUntil = time + 2; damageUntil = time + .4;
+      play('damage');
       notify(`Impacto · Integridad ${health}%`, 2);
       if (health === 0) {
         health = 100; invulnerableUntil = time + 12;
         if (flight.actor === 'astronaut') flight.returnToShip();
         else flight.shipPosition.add(new THREE.Vector3(0, 4, 0));
         notify('Rescate de emergencia · Integridad restablecida', 5); say('Te recupero. Conservamos los objetivos completados.');
+        play('rescue');
       }
       break;
     }
   }
 }
 function updateActors(dt, input) {
-  if (pendingModule && time >= attachAt) { ship.setStage(pendingModule, !reducedMotion); pendingModule = 0; play('ship_module_attach', .3); }
+  if (pendingModule && time >= attachAt) { ship.setStage(pendingModule, !reducedMotion); pendingModule = 0; play('moduleAttach'); triggerBurst(flight.shipPosition, 'attach'); illuminate(flight.shipPosition, 0x9deee6, 1.3); }
   ship.group.position.copy(flight.shipPosition); ship.group.quaternion.copy(flight.shipQuaternion);
   astronaut.group.position.copy(flight.astronautPosition);
   if (flight.actor === 'astronaut') {
@@ -471,11 +539,13 @@ function updateActors(dt, input) {
   }
   const frozen = inspecting || time < assemblyUntil || state.phase === 'complete';
   ship.update(time, { thrust: flight.actor === 'ship' && !frozen ? flight.thrust : 0, braking: !frozen && flight.actor === 'ship' && flight.braking, boost: input.boost });
-  astronaut.update(time, { thrust: flight.actor === 'astronaut' && !frozen ? flight.thrust : 0, braking: !frozen && flight.braking, boost: input.boost });
+  astronaut.update(time, { aiming: !!combat.shot, interacting: scanning, thrust: flight.actor === 'astronaut' && !frozen ? flight.thrust : 0, braking: !frozen && flight.braking, boost: input.boost });
   astronaut.group.visible = flight.actor === 'astronaut' && !visorActive();
   ship.group.visible = !(flight.actor === 'ship' && visorActive());
   cockpit.group.visible = flight.actor === 'ship' && visorActive();
-  cockpit.update(time, { speed: flight.velocity.length(), braking: flight.braking });
+  cockpit.update(time, { speed: flight.velocity.length(), braking: flight.braking, aspect: camera.aspect });
+  visor.group.visible = flight.actor === 'astronaut' && visorActive();
+  visor.update(time, { speed: reducedMotion ? 0 : flight.velocity.length(), aiming: !!combat.shot, interacting: scanning || time < eventLightUntil && state.phase === 'return', braking: flight.braking, aspect: camera.aspect });
   temp.copy(flight.position).add(new THREE.Vector3(1.8, 1.8, .5));
   companion.group.position.lerp(temp, 1 - Math.exp(-dt * 4));
   companion.group.rotation.y = flight.actor === 'ship' ? flight.shipYaw : astronaut.group.rotation.y;
@@ -495,6 +565,8 @@ function updateActors(dt, input) {
   }
 }
 function updateCamera(dt) {
+  const fov = visorActive() ? flight.actor === 'ship' ? 57 : 72 : 52;
+  if(camera.fov !== fov) { camera.fov = fov; camera.near = .025; camera.updateProjectionMatrix(); }
   zoom = THREE.MathUtils.damp(zoom, targetZoom, 6, dt);
   const focusShip = forcedExterior();
   const focus = focusShip ? flight.shipPosition : flight.position;
@@ -505,14 +577,14 @@ function updateCamera(dt) {
       shipPoint('eye', flight.shipPosition, flight.shipQuaternion, camera.position);
       camera.quaternion.copy(flight.shipQuaternion);
     } else {
-      camera.position.copy(flight.astronautPosition).add(new THREE.Vector3(0, 1.55, 0));
+      camera.position.copy(flight.astronautPosition).add(new THREE.Vector3(0, 1.69, 0));
       if (combat.shot && selectedTarget()) lookTarget.copy(selectedTarget().position);
       else lookTarget.copy(camera.position).add(new THREE.Vector3(-Math.sin(orbit) * Math.cos(elevation), -Math.sin(elevation), -Math.cos(orbit) * Math.cos(elevation)).multiplyScalar(20));
       camera.lookAt(lookTarget);
     }
   } else {
     const portrait = Math.max(1, .78 / camera.aspect);
-    const distance = (focusShip || flight.actor === 'ship' ? shipFrameRadius(state.moduleStage) * 2.8 + 5 : 18) * zoom * portrait;
+    const distance = (focusShip || flight.actor === 'ship' ? shipFrameRadius(state.moduleStage) * 2.8 + 5 : 7.5) * zoom * portrait;
     const angle = focusShip ? .42 : flight.actor === 'ship' ? .27 - flight.shipPitch * .45 : elevation;
     const heading = flight.actor === 'ship' && !focusShip ? flight.shipYaw : orbit;
     cameraPosition.set(Math.sin(heading) * Math.cos(angle), Math.sin(angle), Math.cos(heading) * Math.cos(angle)).multiplyScalar(distance).add(cameraTarget);
@@ -534,6 +606,8 @@ function updateMissionUI() {
   $('missionButton').disabled = paused || flight.returning || state.phase === 'transit' || time < assemblyUntil;
   $('biomeName').textContent = `${String(state.sector + 1).padStart(2, '0')} / ${state.layout.name.toUpperCase()}`;
   $('sectorNumber').textContent = `SECTOR ${String(state.sector + 1).padStart(2, '0')}`;
+  $('sectorName').textContent = state.layout.name.split(' · ')[0].toUpperCase();
+  $('cockpitFrame').firstElementChild.textContent = `${state.layout.name.split(' · ')[0].toUpperCase()} / CONTROL DE VUELO`;
   $('gemCount').textContent = String(state.gems).padStart(2, '0');
   $('gemIcons').textContent = Array.from({ length: 3 }, (_, i) => i < state.gems ? '◆' : '◇').join(' ');
   $('assemblyPercent').textContent = `${Math.round(state.moduleStage / 3 * 100)}%`; $('assemblyBar').style.width = `${state.moduleStage / 3 * 100}%`;
@@ -588,6 +662,10 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
   $('mobileDeployButton').disabled = actorLocked || flight.actor === 'astronaut';
   $('mobileViewButton').textContent = visorActive() ? 'Pasar a vista exterior' : flight.actor === 'ship' ? 'Ver desde la cabina' : 'Ver desde el visor';
   $('mobileViewButton').disabled = locked || state.phase === 'complete';
+  $('mobileQuickViewLabel').textContent = visorActive() ? 'Exterior' : flight.actor === 'ship' ? 'Cabina' : 'Visor';
+  $('mobileQuickViewButton').setAttribute('aria-label', visorActive() ? 'Volver a la vista exterior' : flight.actor === 'ship' ? 'Ver desde la cabina de la nave' : 'Ver desde el visor del astronauta');
+  $('mobileQuickViewButton').setAttribute('aria-pressed', String(visorActive()));
+  $('mobileQuickViewButton').disabled = paused || locked || state.phase === 'complete';
   $('mobileInspectButton').textContent = inspecting ? 'Volver a explorar' : 'Inspeccionar nave';
   $('mobileInspectButton').disabled = !!combat.shot || locked;
   $('mobileSoundButton').textContent = soundEnabled ? 'Silenciar sonido' : 'Activar sonido';
@@ -598,7 +676,7 @@ function updateHUD() {
   const target = selectedTarget(), obj = objective();
   const distance = target ? flight.position.distanceTo(target.position) : Infinity;
   const correctWeapon = target && flight.actor === (target.kind === 'small' ? 'astronaut' : 'ship');
-  const chance = target ? aimChance({ actor: flight.actor, distance, sector: state.sector, speed: flight.velocity.length() }) : 0;
+  const chance = target ? combat.chanceFor({ id: target.id, actor: flight.actor, chance: aimChance({ actor: flight.actor, distance, sector: state.sector, speed: flight.velocity.length() }) }) : 0;
   $('fireButton').disabled = blocked() || flight.returning || !correctWeapon || distance > WEAPON_RANGE[flight.actor] || !!combat.shot || combat.cooldown > 0;
   $('targetButton').disabled = blocked() || !!combat.shot || !validTargets().length;
   $('astronautButton').disabled = blocked() || flight.actor === 'astronaut' || !!combat.shot || state.phase === 'complete';
@@ -622,6 +700,7 @@ function updateHUD() {
   $('brakeButton').classList.toggle('active', flight.braking);
   $('hazardWarning').hidden = !hazardWarning;
   if (hazardWarning) {
+    play('warning');
     projected.copy(hazardWarning.position).project(camera);
     const arrow = projected.z > 1 ? '↶' : projected.x < -.25 ? '←' : projected.x > .25 ? '→' : projected.y > .25 ? '↑' : '↓';
     $('hazardWarning').textContent = `${arrow} TRAYECTORIA DE IMPACTO · ${hazardWarning.time.toFixed(1)} s`;
@@ -634,17 +713,20 @@ function updateHUD() {
   $('cockpitFrame').hidden = !(visorActive() && flight.actor === 'ship');
   $('lockLabel').textContent = combat.shot ? combat.shot.phase === 'lock' ? 'FIJANDO OBJETIVO' : 'DISPARO' : '';
   const label = $('objectiveLabel');
-  label.hidden = !obj || inspecting || visorActive() || state.phase === 'transit';
+  label.hidden = !obj || inspecting || !!combat.shot || ['transit', 'complete'].includes(state.phase);
   if (obj && !label.hidden) {
     projected.copy(obj.position).add(new THREE.Vector3(0, 2, 0)).project(camera);
     const behind = projected.z > 1 || projected.z < -1;
     const rawX = (projected.x + 1) * innerWidth / 2, rawY = (1 - projected.y) * innerHeight / 2;
-    const x = THREE.MathUtils.clamp(behind ? innerWidth / 2 : rawX, 90, innerWidth - 90);
-    const minY = compactHUD.matches ? innerHeight < 500 ? 85 : 115 : 95;
+    temp.copy(obj.position).sub(camera.position).applyQuaternion(camera.quaternion.clone().invert());
+    const x = THREE.MathUtils.clamp(behind ? temp.x < 0 ? 90 : innerWidth - 90 : rawX, 90, innerWidth - 90);
+    const minY = compactHUD.matches ? innerHeight < 500 ? 85 : 140 : 115;
     const maxY = Math.max(minY + 20, innerHeight - 190);
     const y = THREE.MathUtils.clamp(behind ? (minY + maxY) / 2 : rawY, minY, maxY);
     label.style.left = `${x}px`; label.style.top = `${y}px`;
-    label.textContent = `${behind ? '↶ ' : ''}${obj.label}`;
+    const outside = behind || Math.abs(projected.x) > .9 || Math.abs(projected.y) > .85;
+    const arrow = behind ? temp.x < 0 ? '← ' : '→ ' : outside ? projected.x < -.9 ? '← ' : projected.x > .9 ? '→ ' : projected.y > 0 ? '↑ ' : '↓ ' : '◇ ';
+    label.textContent = `${arrow}${obj.label}${['scan', 'gem'].includes(state.phase) ? ` · ${Math.round(flight.position.distanceTo(obj.position))} m` : ''}`;
   }
   // Read-only telemetry supports diagnostics without exposing mutation or skip controls.
   canvas.dataset.phase = state.phase; canvas.dataset.actor = flight.actor; canvas.dataset.sector = String(state.sector);
@@ -652,17 +734,29 @@ function updateHUD() {
   canvas.dataset.speed = flight.velocity.length().toFixed(3); canvas.dataset.thrust = flight.thrust.length().toFixed(3);
   canvas.dataset.heading = `${flight.shipYaw.toFixed(3)},${flight.shipPitch.toFixed(3)}`;
   canvas.dataset.tether = flight.tetherLength.toFixed(2); canvas.dataset.health = String(health);
+  canvas.dataset.view = visorActive() ? flight.actor === 'ship' ? 'cabina' : 'visor' : 'exterior';
+  canvas.dataset.quality = qualityScale.toFixed(2);
+  canvas.dataset.models = 'meshy-integrated-v1'; canvas.dataset.triangles = String(renderer.info.render.triangles);
+  canvas.dataset.navigating = String(navigating); canvas.dataset.scanning = String(scanning);
+  canvas.dataset.shot = combat.shot?.phase || ''; canvas.dataset.ready = 'true';
 }
 function handlePhaseChange() {
   if (state.phase === previousPhase) return;
   previousPhase = state.phase; navigating = false; selectedId = null;
   if (state.phase === 'large') { say('Campo despejado. Volvé a la nave: estos núcleos requieren su cañón.'); notify('Núcleos revelados · Volvé y abordá la nave', 5); }
-  if (state.phase === 'gem') { say('La gema está libre. Acercá la nave y salí para recuperarla.'); notify('Energía liberada · Gema localizada', 5); }
+  if (state.phase === 'gem') { say('La gema está libre. Acercá la nave y salí para recuperarla.'); notify('Energía liberada · Gema localizada', 5); play('gemReveal'); triggerBurst(world.gem.position, 'gem'); }
   updateMissionUI();
 }
-ship.setStage(1, false); camera.position.set(12, 9, 27); updateMissionUI();
+ship.setStage(state.moduleStage, false); camera.position.set(12, 9, 27); updateMissionUI();
+$('soundButton').setAttribute('aria-pressed', String(soundEnabled));
+$('soundButton').setAttribute('aria-label', soundEnabled ? 'Silenciar sonido' : 'Activar sonido');
+$('mobileSoundInvite').hidden = soundEnabled;
+saveProgress();
+if (saved) notify(saved.complete ? 'Tu expedición está completa · Podés inspeccionar la nave' : `Continuamos en ${state.layout.name.split(' · ')[0]} · Progreso recuperado`, 6);
+else notify('Arrastrá para mirar · Guiar te acerca a la baliza', 6);
 function animate(now) {
-  const dt = Math.min(.05, (now - lastFrame) / 1000); lastFrame = now;
+  const realDelta = Math.max(0, (now - lastFrame) / 1000);
+  const dt = Math.min(.05, realDelta); lastFrame = now;
   const input = controls.sample();
   if (!paused) {
     time += dt; ensureTarget();
@@ -674,18 +768,35 @@ function animate(now) {
     if (target) { selection.position.copy(target.position); selection.quaternion.copy(camera.quaternion); selection.scale.setScalar(target.radius * 1.45); }
     effects.update(time, camera, { reducedMotion });
     if (time > toastUntil) $('toast').classList.remove('visible');
-    if (audioReady && soundEnabled) {
-      const engineState = flight.thrust.length() > .12 ? input.boost ? 'boost' : 'move' : 'idle';
-      if (audio.currentEngineState !== engineState) audio.setEngineState(engineState);
-    }
+    const flightSoundActive = !blocked() && state.phase !== 'complete';
+    audio.update({ actor: flight.actor, thrust: flightSoundActive ? flight.thrust : 0, boost: flightSoundActive && input.boost, braking: flightSoundActive && flight.braking, biome: state.layout.biomeId, firstPerson: visorActive(), time, aiming: !!combat.shot || scanning, relic: state.phase === 'gem' });
+    if (!settings.introSeen && time > tutorialUntil) { settings.introSeen = true; saveProgress(); }
   }
   hudTimer += dt;
   if (hudTimer > .1) { updateHUD(); hudTimer = 0; }
   const veil = state.phase === 'transit' && state.sector < 2 ? THREE.MathUtils.clamp((time - transitStart - 4.4) / .6, 0, 1) : THREE.MathUtils.clamp((arrivalVeilUntil - time) / .6, 0, 1);
   $('transitionVeil').style.opacity = String(veil);
   sun.color.setHex(world.lighting.sun); rim.color.setHex(world.lighting.fill);
+  sun.target.position.copy(flight.position); sun.position.copy(flight.position).add(new THREE.Vector3(-30, 45, 20));
+  renderer.shadowMap.needsUpdate = frames % (mobileGPU ? 2 : 1) === 0;
+  eventLight.intensity = reducedMotion ? 0 : Math.max(0, eventLightUntil - time) * 26;
   renderer.toneMappingExposure = world.lighting.exposure;
+  destruction.update(time);
   presentation.render(scene, camera, world);
+  if (!paused && realDelta > 0 && realDelta < .25 && frames > 120) {
+    qualityElapsed += realDelta; qualityFrames++;
+    if (qualityElapsed >= 4) {
+      const rate = qualityFrames / qualityElapsed;
+      canvas.dataset.fps = rate.toFixed(1);
+      const next = rate < 38 ? Math.max(.7, qualityScale - .1) : rate > 57 ? Math.min(1, qualityScale + .05) : qualityScale;
+      if (next !== qualityScale) {
+        qualityScale = next;
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 1280 / innerWidth, 720 / innerHeight) * qualityScale);
+        renderer.setSize(innerWidth, innerHeight); presentation.resize();
+      }
+      qualityElapsed = qualityFrames = 0;
+    }
+  }
   if (++frames === 2) { $('loading').style.opacity = '0'; setTimeout(() => { $('loading').hidden = true; }, reducedMotion ? 0 : 550); }
   requestAnimationFrame(animate);
 }

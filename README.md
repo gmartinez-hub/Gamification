@@ -1,6 +1,8 @@
 # Gravedad Zero — un viaje, pieza por pieza
 
-Expedición jugable low poly en Three.js: exploración en tres dimensiones, escaneo, combate con astronauta y nave, regreso por cable y construcción de **una nave por módulos**. Tres sectores combinan un recorrido diseñado con posiciones procedurales reproducibles. La V3 incorpora vuelo con inercia, proporciones habitables, cabina 3D y una atmósfera inspirada en el póster. Nave, astronauta y companion son modelos nuevos; el entorno reutiliza texturas y audio del repositorio.
+Expedición jugable en Three.js con modelos Meshy: nave de tres módulos, astronauta riggeado con herramienta, cabina envolvente, baliza, companion y asteroides. Tres biomas combinan un recorrido diseñado con posiciones procedurales reproducibles. Conserva vuelo inercial, cable, combate asistido, gemas, partículas, audio y guardado por sector.
+
+Los modelos y mapas se descargan al iniciar; la primera carga pesa aproximadamente 200 MB. La fidelidad de los archivos elegidos se conserva. El render mantiene la proporción de pantalla con resolución interna máxima de 1280×720 y ajuste dinámico. [Integración y contratos](docs/meshy-integration.md).
 
 ## Ejecutar localmente
 
@@ -89,7 +91,7 @@ Los planetas están en una escena celeste separada, con rotación lenta y muy po
 
 En móvil, usá la cruceta para moverte, **ALT** para subir o bajar y los botones de impulso y **Estabilizar**; pueden combinarse con varios dedos. Arrastrá sobre el espacio para mirar u orientar la nave. Un solo botón principal cambia entre guiar, escanear, disparar, abordar y recoger según el objetivo y la distancia; durante el combate aparece además **◎** para cambiar de objetivo. El disparo muestra su probabilidad de acierto.
 
-Arriba quedan el objetivo, la integridad y el cable. El menú **☰** pausa la partida y reúne el progreso de la nave, las gemas, la guía de Nóma, el sonido, la ayuda, la inspección y las opciones de cámara. Al cerrarlo continuás donde estabas. Desde allí podés alternar exterior y visor o cabina. Los controles respetan las áreas seguras del teléfono y se adaptan a vertical y horizontal.
+Arriba quedan el objetivo, la integridad y el cable. El botón **Visor** permite entrar directamente en primera persona y cambia a **Exterior** para salir; cuando estás a bordo se llama **Cabina**. El menú **☰** pausa la partida y reúne el progreso de la nave, las gemas, la guía de Nóma, el sonido, la ayuda, la inspección y las opciones de cámara. Al cerrarlo continuás donde estabas. Los controles respetan las áreas seguras del teléfono y se adaptan a vertical y horizontal.
 
 ## Semilla y alcance
 

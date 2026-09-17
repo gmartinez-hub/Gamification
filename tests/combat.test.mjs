@@ -55,3 +55,33 @@ test('reset clears an in-flight shot and accumulated counters', () => {
   assert.equal(combat.update(3), null);
   assert.equal(combat.stats.attempts, 0);
 });
+
+function resolve(combat, options = shot) {
+  combat.update(1);
+  assert.equal(combat.start(options), true);
+  return combat.update(4);
+}
+test('two misses grant the next valid shot on that target, then assistance resets', () => {
+  const combat = createCombat(() => 1);
+  assert.equal(resolve(combat).hit, false);
+  assert.equal(resolve(combat).hit, false);
+  assert.equal(resolve(combat).hit, true);
+  assert.equal(resolve(combat).hit, false);
+});
+test('invalid shots cannot consume or grant recovery assistance and other targets do not inherit it', () => {
+  const combat = createCombat(() => 1);
+  resolve(combat); resolve(combat); combat.update(1);
+  assert.equal(combat.start({ ...shot, distance: 80 }), false);
+  assert.equal(resolve(combat, { ...shot, id: 'small-2' }).hit, false);
+  assert.equal(resolve(combat, { ...shot, actor: 'ship', kind: 'large' }).hit, false);
+  assert.equal(resolve(combat).hit, true);
+});
+test('reported chance agrees with recovery assistance and reset clears target streaks', () => {
+  const combat = createCombat(() => 1);
+  resolve(combat); resolve(combat);
+  assert.equal(combat.chanceFor(shot), 1);
+  assert.equal(combat.chanceFor({ ...shot, id: 'new-target' }), .8);
+  combat.reset();
+  assert.equal(combat.chanceFor(shot), .8);
+  assert.equal(resolve(combat).hit, false);
+});
