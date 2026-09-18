@@ -222,3 +222,18 @@ Cockpit raw-vs-runtime proof and Hangar multi-angle proof remain mandatory. Do n
 ### Still open — do not infer
 1. **Hangar walk camera:** latest voice wording is ambiguous between third-person only and allowing first-person walking too.
 2. **Arrival control after portal:** restore the same actor/vehicle that entered the portal, or use a setup-defined Primary Deployment Actor.
+
+
+### Hangar walk clarification
+The Hangar walkable view is intentionally minimal and physical: show the exact confirmed sortie setup, not the whole inventory.
+
+Its purpose is a pre-departure reminder and boarding space:
+- exact vehicle count,
+- selected companions,
+- selected ship,
+- selected/deployed equipment that makes sense to show,
+- ability to approach and board the departure vehicle/ship.
+
+Inventory/build remains a separate UI. Unowned/unselected content does not decorate the ambient Hangar merely because it is unlocked.
+
+First-person walk is the desired presentation if the raw service-bay audit supports it. Third-person is only a verified fallback, not an inferred redesign.
