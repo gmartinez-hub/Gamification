@@ -249,12 +249,14 @@ Once built, the ally modular ship can accompany the player in any unlocked world
 ### GZ-COMP-003 — Orders
 **APPROVED**
 
-Only one active high-level order:
+Nóma and the unlocked ally use the same intentionally small high-level command family:
 
 - Explore.
 - Defend.
 
-Changing/activating the order normally requires proximity. When far away during combat, the player may Recall.
+No additional ally-only tactical role menu is introduced.
+
+Changing/activating the order normally requires proximity. When far away during combat, the player may Recall where the actor/system supports recall. Actual combat output comes from the configured physical loadout.
 
 ### GZ-COMP-004 — Defend target
 **APPROVED**
@@ -350,9 +352,9 @@ Energy Cells are the single gameplay currency/resource for:
 
 On player death:
 
-- All deployed player-owned physical setup is considered lost.
+- Deployed player-owned physical setup is lost **except** equipment explicitly protected by GZ-DEATH-COMP-001 because it is physically assigned to a living/downed companion that recovers to Hangar.
 - Unlocks/recipes/world progression remain.
-- Recovery grants 50% of the lost setup value in Energy Cells.
+- Recovery grants 50% of the value of the setup actually lost in the death resolution, in Energy Cells.
 - New baseline setup is the permanent recovery bike.
 
 Exact item prices remain balance configuration.
