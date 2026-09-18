@@ -198,3 +198,27 @@ Browsing and physical presentation are separate:
 8. World-to-world transit arrival: restore the actor/vehicle used to enter the portal, or use a mission-configured primary deployment actor?
 
 No implementation may answer these eight by inference.
+
+
+---
+
+## Decision update — cockpit / hangar / portal spatial contract
+
+### Closed
+- Preserve the existing cockpit seat/stand state machine and animation.
+- Exterior boarding enters the cockpit **standing first**; the player then chooses Sit.
+- Standing cockpit mode is **third-person** with a small walkable zone derived from visible cabin geometry.
+- Preserve the currently working seated third-person presentation. First-person piloting remains compatible with the existing visor/cockpit framing.
+- Stable orbital-base identity for Hangar.
+- Hangar exterior is a stable orbital backdrop; destination/world is previewed through screens/holograms rather than by loading/changing the physical base environment.
+- Inventory/setup uses real 3D focus presentation: selected owned assets may move/rotate in a focus zone; unlocked/unowned content may appear as clearly holographic 3D preview.
+- Portal runs a pre-threshold party check. If a companion is downed/unresolved, the player chooses **Rescue First** or **Travel Anyway**.
+- If left behind alive/downed: Nóma is recovered/available with no character revive fee; ally returns to base for free. Ally DEAD still uses paid revival.
+- Portal transit shows surviving/present mobile setup and hides destination loading. Previous world instance is discarded after safe handoff.
+
+### Evidence required before Blender extension
+Cockpit raw-vs-runtime proof and Hangar multi-angle proof remain mandatory. Do not model a replacement shell merely from concept art.
+
+### Still open — do not infer
+1. **Hangar walk camera:** latest voice wording is ambiguous between third-person only and allowing first-person walking too.
+2. **Arrival control after portal:** restore the same actor/vehicle that entered the portal, or use a setup-defined Primary Deployment Actor.
