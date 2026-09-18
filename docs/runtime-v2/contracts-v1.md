@@ -1,0 +1,600 @@
+# Gravedad Zero — Canonical Contracts V1
+
+This document freezes approved behavior and separates it from values that must be measured or produced.
+
+---
+
+## 1. World and navigation
+
+### GZ-WORLD-001 — Axis convention
+**APPROVED**
+
+- X/Z are the primary navigation plane.
+- Y is altitude.
+- The legacy hard world clamp (`WORLD_MIN/WORLD_MAX`) is forbidden in V2.
+
+### GZ-WORLD-002 — Extensible world
+**APPROVED**
+
+- The player may continue travelling without hitting an invisible global wall.
+- The world is partitioned into streamable logical cells.
+- Narrative content can be finite while traversal remains extensible.
+
+### GZ-WORLD-003 — Logical position
+**APPROVED**
+
+Logical position is represented by:
+
+`worldId + cellId + localPosition`
+
+The renderer may rebase/floating-origin around the active area. Simulation retains stable logical coordinates.
+
+### GZ-WORLD-004 — Planet/moon presentation
+**APPROVED**
+
+Planets, moons and large celestial bodies are backdrop/macro visual layers unless a later contract explicitly promotes one to a physical POI. They do not become collision destinations merely because the player travels toward them.
+
+### GZ-WORLD-005 — Cell lifecycle
+**APPROVED mechanism / MEASURE values**
+
+Cells support at least:
+
+- COLD — data/seed only.
+- WARM — preloaded spawn/asset requirements.
+- ACTIVE — full nearby gameplay/representation.
+
+Exact cell size, warm radius and active radius are MEASURE values from the perf lab.
+
+### GZ-WORLD-006 — Deterministic procedural generation
+**APPROVED**
+
+Within one world instance/sortie:
+
+`hash(worldSeed, cellCoordinates)`
+
+must reproduce the same procedural cell content. Streaming out and back in must not reroll the cell.
+
+### GZ-WORLD-007 — New world instance
+**APPROVED**
+
+Entering another world through a portal ends the current world instance. The destination creates a fresh procedural instance/seed. The previous world does not remain remotely simulated after cross-world handoff.
+
+---
+
+## 2. Portal and transit
+
+### GZ-PORTAL-001 — Discovery
+**APPROVED**
+
+Portals appear/findable in the procedural world. Once found, the portal remains usable for the rest of that world instance.
+
+### GZ-PORTAL-002 — Destinations
+**APPROVED**
+
+Portal interaction offers:
+
+- Hangar.
+- Any unlocked world.
+
+No arbitrary locked destination is shown as available.
+
+### GZ-PORTAL-003 — Transit
+**APPROVED**
+
+On confirm:
+
+1. Validate destination.
+2. Auto-recall selected mobile setup.
+3. Recover living/recoverable deployed equipment according to recovery rules.
+4. Begin destination preload.
+5. Show the selected setup travelling through the ring/tunnel.
+6. Perform safe handoff.
+7. Release the old world instance.
+
+The ring sequence is the diegetic loading screen.
+
+### GZ-PORTAL-004 — Failure
+**APPROVED**
+
+A failed destination load must return safely to the source portal/world state. It must not corrupt save, inventory or setup.
+
+---
+
+## 3. Inventory and item identity
+
+### GZ-ITEM-001 — Unlock vs unit
+**APPROVED**
+
+- Unlock = family/recipe/catalog availability.
+- Owned unit = one concrete physical inventory item.
+- Presets never duplicate owned units.
+
+### GZ-ITEM-002 — Physical-unit scope
+**APPROVED**
+
+Concrete countable units include:
+
+- Ship modules.
+- Turrets.
+- Beacons.
+- Weapons.
+- Additional bikes/vehicles.
+
+The permanent recovery bike is a special baseline and is not lost as a normal owned unit.
+
+### GZ-ITEM-003 — Stable item identity
+**APPROVED**
+
+The same `itemId` moves across:
+
+`HANGAR_STORED -> ASSIGNED -> DEPLOYED -> REMOTE -> RECOVERED | LOST`
+
+Menu thumbnails, Hangar models and world representations are views of the same item, not copies.
+
+### GZ-ITEM-004 — Inventory domains
+**APPROVED**
+
+At minimum:
+
+- Shared Hangar storage.
+- Player inventory/loadout.
+- Nóma inventory/loadout.
+- Ally inventory/loadout.
+- Vehicle/module loadouts.
+- World deployed-state references.
+
+### GZ-ITEM-005 — Hangar presentation
+**PROPOSED / visual validation required**
+
+- Menus use pre-rendered 256–512px thumbnails of canonical models.
+- The Hangar is the live 3D configurator/showroom.
+- Selecting Inspect/Configure promotes that host/item to the Hangar 3D stage.
+- Menus do not instantiate many live GLBs simultaneously.
+
+---
+
+## 4. Turret contract
+
+### GZ-TURRET-001 — Physical unit
+**APPROVED**
+
+A purchased turret is one physical unit. Two purchased turrets = two units. The unit can be moved in Hangar among compatible hosts.
+
+### GZ-TURRET-002 — Compatible hosts
+**APPROVED**
+
+Turrets can mount on:
+
+- Player ship.
+- Ally ship.
+- Player/ally bike.
+- Nóma.
+- Beacon.
+
+No turret is attached directly to the ally body; the ally uses a pistol as personal weapon.
+
+### GZ-TURRET-003 — Host scaling
+**APPROVED**
+
+The same turret family may change **visual representation scale** to fit the host.
+
+### GZ-TURRET-004 — Option A mount economy
+**APPROVED**
+
+- The turret unit is purchased once.
+- Mounting/reconfiguring it for a host has a host-specific Energy Cell cost.
+- Moving it to another host may incur the new host's mount/reconfiguration cost.
+- Host-specific stat changes are **not implied** by visual scaling; any such stat rule must be an explicit later balance contract.
+
+### GZ-TURRET-005 — Capacities
+**APPROVED mechanism**
+
+- Nóma: maximum 2 turret units.
+- Bike: base capacity 2; upgrade path may raise capacity to 4.
+- Beacon: maximum 1 turret unit.
+- Player/ally ships: capacity is authored per ship module. Total ship capacity is the sum of active module capacities plus physical-surface compatibility. No arbitrary global ship cap is hardcoded.
+
+Exact `turretCapacity` for each existing ship module is PRODUCE/BALANCE and must be authored after Blender/camera review.
+
+---
+
+## 5. Hangar and setup
+
+### GZ-HANGAR-001 — Memory boundary
+**APPROVED**
+
+The Hangar is a separate scene and primary memory boundary. Full world + full Hangar + next full world must not be resident simultaneously.
+
+### GZ-HANGAR-002 — Draft setup
+**APPROVED**
+
+Hangar setup uses:
+
+`OPEN -> DRAFT/PREVIEW -> CONFIRM | CANCEL`
+
+Only CONFIRM changes the mission setup/persistent inventory assignments.
+
+### GZ-HANGAR-003 — Loadout-driven residency
+**APPROVED**
+
+Only selected mission actors/vehicles/equipment are required for mission residency. Not selecting ally/Nóma/bike/ship equipment must allow the runtime to omit those representations/assets where possible.
+
+### GZ-HANGAR-004 — Ally ship
+**APPROVED**
+
+Once built, the ally modular ship can accompany the player in any unlocked world and is launched voluntarily from Hangar. It uses the same modular ship system/assets as the player ship.
+
+---
+
+## 6. Companions
+
+### GZ-COMP-001 — Nóma unlock/deploy
+**APPROVED**
+
+- Nóma unlock persists permanently after narrative unlock.
+- Nóma itself has no deployment fee.
+- Accessories equipped on Nóma have normal ownership/cost rules.
+
+### GZ-COMP-002 — Ally availability
+**APPROVED**
+
+- Ally unlock persists.
+- If ally survives, Hangar recovery has no revive fee.
+- If ally dies, revival/reactivation costs Energy Cells before deployment again.
+
+### GZ-COMP-003 — Orders
+**APPROVED**
+
+Only one active high-level order:
+
+- Explore.
+- Defend.
+
+Changing/activating the order normally requires proximity. When far away during combat, the player may Recall.
+
+### GZ-COMP-004 — Defend target
+**APPROVED**
+
+Defend protects:
+
+- the player, or
+- one assigned owned ship/vehicle.
+
+No arbitrary empty-space defend target.
+
+### GZ-COMP-005 — Remote existence
+**APPROVED**
+
+Remote companions remain logical entities even when their GLB/animation/VFX representation is unloaded. They can travel, take damage, fight and become downed/dead.
+
+### GZ-COMP-006 — Remote alerts
+**APPROVED**
+
+Remote attack/damage/down/death events must produce distinct UI/audio notifications and Tactical Map state.
+
+### GZ-COMP-007 — Downed lifecycle
+**APPROVED**
+
+`ACTIVE -> DOWNED/DISABLED -> RESCUED | DEAD`
+
+- During the same sortie, a downed companion remains at its logical world position and can be rescued.
+- If rescued, the configured pre-launch setup remains intact and gameplay resumes.
+- If the sortie ends while the companion is alive/downed, character and equipment recover to Hangar.
+- Ally requires revival payment only if DEAD.
+- Nóma never requires character revival payment; his physical equipment follows item-loss rules.
+
+---
+
+## 7. Tactical navigation
+
+### GZ-MAP-001 — 2D map
+**APPROVED**
+
+Tactical Map is 2D, not a second interactive 3D world.
+
+### GZ-MAP-002 — Visible markers
+**APPROVED**
+
+Map may show:
+
+- Player.
+- Owned player ship/moto.
+- Nóma.
+- Ally and ally ship/moto.
+- Beacons.
+- Turrets.
+- Discovered portals.
+- POIs discovered by Nóma.
+
+### GZ-MAP-003 — 3D miniatures
+**APPROVED presentation direction**
+
+Use pre-rendered miniatures/thumbnails of canonical 3D assets over map markers. Altitude is indicated with +/- metres or chevrons.
+
+### GZ-MAP-004 — Waypoints
+**APPROVED**
+
+The player selects existing markers only. No arbitrary empty-space waypoint.
+
+### GZ-MAP-005 — Manual navigation
+**APPROVED**
+
+No autopilot. Selected markers provide heading/distance guidance; vehicle control remains manual.
+
+### GZ-MAP-006 — Nóma discovery
+**APPROVED**
+
+A POI discovered by Nóma remains visible for the rest of the current sortie/world instance even if Nóma leaves it.
+
+---
+
+## 8. Economy, death and recovery
+
+### GZ-ECO-001 — Currency
+**APPROVED**
+
+Energy Cells are the single gameplay currency/resource for:
+
+- resource rewards,
+- purchases,
+- mount/reconfiguration costs,
+- revival,
+- death salvage accounting.
+
+### GZ-DEATH-001 — Player death
+**APPROVED**
+
+On player death:
+
+- All deployed player-owned physical setup is considered lost.
+- Unlocks/recipes/world progression remain.
+- Recovery grants 50% of the lost setup value in Energy Cells.
+- New baseline setup is the permanent recovery bike.
+
+Exact item prices remain balance configuration.
+
+### GZ-RECOVERY-001 — Successful extraction
+**APPROVED**
+
+Living/recoverable deployed units return to Hangar. Destroyed units remain lost.
+
+---
+
+## 9. Asteroids, projectiles and physics
+
+### GZ-AST-001 — Asteroid families
+**APPROVED**
+
+Use the existing generic/base asteroid GLB family with material/texture variation where geometry variation is not required.
+
+### GZ-AST-002 — Hostile thrown asteroid
+**APPROVED**
+
+Alien/mothership-thrown asteroids:
+
+- reuse the generic asteroid family,
+- use a distinct hostile visual/material treatment,
+- break on the first meaningful collision,
+- do not bounce through multiple bodies.
+
+### GZ-AST-003 — Vehicle collision
+**APPROVED**
+
+Ship/moto collision with large asteroids causes damage + deflection. It does not create a rigid-body sandbox where vehicles push large asteroids around.
+
+### GZ-PROJ-001 — Alien ship energy projectile
+**APPROVED**
+
+Alien ships use the same projectile system/family as the player ship, with different visual size/parameters as configured.
+
+### GZ-PHYS-001 — Selective physics
+**APPROVED architecture**
+
+Use robust colliders/world queries for important bodies; projectiles, trails, debris and similar high-count effects must use lightweight pooled/swept logic rather than one full rigid body each.
+
+---
+
+## 10. Spawn and hordes
+
+### GZ-SPAWN-001 — No visible pop-in spawn
+**APPROVED**
+
+Enemies may exist logically before representation. They must be prewarmed/promoted and arrive through believable approach/occlusion/portal/carrier/mothership context rather than appearing visibly at close range.
+
+### GZ-HORDE-001 — Telegraph
+**APPROVED**
+
+A horde gets a readable pre-engagement warning through radar/companion/beacon/audio/presentation cues.
+
+### GZ-HORDE-002 — Logical horde vs visual budget
+**APPROVED**
+
+A horde may contain more logical enemies than full nearby representations. Threat/Representation Budget promotes and demotes visual actors without changing the logical encounter population.
+
+---
+
+## 11. Final boss
+
+### GZ-BOSS-001 — Asset behavior
+**APPROVED**
+
+Mothership is a rigid asset:
+
+- no skeletal rig,
+- no landing,
+- no boarding,
+- no complex per-section destruction.
+
+Combat uses movement, sockets, gems/core, projectiles, hordes, hostile ships and VFX.
+
+### GZ-BOSS-002 — Weak points
+**APPROVED**
+
+Existing gem model is used as mothership weak points.
+
+### GZ-BOSS-003 — Phase 1: Siege
+**APPROVED**
+
+- Mothership protected.
+- Asteroid launches + hostile ships/aliens/horde pressure.
+- Destroy first gem weak points.
+- Gem destruction reduces boss capabilities such as shield/asteroid/reforcement pressure according to balance config.
+
+### GZ-BOSS-004 — Phase 2: Break the Crown
+**APPROVED**
+
+Remaining main gems activate; mothership becomes more aggressive/closer. Full prepared team/setup is relevant. Destroy remaining gem nodes to expose core.
+
+### GZ-BOSS-005 — Phase 3: Core
+**APPROVED**
+
+Gems go dark, central core becomes vulnerable, strongest barrage uses existing system families. Destroying the core ends combat.
+
+### GZ-BOSS-006 — Ending
+**APPROVED**
+
+Mothership destruction ejects the gem weak points through space as the final visual momentum. No collection step is required; the explosion triggers the ending cinematic/state.
+
+---
+
+## 12. Cameras and controls
+
+### GZ-CAM-001 — Camera set
+**APPROVED**
+
+- Astronaut FP.
+- Astronaut TP.
+- Bike FP.
+- Bike TP.
+- Ship cockpit.
+- Ship exterior/chase.
+- Hangar orbit/inspection.
+- Cinematic director camera.
+- Tactical Map 2D view.
+- Boss/fleet establishing cinematic framing as director shots.
+
+### GZ-INPUT-001 — Desktop
+**APPROVED**
+
+WASD movement + direct mouse aim/camera + click fire.
+
+### GZ-INPUT-002 — Mobile
+**APPROVED**
+
+Landscape touch layout with left movement control and right aim/fire.
+
+### GZ-INPUT-003 — Portrait guard
+**APPROVED**
+
+Gameplay does not run interactively in portrait. UI asks the player to rotate the device. The experience must not depend on browser orientation-lock permission.
+
+---
+
+## 13. Motion, filters and VFX
+
+### GZ-MOTION-001 — Parametric motion
+**APPROVED**
+
+Asteroids, backdrop planets/clouds, stars/dust, gem, beacon, turret, bikes, ships, mothership and most portal/transit motion are parameterized/procedural transforms, not new skeletal clips.
+
+### GZ-RIG-001 — New clips
+**APPROVED rule**
+
+Create new character animation clips only when bodily deformation/gesture cannot be solved acceptably with existing clips, steering, IK, transforms, camera or VFX.
+
+### GZ-FILTER-001 — Presentation state stack
+**APPROVED**
+
+Damage, critical, companion alerts, horde, portal, gem, boss and death presentation states use an explicit priority system so full-screen treatments do not stack chaotically.
+
+### GZ-FILTER-002 — Blur
+**APPROVED direction**
+
+Blur is not a default damage effect. Favor cheap final-pass vignette/desaturation/exposure/tint/light distortion and camera impulse.
+
+### GZ-VFX-001 — Distance tiers
+**APPROVED**
+
+The same logical event may render as HERO / NEAR / MID / FAR based on relevance/distance. Damage/gameplay is unchanged.
+
+---
+
+## 14. Texture and lighting
+
+### GZ-TEX-001 — Runtime tiers
+**APPROVED**
+
+- Never upscale a source merely to hit a tier.
+- 2K (2048x2048) only where hero/close-up QA proves value.
+- 1K (1024x1024) is common gameplay target.
+- 512 is allowed for FAR/secondary representations.
+
+### GZ-LIGHT-001 — Lighting budget
+**APPROVED**
+
+Use a controlled main/environment lighting model plus limited important local lights. Do not create a costly dynamic point light for every turret/projectile/engine; emissive/VFX represent many distant lights.
+
+---
+
+## 15. Audio
+
+### GZ-AUDIO-001 — Reset
+**APPROVED**
+
+Legacy WAVs are reference only. V2 gets a fresh Audio Event Map.
+
+### GZ-AUDIO-002 — Coverage
+**APPROVED requirement**
+
+Audio map must cover at least movement/engines, weapons, asteroid hits/breaks, Energy Cell reward, Nóma states, ally states, beacon, turret, portal, Hangar launch/dock, mothership, horde, damage, critical, death and gem events.
+
+Prototype audio may be generated for playtest; prototype status does not imply final shipping approval.
+
+---
+
+## 16. Save and browser support
+
+### GZ-SAVE-001 — Save
+**APPROVED V1**
+
+Local autosave only. No account/cloud/cross-device requirement in V1.
+
+### GZ-BROWSER-001 — Production QA
+**APPROVED V1**
+
+Safari is the required production QA browser target for now. Reference hardware includes MacBook Air M1 and iPhone 16. Mobile QA uses landscape gameplay.
+
+---
+
+## 17. Performance contracts
+
+### GZ-PERF-001 — No product cap by guess
+**APPROVED**
+
+Cell sizes, LOD thresholds, remote simulation rates, pool sizes, shadow budget and representation counts are MEASURE values, not product assumptions.
+
+### GZ-PERF-002 — Renderer selection
+**APPROVED process**
+
+The perf lab compares appropriate Three.js renderer/backend alternatives once at project bootstrap. The chosen production renderer is then frozen before campaign implementation.
+
+### GZ-PERF-003 — Priority
+**APPROVED**
+
+Stable input, aim, shooting and frame time take priority over retaining HERO representation for distant/off-focus entities.
+
+---
+
+## 18. Asset-source contract
+
+See [asset-manifest-contract-v1.md](./asset-manifest-contract-v1.md).
+
+---
+
+## 19. Remaining non-semantic work
+
+These are not permission to infer product behavior:
+
+- **MEASURE**: cell size, radii, remote Hz, per-module ship turret capacities, exact perf budgets, final item prices.
+- **PRODUCE**: Hangar/cockpit/ship/mothership Blender fixes, asteroid material coverage, LODs, colliders, fresh audio, VFX, any genuinely missing character clips.
+- **VERIFY**: semantic tests, perf lab, camera QA, asset audit, memory/leak cycles.
