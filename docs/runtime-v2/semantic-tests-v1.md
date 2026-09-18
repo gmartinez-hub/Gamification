@@ -134,3 +134,10 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-PORTAL-PARTY-003 | Leave alive/downed Nóma | Travel proceeds; Nóma is base-recovered with no character revive fee. |
 | SEM-PORTAL-PARTY-004 | Leave alive/downed ally | Travel proceeds; ally returns to base with no revive fee. |
 | SEM-PORTAL-PARTY-005 | Ally is DEAD | Travel may proceed; paid revival requirement persists. |
+
+
+| SEM-HANGAR-005 | Confirm setup contains two bikes | Walkable Hangar physically shows two bikes; count matches setup exactly. |
+| SEM-HANGAR-006 | Ally/Nóma not selected for sortie | Character does not appear as an ambient physical reminder in Hangar WALK. |
+| SEM-HANGAR-007 | Unlocked but unowned item exists | It does not populate the ambient Hangar; it is available only through Inventory/Build preview. |
+| SEM-HANGAR-008 | Player approaches selected ship/vehicle | Boarding action is available and leads into the established boarding/cockpit flow. |
+| SEM-HANGAR-009 | First-person Hangar camera | Must be validated against real audited service-bay geometry; no silent third-person substitution. |
