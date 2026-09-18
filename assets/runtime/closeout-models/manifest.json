@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "description": "Canonical closeout runtime assets exported from preserved Blender sources.",
+  "assets": [
+    {
+      "id": "green-ally",
+      "file": "green-ally.glb",
+      "source": "Meshy_AI_Green_Astronaut_Explo_0917220218_texture.blend",
+      "sourceSha256": "5f946f22fa76eee742ba550981811c34acb541dab9320e1dabd2ba9198a9e89b",
+      "sha256": "7c000432e5bff922f03dec7fad4374743ea239466fb1e0f847c0a76ed99575e1",
+      "bytes": 11393432,
+      "dimensions": [
+        1.53026,
+        0.61684,
+        1.89927
+      ],
+      "meshes": 1,
+      "triangles": 113438,
+      "materials": 1,
+      "textureSizes": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "armatures": 1,
+      "clips": [
+        "AllyAim",
+        "AllyFire",
+        "AllyIdle",
+        "AllyMove",
+        "AllyNarrative",
+        "AllyReact"
+      ]
+    },
+    {
+      "id": "energy-cell",
+      "file": "energy-cell.glb",
+      "source": "Meshy_AI_Quantum_Core_Generato_0917220944_texture.blend",
+      "sourceSha256": "9010eaef40ac1dd1f1fcfd5ea3f71e06c6351c05168b5ce0ace801e7d9e44fb6",
+      "sha256": "ea97c521c727fe44458492122dfc20bccf52cfec26a2de2c433130a016bb02f2",
+      "bytes": 15817148,
+      "dimensions": [
+        1.17958,
+        1.18005,
+        1.89873
+      ],
+      "meshes": 1,
+      "triangles": 251287,
+      "materials": 1,
+      "textureSizes": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "armatures": 0,
+      "clips": []
+    },
+    {
+      "id": "modular-turret",
+      "file": "modular-turret.glb",
+      "source": "Meshy_AI_Sentinel_Railgun_Turr_0917220618_texture.blend",
+      "sourceSha256": "26973a7f6a404d277b2e9d87c14ecb757151d8fbba4c607717079b3a9eac6755",
+      "sha256": "67e2d26689f5c555b2bdccce8bce75815a6d291f453155831d7ec6afe27a9ceb",
+      "bytes": 14144992,
+      "dimensions": [
+        1.89709,
+        0.86977,
+        1.15238
+      ],
+      "meshes": 1,
+      "triangles": 179546,
+      "materials": 1,
+      "textureSizes": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "armatures": 0,
+      "clips": []
+    },
+    {
+      "id": "orbital-service-bay",
+      "file": "orbital-service-bay.glb",
+      "source": "Meshy_AI_Orbital_Service_Bay_0917222112_texture.blend",
+      "sourceSha256": "073ea7f03146c0beafce4f361199fb8149c6298fd9cfe70be72167957aacadcb",
+      "sha256": "6204cf3aaa355a0a6105b32ffc35af1b455c471ba67230cc3c96c294c0e62926",
+      "bytes": 26155312,
+      "dimensions": [
+        1.89931,
+        1.79081,
+        0.86079
+      ],
+      "meshes": 1,
+      "triangles": 537935,
+      "materials": 1,
+      "textureSizes": [
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ],
+        [
+          2048,
+          2048
+        ]
+      ],
+      "armatures": 0,
+      "clips": []
+    }
+  ]
+}
