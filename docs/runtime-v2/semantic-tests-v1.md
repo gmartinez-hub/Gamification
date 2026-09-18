@@ -115,3 +115,22 @@ These tests validate meaning before implementation detail. A runtime may be tech
 ## Contract rule
 
 A failed semantic test is not a request to simplify the feature. Fix implementation or reopen the exact contract explicitly.
+
+
+## Cockpit / Hangar / portal spatial semantics
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-COCKPIT-001 | Board ship from exterior | Player appears standing in cockpit bay first; Sit remains an explicit action. |
+| SEM-COCKPIT-002 | Stand from seated pilot state | Existing rise transition is reused; player reaches standing third-person state. |
+| SEM-COCKPIT-003 | Move while standing | Movement remains inside visible cockpit-bay architecture; no invisible arbitrary world clamp. |
+| SEM-COCKPIT-004 | Raw model contains depth hidden by runtime clipping | Fix runtime composition first; do not author duplicate replacement geometry. |
+| SEM-HANGAR-001 | Open Hangar | Stable orbital-base environment; no previous/next gameplay world kept resident as physical backdrop. |
+| SEM-HANGAR-002 | Select owned inventory item | Same itemId is presented/focused in 3D; no duplicate ownership created. |
+| SEM-HANGAR-003 | Preview unlocked/unowned item | Preview is visually marked holographic/ghost and cannot deploy as owned. |
+| SEM-HANGAR-004 | Preview ship module | Module can move/explode/ghost toward compatible connection; inventory changes only on Confirm. |
+| SEM-PORTAL-PARTY-001 | Companion downed before portal confirmation | UI warns before threshold and offers Rescue First / Travel Anyway. |
+| SEM-PORTAL-PARTY-002 | Choose Rescue First | Cross-world handoff is cancelled; current world instance remains active. |
+| SEM-PORTAL-PARTY-003 | Leave alive/downed Nóma | Travel proceeds; Nóma is base-recovered with no character revive fee. |
+| SEM-PORTAL-PARTY-004 | Leave alive/downed ally | Travel proceeds; ally returns to base with no revive fee. |
+| SEM-PORTAL-PARTY-005 | Ally is DEAD | Travel may proceed; paid revival requirement persists. |
