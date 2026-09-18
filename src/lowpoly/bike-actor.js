@@ -59,7 +59,7 @@ function firstPersonArms(mesh) {
 }
 
 /** Independent rider skeleton and mixer; source geometry/materials remain shared. */
-export function createBikeActor({ bike, riderClips }, astronautAsset) {
+export function createBikeActor({ bike, bikeMedium, riderClips }, astronautAsset) {
   if (!bike?.scene || !astronautAsset?.scene) throw new Error('Bike actor requires original bike and astronaut assets');
   const clips = riderClips?.animations || riderClips;
   const clipNames = ['BikeIdle', 'BikeThrust', 'BikeBrake', 'BikeAim'];
@@ -69,6 +69,13 @@ export function createBikeActor({ bike, riderClips }, astronautAsset) {
   const group = new THREE.Group(); group.name = 'astronaut-bike'; group.userData.kind = 'bike';
   const visual = new THREE.Group(); visual.name = 'bike-inertia'; group.add(visual);
   const model = bike.scene.clone(true); model.name = 'original-space-bike'; visual.add(model);
+  let mediumModel=null;
+  if(bikeMedium?.scene){
+    mediumModel=bikeMedium.scene.clone(true);mediumModel.name='space-bike-medium-lod';mediumModel.visible=false;
+    const materials=[];model.traverse(node=>{if(node.isMesh)materials.push(node.material);});let cursor=0;
+    mediumModel.traverse(node=>{if(node.isMesh){node.material=materials[Math.min(cursor++,materials.length-1)];node.castShadow=false;node.receiveShadow=true;}});
+    visual.add(mediumModel);
+  }
   const rider = new THREE.Group(); rider.name = 'bike-rider'; rider.rotation.y = Math.PI; visual.add(rider);
   const human = cloneRig(astronautAsset.scene); rider.add(human); human.updateMatrixWorld(true);
   const body = [], arms = [];
@@ -116,6 +123,8 @@ export function createBikeActor({ bike, riderClips }, astronautAsset) {
     for (const action of Object.values(actions)) action.setEffectiveWeight(action.getEffectiveWeight() / Math.max(.0001, total));
     mixer.update(reducedMotion ? 0 : dt);
     rider.visible = mounted;
+    const distance=context.cameraPosition?group.position.distanceTo(context.cameraPosition):0;
+    const medium=!!mediumModel&&(firstPerson||distance>4.2);model.visible=!medium;if(mediumModel)mediumModel.visible=medium;group.userData.lod=medium?'medium':'high';
     for (const mesh of body) mesh.visible = !firstPerson;
     for (const mesh of arms) mesh.visible = firstPerson;
     weapon.visible = mounted && actions.BikeAim.getEffectiveWeight() > .08;
@@ -133,5 +142,5 @@ export function createBikeActor({ bike, riderClips }, astronautAsset) {
     jetGeometry.dispose(); jetMaterial.dispose(); group.removeFromParent();
   }
   reset();
-  return { group, visual, rider, model, body, arms, muzzle, eye, tether, exhaust, actions, update, reset, dispose };
+  return { group, visual, rider, model, mediumModel, body, arms, muzzle, eye, tether, exhaust, actions, update, reset, dispose };
 }

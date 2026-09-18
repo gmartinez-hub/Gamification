@@ -82,6 +82,7 @@ const ship = createAssetShip(actorAssets), astronaut = createAssetAstronaut(acto
 scene.add(ship.group, astronaut.group, companion.group, camera);
 $('loading').querySelector('p').textContent='Preparando la moto y su piloto…';
 const bikeAssets=await loadModelSet([['bike','bike'],['riderClips','bike-rider']],{mobile:mobileGPU,directory:encounterModelDirectory(mobileGPU)});
+Object.assign(bikeAssets,await loadModelSet([['bikeMedium','bike-medium']],{mobile:mobileGPU,directory:'performance-lods'}));
 const bike=createBikeActor(bikeAssets,actorAssets['astronauta-armado']);scene.add(bike.group);
 const cabinController = createCabinController({aboard:!!saved&&saved.shipDiscovered!==false});
 const cabinRoot = new THREE.Group(); scene.add(cabinRoot);
@@ -106,7 +107,11 @@ async function prepareEnemy(kind){
   if(enemyLoads.has(kind))return enemyLoads.get(kind);
   if(performance.now()<(enemyRetryAt.get(kind)||0))return false;
   const load=loadModelSet([[kind,enemyFiles[kind]]],{mobile:mobileGPU,directory:encounterModelDirectory(mobileGPU)})
-    .then(records=>{Object.assign(enemyAssets,records);return true;})
+    .then(async records=>{
+      const lodName=kind==='alien'?'alien-medium':'alien-ship-medium';
+      Object.assign(records,await loadModelSet([[kind+'Medium',lodName]],{mobile:mobileGPU,directory:'performance-lods'}));
+      Object.assign(enemyAssets,records);return true;
+    })
     .catch(error=>{enemyRetryAt.set(kind,performance.now()+5000);console.warn(`${kind} asset pending; will retry`,error);return false;})
     .finally(()=>enemyLoads.delete(kind));
   enemyLoads.set(kind,load);return load;
@@ -119,13 +124,13 @@ function syncEnemyActors(dt){
     let actor=enemyActors.get(entity.id);
     if(!actor&&!enemyAssets[entity.kind]){void prepareEnemy(entity.kind);continue;}
     if(!actor){
-      actor=entity.kind==='alien'?createAlienActor(enemyAssets.alien):createEnemyShip(enemyAssets.alienShip);enemyActors.set(entity.id,actor);scene.add(actor.group);
+      actor=entity.kind==='alien'?createAlienActor(enemyAssets.alien,enemyAssets.alienMedium):createEnemyShip(enemyAssets.alienShip,enemyAssets.alienShipMedium);enemyActors.set(entity.id,actor);scene.add(actor.group);
       if(entity.kind==='alien')actor.chargeRocks=[actor.clawLeft,actor.clawRight].map(socket=>{const rock=world.createRockProjectile(.28);socket.add(rock);rock.visible=false;return rock;});
     }
     if(!actor)continue;
     actor.group.position.copy(entity.position);
     actor.group.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),new THREE.Vector3().copy(entity.forward).normalize());
-    actor.update(worldTime,entity,{dt,reducedMotion});for(const rock of actor.chargeRocks||[]){rock.visible=entity.charge>.06;rock.scale.setScalar(.28*Math.max(.1,entity.charge));rock.rotation.y=worldTime*3;}actor.group.updateMatrixWorld(true);
+    actor.update(worldTime,entity,{dt,reducedMotion,cameraDistance:camera.position.distanceTo(entity.position)});for(const rock of actor.chargeRocks||[]){rock.visible=entity.charge>.06;rock.scale.setScalar(.28*Math.max(.1,entity.charge));rock.rotation.y=worldTime*3;}actor.group.updateMatrixWorld(true);
   }
 }
 const world = createSectorWorld(scene, { assetLoader: () => loadWorldAssets({ mobile: mobileGPU }) });

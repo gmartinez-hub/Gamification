@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "description": "Screen-space runtime LOD geometry. Original materials and textures are rebound at runtime; hero source assets remain unchanged.",
+  "models": [
+    {
+      "file": "asteroid-medium.glb",
+      "source": "models/asteroide-marron.glb",
+      "ratio": 0.18,
+      "error": 0.02,
+      "sourceTriangles": 205612,
+      "triangles": 37010,
+      "sourceBytes": 13955052,
+      "bytes": 1061404,
+      "geometryOnly": true
+    },
+    {
+      "file": "asteroid-low.glb",
+      "source": "models/asteroide-marron.glb",
+      "ratio": 0.035,
+      "error": 0.035,
+      "sourceTriangles": 205612,
+      "triangles": 7196,
+      "sourceBytes": 13955052,
+      "bytes": 238928,
+      "geometryOnly": true
+    },
+    {
+      "file": "bike-medium.glb",
+      "source": "encounter-models/bike.glb",
+      "ratio": 0.28,
+      "error": 0.018,
+      "sourceTriangles": 461528,
+      "triangles": 129226,
+      "sourceBytes": 5966600,
+      "bytes": 1706844,
+      "geometryOnly": true
+    },
+    {
+      "file": "capsula-medium.glb",
+      "source": "models/capsula.glb",
+      "ratio": 0.25,
+      "error": 0.015,
+      "sourceTriangles": 643450,
+      "triangles": 160800,
+      "sourceBytes": 26803532,
+      "bytes": 5599412,
+      "geometryOnly": true
+    },
+    {
+      "file": "habitat-medium.glb",
+      "source": "models/habitat.glb",
+      "ratio": 0.25,
+      "error": 0.015,
+      "sourceTriangles": 609962,
+      "triangles": 152473,
+      "sourceBytes": 25996400,
+      "bytes": 5092512,
+      "geometryOnly": true
+    },
+    {
+      "file": "propulsion-medium.glb",
+      "source": "models/propulsion.glb",
+      "ratio": 0.25,
+      "error": 0.015,
+      "sourceTriangles": 1061624,
+      "triangles": 265402,
+      "sourceBytes": 39651188,
+      "bytes": 8773900,
+      "geometryOnly": true
+    },
+    {
+      "file": "alien-medium.glb",
+      "source": "encounter-models/alien.glb",
+      "ratio": 0.3,
+      "error": 0.018,
+      "sourceTriangles": 355782,
+      "triangles": 106734,
+      "sourceBytes": 7075252,
+      "bytes": 2307916,
+      "geometryOnly": true
+    },
+    {
+      "file": "alien-ship-medium.glb",
+      "source": "encounter-models/alien-ship.glb",
+      "ratio": 0.28,
+      "error": 0.018,
+      "sourceTriangles": 374024,
+      "triangles": 104724,
+      "sourceBytes": 4961560,
+      "bytes": 1447468,
+      "geometryOnly": true
+    },
+    {
+      "file": "projectile-flight.glb",
+      "source": "mission-models/proyectil.glb",
+      "ratio": 0.06,
+      "error": 0.025,
+      "sourceTriangles": 86758,
+      "triangles": 5204,
+      "sourceBytes": 1812768,
+      "bytes": 171020,
+      "geometryOnly": true
+    }
+  ]
+}

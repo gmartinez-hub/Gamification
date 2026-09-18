@@ -38,6 +38,7 @@ function randomForLayout(layout) {
 const positionFrom = ({ x, y, z }) => new THREE.Vector3(x, y, z);
 
 const MODEL_FILES = { beacon: 'baliza', rock: 'asteroide-marron', base: 'asteroide-base' };
+const LOD_FILES = { rockMedium: 'asteroid-medium', rockLow: 'asteroid-low' };
 
 function sourceBundle(models) {
   return Object.fromEntries(Object.entries(models).map(([name,scene])=>[name,{scene}]));
@@ -47,7 +48,12 @@ function sourceBundle(models) {
  * with this bundle; imported resources survive sector changes. */
 export async function loadWorldAssets(options = {}) {
   const models = await loadModelSet(Object.entries(MODEL_FILES), options);
-  return Object.fromEntries(Object.entries(models).map(([name, gltf]) => [name, gltf.scene]));
+  try {
+    const lods = await loadModelSet(Object.entries(LOD_FILES), { ...options, directory:'performance-lods' });
+    return Object.fromEntries(Object.entries({ ...models, ...lods }).map(([name, gltf]) => [name, gltf.scene]));
+  } catch (error) {
+    releaseModelAssets(models); throw error;
+  }
 }
 
 /** Presentation only. The layout remains immutable; public positions follow the
@@ -508,7 +514,7 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     const style=biome==='nereida'?'mesa':biome==='umbra'?'shard':'boulder';
     // Only these large, composed silhouettes use the full imported source.
     // Fine distant chips are newly authored geometry, never decimated GLB assets.
-    const source=assetTemplates?.base.children.find(object=>object.isMesh)?.geometry;
+    const source=(assetTemplates?.rockLow||assetTemplates?.base)?.children.find(object=>object.isMesh)?.geometry;
     const detail=source || rockGeometry(style,22,.6);
     const locations=[[-266,-60,-115],[270,25,-160],[-282,63,-280],[275,-80,-335],[-252,-122,-425],[279,110,-475]];
     locations.forEach(([x,y,z],i)=>{
@@ -569,12 +575,23 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     if (assetTemplates) {
       const appearance=targets.length;
       const originalBrown=kind==='small' && appearance%3===0;
-      body = assetTemplates[originalBrown?'rock':'base'].clone(true);
+      const source=assetTemplates[originalBrown?'rock':'base'];
+      const full=source.clone(true);let fullMaterial;
+      full.traverse(part=>{if(!fullMaterial&&part.isMesh)fullMaterial=part.material;});
+      const coating=originalBrown?fullMaterial:materials.coatings[(appearance+(currentLayout.biomeId==='vesper'?2:currentLayout.biomeId==='umbra'?4:0))%7];
+      body=new THREE.Group();body.name='screen-space-asteroid-lod';
+      const levels=[
+        {name:'high',object:full,cast:true},
+        {name:'medium',object:(assetTemplates.rockMedium||source).clone(true),cast:true},
+        {name:'low',object:(assetTemplates.rockLow||assetTemplates.rockMedium||source).clone(true),cast:false},
+      ];
+      for(const level of levels){
+        level.object.name=`asteroid-${level.name}`;level.object.visible=level.name==='high';
+        level.object.traverse(part=>{if(!part.isMesh)return;part.material=coating;part.castShadow=level.cast;part.receiveShadow=true;});
+        body.add(level.object);
+      }
+      body.userData.lodLevels=levels;
       body.scale.setScalar(radius * .94);
-      body.traverse(part => {
-        if (!part.isMesh) return;
-        if(!originalBrown) part.material=materials.coatings[(appearance+(currentLayout.biomeId==='vesper'?2:currentLayout.biomeId==='umbra'?4:0))%7];
-      });
       object.add(body);
     } else {
       const shape = rockGeometry(isHazard ? 'shard' : 'boulder', isLarge ? 2 : 1, random() * 6);
@@ -826,6 +843,20 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
     }
   }
 
+  function updateLOD(camera, { heroId = null, forceHigh = false } = {}) {
+    if(!camera)return;
+    const fovScale=Math.tan(THREE.MathUtils.degToRad(camera.fov*.5));
+    for(const record of targets){
+      const levels=record.object.userData.body?.userData?.lodLevels;if(!levels)continue;
+      const distance=Math.max(.001,camera.position.distanceTo(record.position));
+      const projected=record.radius/(distance*fovScale);
+      const tier=forceHigh||record.id===heroId||projected>=.105?'high':projected>=.026?'medium':'low';
+      if(record.object.userData.lodTier===tier)continue;
+      record.object.userData.lodTier=tier;
+      for(const level of levels)level.object.visible=level.name===tier;
+    }
+  }
+
   function dispose() {
     if (disposed) return;
     clearSector();
@@ -839,9 +870,9 @@ export function createSectorWorld(scene, { assets = null, assetLoader = loadWorl
 
   function createRockProjectile(radius=.28) {
     if(!assetTemplates)return null;
-    const rock=assetTemplates.base.clone(true);rock.name='claw-mineral-projectile';rock.scale.setScalar(radius);
+    const rock=(assetTemplates.rockLow||assetTemplates.base).clone(true);rock.name='claw-mineral-projectile';rock.scale.setScalar(radius);
     rock.traverse(part=>{if(part.isMesh){part.material=materials.coatings[2];part.castShadow=false;part.receiveShadow=false;}});
     return rock;
   }
-  return { createRockProjectile, loadAssets, prepareBiome, setMissionAssets, load, sync, targets, beacon, gem, gate, hazards, decoration, skyScene, skyCamera, updateSky, lighting, dispose };
+  return { createRockProjectile, loadAssets, prepareBiome, setMissionAssets, load, sync, updateLOD, targets, beacon, gem, gate, hazards, decoration, skyScene, skyCamera, updateSky, lighting, dispose };
 }

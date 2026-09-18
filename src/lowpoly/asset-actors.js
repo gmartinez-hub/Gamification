@@ -1,12 +1,17 @@
 import * as THREE from '../../vendor/three.module.js';
-import { loadModelSet } from './asset-loading.js';
+import { loadModelSet, releaseModelAssets } from './asset-loading.js';
 import { createPropulsion } from './plasma.js';
 import { SHIP_NOZZLES } from './thruster-anchors.js';
 import { localThrottle, frameDelta, updateBodyMotion } from './actor-motion.js';
 
 const names = ['capsula','habitat','propulsion','astronauta-armado','astronauta-brazos-armado','cabina-integrada','robot'];
+const moduleNames=names.slice(0,3);
 export async function loadActorAssets(onProgress = () => {}, { mobile = false, stage = 3, only = null } = {}) {
-  const records = await loadModelSet((only || names.filter((_, index) => index >= 3 || index < stage)).map(name => [name, name]), { mobile, onProgress });
+  const requested=only || names.filter((_, index) => index >= 3 || index < stage);
+  const records = await loadModelSet(requested.map(name => [name, name]), { mobile, onProgress });
+  const lodRequests=requested.filter(name=>moduleNames.includes(name)).map(name=>[name+'-medium',name+'-medium']);
+  if(lodRequests.length)try{Object.assign(records,await loadModelSet(lodRequests,{mobile,directory:'performance-lods'}));}
+  catch(error){releaseModelAssets(records);throw error;}
   for (const gltf of Object.values(records)) gltf.scene.traverse(o => { if (o.isMesh) {
     o.castShadow = true; o.receiveShadow = true;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
@@ -37,10 +42,18 @@ function jet(parent,name,position) {
 export function createAssetShip(assets) {
   const group=new THREE.Group();group.name='mesh-modular-spacecraft';group.userData.kind='ship';
   const visual=new THREE.Group();visual.name='ship-inertia';group.add(visual);
-  const modules=names.slice(0,3).map((name,index)=>{
+  const modules=moduleNames.map((name,index)=>{
     const root=new THREE.Group();root.name=['module-cockpit','module-body','module-propulsion'][index];
     root.position.z=[-3.5,.575,4.75][index];root.userData.stage=index+1;
-    const model=assets[name]?.scene;if(model){model.rotation.x=-Math.PI/2;model.scale.setScalar(2.5);root.add(model);root.userData.loaded=true;}visual.add(root);return root;
+    const model=assets[name]?.scene,lod=assets[name+'-medium']?.scene;
+    if(model){
+      model.rotation.x=-Math.PI/2;model.scale.setScalar(2.5);model.name=name+'-high';root.add(model);root.userData.loaded=true;root.userData.high=model;
+      if(lod){
+        const materials=[];model.traverse(part=>{if(part.isMesh)materials.push(part.material);});let cursor=0;
+        lod.traverse(part=>{if(part.isMesh){part.material=materials[Math.min(cursor++,materials.length-1)];part.castShadow=false;part.receiveShadow=true;}});
+        lod.rotation.x=-Math.PI/2;lod.scale.setScalar(2.5);lod.name=name+'-medium';lod.visible=false;root.add(lod);root.userData.medium=lod;
+      }
+    }visual.add(root);return root;
   });
   // Mating planes are measured in the source models, then converted Y -> -Z.
   // Short collars hide the two original independent rims without changing their bodies.
@@ -70,18 +83,28 @@ export function createAssetShip(assets) {
     });stage=next;group.userData.stage=next;
   }
   setStage(1,false);
-  return {group,visual,setStage,muzzle,door,tether,modules,exhaust,
+  function updateLOD(cameraPosition,{forceHigh=false}={}){
+    const high=forceHigh||!cameraPosition||group.position.distanceTo(cameraPosition)<16;
+    for(const module of modules){if(module.userData.high)module.userData.high.visible=high||!module.userData.medium;if(module.userData.medium)module.userData.medium.visible=!high;}
+    group.userData.lod=high?'high':'medium';
+  }
+  return {group,visual,setStage,updateLOD,muzzle,door,tether,modules,exhaust,
     reset(){previous=null;exhaust.reset();visual.position.set(0,0,0);visual.rotation.set(0,0,0);arrivals.clear();for(let i=0;i<modules.length;i++){modules[i].position.copy(positions[i]);modules[i].rotation.set(0,0,0);}},
     dispose(){if(disposed)return;disposed=true;exhaust.dispose();group.removeFromParent();disposeRuntime(visual);},
     hasStage(next){return modules.slice(0,next).every(m=>m.userData.loaded);},
-    install(records){for(const [name,asset] of Object.entries(records)){const index=names.slice(0,3).indexOf(name);if(index<0||modules[index].userData.loaded)continue;asset.scene.rotation.x=-Math.PI/2;asset.scene.scale.setScalar(2.5);modules[index].add(asset.scene);modules[index].userData.loaded=true;}},
+    install(records){for(const name of moduleNames){const index=moduleNames.indexOf(name),module=modules[index],asset=records[name],lodAsset=records[name+'-medium'];
+      if(asset&&!module.userData.loaded){asset.scene.rotation.x=-Math.PI/2;asset.scene.scale.setScalar(2.5);asset.scene.name=name+'-high';module.add(asset.scene);module.userData.high=asset.scene;module.userData.loaded=true;}
+      if(lodAsset&&!module.userData.medium){const materials=[];module.userData.high?.traverse(part=>{if(part.isMesh)materials.push(part.material);});let cursor=0;
+        lodAsset.scene.traverse(part=>{if(part.isMesh){part.material=materials[Math.min(cursor++,materials.length-1)];part.castShadow=false;part.receiveShadow=true;}});
+        lodAsset.scene.rotation.x=-Math.PI/2;lodAsset.scene.scale.setScalar(2.5);lodAsset.scene.name=name+'-medium';lodAsset.scene.visible=false;module.add(lodAsset.scene);module.userData.medium=lodAsset.scene;}
+    }},
     update(time,context={}) {
     const {boost=false,reducedMotion=false}=context,dt=frameDelta(time,previous,context.dt);previous=time;last=time;
     localThrottle(group,context,local);
     const forward=THREE.MathUtils.clamp(-local.z,0,1);
     for(const source of nozzles){source.userData.blocked=!source.userData.anchor.exposed.includes(stage);source.userData.power=source.userData.blocked?0:forward;}
     for(const {source,axis,sign} of rcs)source.userData.power=Math.max(0,local[axis]*sign);
-    updateBodyMotion(visual,local,time,dt,{reducedMotion,strength:.045});
+    updateBodyMotion(visual,local,time,dt,{reducedMotion,strength:.16});
     for(const [m,a] of arrivals){const t=THREE.MathUtils.clamp((time-a.time)/2.2,0,1),e=1-(1-t)**3;
       m.position.lerpVectors(a.from,positions[a.index],e);m.rotation.z=(1-e)*.16;if(t===1)arrivals.delete(m);}
     exhaust.update(time,{...context,dt,thrust:forward,boost,reducedMotion});
