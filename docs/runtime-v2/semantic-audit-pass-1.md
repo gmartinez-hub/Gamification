@@ -146,10 +146,14 @@ These can remain deferred if the implementation ticket stays out of the initial 
 - VFX pools/presentation shaders,
 - any missing boss/portal support assets.
 
-## Freeze condition
+## Pass 1 closure
 
-Contract Freeze is allowed only when:
-1. SA1-M01..M03 are resolved or explicitly excluded from the first implementation scope with no hidden fallback.
-2. all corrected contradictions are reflected in semantic tests.
-3. raw asset/scale evidence has tickets, even when numeric results remain MEASURE.
-4. no implementation task references legacy source code as the required solution.
+SA1-M01..M03 are now resolved and covered by semantic tests.
+
+The remaining work is no longer a hidden product-semantic blocker:
+- raw asset/scale/camera evidence,
+- measurable performance/balance values,
+- production assets/FX/audio,
+- deferred progression/economy rules for features not yet entering implementation.
+
+Implementation Contract Freeze still waits for the evidence gates; Core Semantic Freeze may proceed.
