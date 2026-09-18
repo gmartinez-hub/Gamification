@@ -1,3 +1,5 @@
+import { createLoadoutState } from './loadout.js';
+
 export const CHECKPOINT_KEY = 'gravedad-zero:expedition:v5';
 export const DEFAULT_SETTINGS = Object.freeze({ firstPerson: false, soundEnabled: false, effectsVolume: .75, ambienceVolume: .4, introSeen: false, touchLayout: 'joystick' });
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -6,7 +8,7 @@ export function validCheckpoint(value) {
   return object(value) && Number.isInteger(value.seed) && value.seed >= 0 && value.seed <= 0xffffffff &&
     Number.isInteger(value.sector) && value.sector >= 0 && value.sector <= 2 &&
     typeof value.gemRecovered === 'boolean' && typeof value.complete === 'boolean' &&
-    (value.version === undefined || [1,2].includes(value.version)) &&
+    (value.version === undefined || [1,2,3].includes(value.version)) &&
     (value.shipDiscovered === undefined || typeof value.shipDiscovered === 'boolean') &&
     (value.scanned === undefined || typeof value.scanned === 'boolean') &&
     (value.scanProgress === undefined || Number.isFinite(value.scanProgress) && value.scanProgress >= 0 && value.scanProgress <= 1) &&
@@ -32,7 +34,8 @@ function partialFrom(record) {
   return {shipDiscovered: record.shipDiscovered === undefined ? true : record.shipDiscovered,
     scanned: record.scanned === true, scanProgress: record.scanProgress ?? 0,
     destroyed: [...(record.destroyed || [])], discovered: [...(record.discovered || [])],
-    lastCorePosition: record.lastCorePosition ? {...record.lastCorePosition} : null};
+    lastCorePosition: record.lastCorePosition ? {...record.lastCorePosition} : null,
+    ...(record.version === 3 && object(record.loadout) ? { loadout:createLoadoutState(record.loadout) } : {})};
 }
 
 /** Sector checkpoints contain no arbitrary positions: resume at a safe dock.
@@ -45,16 +48,16 @@ export function createCheckpointStore(storage) {
         const raw = storage?.getItem(CHECKPOINT_KEY);
         if (!raw || raw.length > 8192) return null;
         const record = JSON.parse(raw);
-        if (!validCheckpoint(record) || ![1,2].includes(record.version) || (seed !== undefined && seed !== record.seed)) return null;
+        if (!validCheckpoint(record) || ![1,2,3].includes(record.version) || (seed !== undefined && seed !== record.seed)) return null;
         return { ...partialFrom(record), version: record.version, seed: record.seed, sector: record.sector, complete: record.complete,
           gemRecovered: record.gemRecovered, settings: settingsFrom(record.settings) };
       } catch { return null; }
     },
-    save(state, settings) {
+    save(state, settings, loadout = state.loadout) {
       try {
-        const record = { ...partialFrom({ ...state, scanned: state.phase !== 'scan' }), version: 2, seed: state.seed, sector: state.sector,
+        const record = { ...partialFrom({ ...state, scanned: state.phase !== 'scan' }), version: loadout ? 3 : 2, seed: state.seed, sector: state.sector,
           complete: state.phase === 'complete', gemRecovered: ['return', 'transit', 'complete'].includes(state.phase),
-          settings: settingsFrom(settings) };
+          settings: settingsFrom(settings), ...(loadout ? {loadout:createLoadoutState(loadout)} : {}) };
         if (!validCheckpoint(record) || !storage) return false;
         storage.setItem(CHECKPOINT_KEY, JSON.stringify(record));
         return true;

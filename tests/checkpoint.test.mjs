@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createExpedition } from '../src/lowpoly/expedition.js';
 import { createCheckpointStore, CHECKPOINT_KEY } from '../src/lowpoly/checkpoint.js';
+import { createLoadoutState } from '../src/lowpoly/loadout.js';
 
 function memory() {
   const data = new Map();
@@ -46,6 +47,14 @@ test('storage round-trips preferences, isolates URL seeds and clears old runs', 
   assert.deepEqual(loaded.settings, { firstPerson: false, soundEnabled: true, effectsVolume: .6, ambienceVolume: .2, introSeen: false, touchLayout: 'joystick' });
   assert.equal(store.load({ seed: 621 }), null);
   store.clear(); assert.equal(store.load(), null);
+});
+test('checkpoint version three preserves equipment, charge and presets independently of route progress', () => {
+  const storage=memory(),store=createCheckpointStore(storage),mission=createExpedition(620);
+  const loadout=createLoadoutState({charge:7,routeGems:2,modules:[{id:'front-1',type:'front'},{id:'final-1',type:'final'}],activeComposition:['front-1','final-1'],presets:[{id:'preset-1',name:'Compacta',composition:['front-1','final-1'],placements:{}}]});
+  assert.equal(store.save(mission.state,{},loadout),true);
+  const loaded=store.load();
+  assert.equal(loaded.version,3);assert.equal(loaded.loadout.charge,7);assert.equal(loaded.loadout.routeGems,2);
+  assert.deepEqual(loaded.loadout.activeComposition,['front-1','final-1']);assert.equal(loaded.loadout.presets[0].name,'Compacta');
 });
 test('the motorcycle release starts with a new cache instead of loading the pre-motorcycle v4 run', () => {
   const storage=memory(),legacyKey='gravedad-zero:expedition:v4';

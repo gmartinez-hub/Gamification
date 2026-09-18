@@ -26,6 +26,7 @@ import { createPresentationClock, createGemSequence } from './presentation-clock
 import { createDestruction } from './destruction.js';
 import { createExpeditionAudio } from './audio.js';
 import { createCheckpointStore, DEFAULT_SETTINGS } from './checkpoint.js';
+import { createLoadoutState } from './loadout.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -72,6 +73,7 @@ const { state } = mission;
 const checkpoint = createCheckpointStore();
 const saved = checkpoint.load(seedParam ? { seed: state.seed } : {});
 const settings = { ...DEFAULT_SETTINGS, ...saved?.settings };
+let loadout = createLoadoutState(saved?.loadout || { routeGems:saved?.sector || 0 });
 document.body.dataset.touchLayout = settings.touchLayout;
 const momentClock = createPresentationClock(), gemSequence = createGemSequence();
 if (saved) mission.restoreCheckpoint(saved);
@@ -246,7 +248,8 @@ function say(message) { $('companionMessage').textContent=message; $('companionS
 function play(id, volume = 1) { if (soundEnabled && !paused) audio.play(id, { volume }); }
 function saveProgress() {
   settings.firstPerson = firstPerson; settings.soundEnabled = soundEnabled;
-  const ok = checkpoint.save({...state,shipDiscovered:flight.shipDiscovered}, settings);
+  loadout.routeGems=state.gems;
+  const ok = checkpoint.save({...state,shipDiscovered:flight.shipDiscovered}, settings, loadout);
   if ($('saveStatus')) $('saveStatus').textContent = ok ? `Guardado · ${state.layout.name.split(' · ')[0]}${state.gems ? ` · ${state.gems} gema${state.gems === 1 ? '' : 's'}` : ''}` : 'Guardado no disponible en este navegador';
 }
 function illuminate(position, color = 0x7deaff, duration = .7) {
