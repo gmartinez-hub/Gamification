@@ -14,7 +14,7 @@ Rama `docs/gz-closeout-spec`, sólo documentación, sobre la base remota observa
 - **La nave es configurable:** frontal+final, frontal+medio+final y frontal+medio+medio+final, además de formas iniciales. Desbloqueo de piezas, sector y ensamblado son estados distintos. No imponer dos medios/seis torretas como techo global.
 - **Torretas en nave, moto y Nóma** y colocación sobre superficies compatibles forman parte del alcance; no degradarlas a «opcional si resulta fácil» ni a dos casilleros prefijados.
 - **No nuevos jets, otro companion ni conector Meshy.** Se reutilizan los modelos, el arma, el proyectil y las juntas existentes.
-- **Hangar es escena 3D con carga por etapas.** Si es caminable, cómo se accede, flota vs diseños guardados y dejar/llevar la moto siguen como decisiones D; no inferir respuestas.
+- **Hangar es escena 3D de mantenimiento con carga por etapas.** No es mapa de exploración ni transición de stage; usa cámara orbital/inspectiva. Permite gastar carga, ensamblar, montar torretas y guardar 2–3 configuraciones de una misma nave. La moto viaja siempre con la expedición.
 - **Cámaras y aim por contexto:** preservar todas las perspectivas/funciones actuales, transición de cabina y precisión; giro del hangar separado del pilotaje.
 
 ## Primera intervención local
@@ -22,14 +22,14 @@ Rama `docs/gz-closeout-spec`, sólo documentación, sobre la base remota observa
 1. Leer AGENTS.md aplicables e identificar repo, worktree, rama/HEAD, cambios sin commit y remotos. Preservar cualquier trabajo antes de integrar documentos. No reset/clean ni checkout destructivo.
 2. Recuperar `scripts/build-performance-lods.mjs` y los cambios locales registrados en mundo, actores, moto y main. El export termina ahí, sin cierre posterior. No repetir desde cero lo que exista.
 3. Identificar los cuatro modelos en Descargas por contenido y referencias de FigJam. Generar inventario local y comprobar materiales, dimensiones, anclas y rigs; fuentes intactas. No subir el export completo ni archivos ajenos.
-4. Consultar las decisiones D-01 a D-07 en la spec. Resolver por inspección lo técnico V. Preguntar sólo lo de producto que no esté respondido; no declarar la spec «cerrada» mientras haya una decisión que afecte al alcance.
+4. Leer las decisiones D-01 a D-07 **ya cerradas** en la spec. Resolver por inspección lo técnico V. No volver a preguntar decisiones cerradas ni sustituirlas por defaults distintos; si un asset/código las contradice, reportar evidencia y preservar el alcance.
 5. Leer por sección para ejecutar cada tramo; conservar los contratos globales. No devolver otra propuesta general ni repetir el resumen entero de la conversación. Reportar IDs, evidencia y bloqueo concreto.
 
 ## Orden de integración propuesto
 
 Recuperación/perfilado e inventario de assets → contrato de estado y decisiones → derivación Blender/LOD y carga común → ensamblado/torretas/guardado → UI/hangar/cámaras/aim → narrativa/transiciones → QA conjunto/performance/preview.
 
-Cada tramo lleva pruebas y comparación visual antes de considerarlo validado. Separar commits de rendimiento de cambios funcionales para detectar regresiones, sin dividir la entrega final en recortes. La implementación de reglas abiertas espera resolución, no una suposición del ejecutor.
+Cada tramo lleva pruebas y comparación visual antes de considerarlo validado. Separar commits de rendimiento de cambios funcionales para detectar regresiones, sin dividir la entrega final en recortes. No quedan decisiones de producto abiertas; los únicos bloqueos válidos son verificaciones técnicas concretas y parámetros de balance que requieran medición.
 
 ## Qué no debe perderse al resumir
 
@@ -37,4 +37,4 @@ Originales completos cerca/en objetivos/inspección/cinemáticas; mapas y wrappi
 
 ## Evidencia final
 
-Una tabla por requisitos C/UI/CAM/QA: implementado, validado con prueba/captura/medición o bloqueado por D/V. Una pantalla vacía o un asset sin integración no cumple el requisito. No publicar ni promover esta rama documental como si contuviera el cierre del juego.
+Una tabla por requisitos C/UI/CAM/QA: implementado, validado con prueba/captura/medición o bloqueado por V. Una pantalla vacía o un asset sin integración no cumple el requisito. No publicar ni promover esta rama documental como si contuviera el cierre del juego.
