@@ -83,62 +83,50 @@ Because Front-only is a valid deployable craft, it MUST have sufficient baseline
 Open: whether this is authored as Front-integrated main propulsion, maneuvering thrusters promoted to cruise propulsion, or another clean V2 propulsion abstraction.
 
 ### GZ-SHIP-MOVE-002 — Final/Back effect
-**OPEN**
+**SUPERSEDED / RESOLVED**
 
-Need product decision: what does adding Final/Back change?
-
-Possible dimensions:
-- top speed,
-- acceleration,
-- boost,
-- braking authority,
-- energy efficiency,
-- main exhaust visual intensity,
-- some combination.
-
-Do not infer from legacy exposed-thruster logic.
+Final/Back is the propulsion-performance differentiator. See GZ-MOVE-008/009:
+- Front + Final is the fastest/most agile standard ship configuration.
+- Cargo/heavy compositions with Final are faster than the same cargo composition without Final.
+- Exact numeric acceleration/braking values remain BALANCE/MEASURE.
 
 ### GZ-SHIP-MOVE-003 — Middle-module movement effect
-**OPEN**
+**SUPERSEDED / RESOLVED**
 
-Need product decision for additional Middle modules:
-- no direct speed penalty,
-- reduced acceleration/turn only,
-- reduced top speed too,
-- mass/energy budget model.
+Any composition with one or more Middle modules enters the cargo/heavy movement class.
 
-The answer must preserve the possibility of intentionally long ships.
+For V1, additional Middle count does not create further speed tiers. The benefit of Middle modules is additional surface/capacity for equipment/turrets and other authored module capability.
 
 ## 4. Movement hierarchy
 
 ### GZ-MOVE-001 — Base top-speed ordering
 **APPROVED**
 
-At comparable baseline progression:
+At comparable baseline progression, before the conditional Boosted Bike upgrade:
 
-`Ship > Bike > Astronaut`
+`Front+Final > Bike > Front > Front+Middle×N+Final > Front+Middle×N > Astronaut`
 
-The ship must be the fastest long-distance player-controlled transport.
-The bike remains clearly faster than astronaut EVA/on-foot movement.
+The conditional late-game Boosted Bike, if it passes geometry/camera validation and is unlocked, becomes the fastest player-controlled vehicle.
 
 Exact values are MEASURE/BALANCE.
 
 ### GZ-MOVE-002 — Acceleration/handling
-**OPEN**
+**APPROVED qualitative behavior / MEASURE values**
 
-Top speed hierarchy does not automatically define acceleration, braking or turn rate.
-
-Product decision required for relative feel:
-- should Bike accelerate/turn faster than Ship while having lower top speed?
-- should long/heavy ships turn/accelerate more slowly than compact ships?
+- Bike has the strongest immediate acceleration response, especially under Boost.
+- Front+Final is the most agile standard ship configuration.
+- Front-only is less performant than Front+Final.
+- Cargo/heavy compositions accelerate/turn more slowly than compact ship configurations.
+- Exact braking, turn-rate and acceleration values are BALANCE/MEASURE.
 
 ### GZ-MOVE-003 — Boost
-**OPEN**
+**PARTIAL FREEZE**
 
-Need to freeze:
-- whether astronaut, bike and ship all have boost,
-- whether boost consumes a resource/cooldown/heat,
-- whether boost hierarchy follows normal top-speed hierarchy.
+- All valid ship compositions have freely holdable Boost.
+- Bike has freely holdable Boost.
+- No heat, cooldown, fuel or Energy Cell drain for ship/Bike Boost in V1.
+- Astronaut EVA Boost remains an explicit unresolved decision.
+- Ally-controlled vehicles may use their own Boost automatically when needed to continue following/defending a boosted player-controlled vehicle; this adds no new tactical command.
 
 ## 5. Speed presentation contract
 
@@ -298,11 +286,9 @@ When Boost is engaged:
 For ships, every valid composition therefore requires a valid **PrimaryBoostExhaust** representation at its exposed rear. The exact Blender socket/runtime VFX solution is PRODUCE and must follow the assembled terminal module rather than assume Final is present.
 
 ### GZ-BOOST-004 — Bike nozzle family
-**PARTIAL**
+**SUPERSEDED / RESOLVED**
 
-Current Bike evidence has four authored nozzles. V2 requires those normal thrust/directional cues plus one additional central/main effect.
-
-OPEN: confirm whether the new central Bike nozzle is specifically the Boost/main-exhaust cue or a maneuvering-only cue. Do not infer from the phrase "para maniobrar".
+Bike keeps the four normal directional/maneuvering nozzles and adds one central PrimaryBoostExhaust used specifically for Shift/Boost. See GZ-BOOST-008.
 
 ## Boost presentation
 
@@ -324,23 +310,18 @@ Avoid full-screen blur that compromises navigation or aim.
 ## Remaining movement questions
 
 ### GZ-MOVE-OPEN-001 — Front + Middle × N + Final ordering
-**OPEN**
+**RESOLVED**
 
-Need exact ordering:
-- Is `Front + Middle × N + Final` slower than Front-only?
-- Or does Final recover enough performance that it sits between Front-only and Front+Final?
+`Front > Front+Middle×N+Final > Front+Middle×N`.
 
-This matters for acceleration/top-speed formulas.
+Final improves the heavy/cargo class but does not make a Middle-equipped ship faster than the compact Front-only craft.
 
 ### GZ-MOVE-OPEN-002 — Additional Middle penalty curve
-**OPEN**
+**RESOLVED V1**
 
-Once more than one Middle is present, does each additional Middle:
-- apply the same mobility penalty,
-- use diminishing penalty,
-- or use mass/energy derived values?
+No progressive speed-tier penalty by Middle count in V1. One or seven Middles remain in the same cargo/heavy movement class when Back presence is equal.
 
-No hard module-count cap is implied.
+This does not remove future balance knobs for other properties, but implementation must not invent per-Middle speed decay.
 
 ### GZ-MOVE-OPEN-003 — Astronaut Boost
 **OPEN**
@@ -348,25 +329,21 @@ No hard module-count cap is implied.
 Ship and Bike Boost are approved. Whether astronaut EVA also has Boost in V2 is not yet frozen.
 
 ### GZ-MOVE-OPEN-004 — Boost resource model
-**OPEN**
+**RESOLVED for Ship/Bike**
 
-Need to decide whether Boost is:
-- freely held,
-- heat-limited,
-- cooldown-limited,
-- energy-limited.
-
-Do not spend Energy Cells per second unless explicitly approved.
+Ship and Bike Boost are freely holdable in V1 with no heat, cooldown, fuel or Energy Cell drain. See GZ-BOOST-009.
 
 ### GZ-MOVE-OPEN-005 — Speed upgrade progression
 **OPEN**
 
 A speed/acceleration upgrade family is allowed conceptually, but unlock/purchase semantics remain unresolved.
 
-### GZ-FIRE-OPEN-001 — Minimum ship weapon
-**OPEN**
+### GZ-FIRE-001 — Minimum ship weapon
+**APPROVED**
 
-Need confirmation whether Front-only always includes a baseline integrated ship weapon, independently from mountable turrets.
+A valid Front-only ship retains a baseline integrated ship shot/weapon equivalent in product capability to the current working ship fire behavior.
+
+This preserves the capability, not the legacy implementation. Mountable turrets are additional equipment, not a prerequisite for the Front craft to fire.
 
 ## Middle-module limit clarification
 
@@ -563,14 +540,9 @@ The geometry audit must classify:
 Do not force-fit or distort the canonical Back module merely to satisfy this idea.
 
 ### GZ-BIKE-OPEN-001 — Stranding consequence
-**OPEN**
+**RESOLVED**
 
-Need exact rule if Bike/Boosted Bike becomes disabled or destroyed while the player is far from ship/base:
-- continue in EVA and manually recover,
-- recall/recovery rule,
-- other explicit behavior.
-
-"Very fast but exposed" is approved as design intent; the actual failure/recovery state must still be frozen.
+Superseded by GZ-BIKE-FAIL-001..004. Bike/Boosted Bike destruction leaves the player in EVA; recovery is manual through available ship/portal paths, and a sortie with no viable recovery route is lost.
 
 
 ---
