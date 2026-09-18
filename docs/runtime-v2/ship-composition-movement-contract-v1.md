@@ -571,3 +571,61 @@ Need exact rule if Bike/Boosted Bike becomes disabled or destroyed while the pla
 - other explicit behavior.
 
 "Very fast but exposed" is approved as design intent; the actual failure/recovery state must still be frozen.
+
+
+---
+
+# Decision Update — Ally Combat Simplicity / Bike Stranding Failure
+
+## Ally combat behavior
+
+### GZ-ALLY-AI-001 — No extra tactical-role system
+**APPROVED**
+
+Do not add a new ally-only tactical role menu such as Follow / Tank / Attack.
+
+The ally's combat output emerges from the configured setup:
+- same ship/module/turret rules as the player,
+- independently configured physical loadout,
+- more turrets/equipment naturally means more available firepower.
+
+Existing companion command semantics (Explore / Defend) are not expanded into a second, more complex ally tactical-command system by default.
+
+### GZ-ALLY-AI-002 — Loadout-driven firepower
+**APPROVED**
+
+The ally uses its actual equipped weapons/turrets under normal combat AI. No hidden damage multiplier or role-class bonus is inferred merely because the ship looks "tank-like".
+
+Exact target selection / firing cadence remains AI implementation/tuning, constrained by the equipped setup and combat rules.
+
+## Bike failure / stranding
+
+### GZ-BIKE-FAIL-001 — Bike destroyed while ship is available
+**APPROVED direction**
+
+If the active Bike is destroyed/disabled and a valid player ship exists in the current world instance, the player continues in EVA and must recover/return manually according to normal traversal/boarding/portal rules.
+
+No automatic teleport-to-ship is implied.
+
+### GZ-BIKE-FAIL-002 — Bike destroyed with no ship deployed
+**APPROVED**
+
+If the player deployed without a ship and the Bike is destroyed/disabled, the player remains in EVA.
+
+The intended emergency escape is to locate/reach a discovered portal and return to Hangar.
+
+If no viable recovery/portal route remains and no other approved mobile recovery path exists, the sortie is lost and normal player-death/recovery resolution applies.
+
+### GZ-BIKE-FAIL-003 — Boosted Bike uses same risk model
+**APPROVED**
+
+The late-game Boosted Bike, if it passes geometry/visual validation and is unlocked, uses the same exposure/stranding semantics as the normal Bike.
+
+Its extreme speed is balanced partly by the fact that it is not a protected ship/base and does not guarantee recovery if lost.
+
+### GZ-BIKE-FAIL-004 — No hidden recovery
+**APPROVED**
+
+Do not silently spawn a replacement Bike, warp the player to Hangar, or auto-recover the player merely because the Bike was destroyed.
+
+Any future recovery mechanic must be an explicit product contract.
