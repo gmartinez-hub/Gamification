@@ -598,3 +598,85 @@ These are not permission to infer product behavior:
 - **MEASURE**: cell size, radii, remote Hz, per-module ship turret capacities, exact perf budgets, final item prices.
 - **PRODUCE**: Hangar/cockpit/ship/mothership Blender fixes, asteroid material coverage, LODs, colliders, fresh audio, VFX, any genuinely missing character clips.
 - **VERIFY**: semantic tests, perf lab, camera QA, asset audit, memory/leak cycles.
+
+
+---
+
+## 20. Cockpit / Hangar / Portal spatial experience
+
+### GZ-COCKPIT-001 — Boarding
+**APPROVED**
+
+Entering the ship from exterior places the astronaut standing inside the cockpit bay first. The player then explicitly chooses Sit. Reuse the existing seat/stand state machine and animation rather than replacing it.
+
+### GZ-COCKPIT-002 — Standing navigation
+**APPROVED**
+
+Standing cockpit mode is third-person and supports a small bounded walkable zone. The walk boundary must come from visible cabin geometry/architecture, not an arbitrary invisible box.
+
+### GZ-COCKPIT-003 — Preserve existing pilot presentation
+**APPROVED**
+
+The seated third-person presentation that already works remains valid. First-person piloting may coexist using the canonical visor/cockpit framing.
+
+### GZ-COCKPIT-004 — Depth audit before modeling
+**VERIFY / PRODUCE**
+
+Before adding Blender geometry, compare raw `cabina-integrada.glb` against current runtime composition. Current runtime clipping must not be mistaken for missing source geometry.
+
+If source depth is insufficient, create a cockpit-bay **extension** rather than replacing the canonical cockpit/dashboard.
+
+### GZ-HANGAR-005 — Stable base identity
+**APPROVED**
+
+Hangar is a stable orbital/base location. It does not physically become the last/next gameplay world.
+
+### GZ-HANGAR-006 — Orbital backdrop
+**APPROVED**
+
+Hangar may show a stable orbital backdrop with planet/moon/stars/infrastructure. Destination selection is communicated through screen/holographic preview and color/presentation, not by loading the destination world behind the Hangar.
+
+### GZ-HANGAR-007 — 3D focus inventory
+**APPROVED direction / visual QA required**
+
+- Browse via thumbnails/fast UI.
+- Selecting an owned item/host may move/frame the canonical 3D asset into a Hangar focus/inspection zone.
+- Selected asset can rotate for inspection.
+- Unlocked but unowned content may appear as a clearly holographic/ghost 3D preview.
+- Ship modules may use exploded/forward preview and ghost/snap assembly before CONFIRM.
+- Preview never creates inventory ownership.
+
+### GZ-PORTAL-008 — Party check before cross-world travel
+**APPROVED**
+
+Before crossing the portal threshold, show the status of companions relevant to the current sortie. If a companion is downed/unresolved, offer:
+
+- Rescue First
+- Travel Anyway
+
+No silent abandonment.
+
+### GZ-PORTAL-009 — Leaving companions behind
+**APPROVED**
+
+If Travel Anyway is chosen:
+- Nóma left alive/downed is recovered/available through base recovery with no character revive fee.
+- Ally left alive/downed returns to base with no revive fee.
+- Ally DEAD remains unavailable until paid revival.
+- Travel cinematic contains the surviving/present mobile setup.
+
+### GZ-SPATIAL-OPEN-001 — Hangar walk camera
+**OPEN**
+
+Freeze whether Hangar WALK is:
+- third-person only, or
+- first + third person.
+
+Do not infer from voice transcription.
+
+### GZ-SPATIAL-OPEN-002 — Arrival control after portal
+**OPEN**
+
+Freeze whether control after world-to-world handoff:
+- restores the actor/vehicle that entered the portal, or
+- uses a setup-defined Primary Deployment Actor.
