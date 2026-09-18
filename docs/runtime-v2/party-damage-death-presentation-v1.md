@@ -1,6 +1,6 @@
 # Gravedad Zero — Party / Damage / Death Presentation Contract V1
 
-Status: **PARTIAL FREEZE — required states approved, exact visual tuning remains TUNE**
+Status: **SEMANTICS CLOSED — exact visual/audio tuning remains TUNE/PRODUCE**
 
 ## Principle
 
