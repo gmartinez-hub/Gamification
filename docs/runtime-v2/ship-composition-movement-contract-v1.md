@@ -1,6 +1,6 @@
 # Gravedad Zero — Ship Composition & Movement Contract V1
 
-Status: **PARTIAL FREEZE — approved invariants + explicit open decisions**
+Status: **SEMANTIC FREEZE READY — progression/economy extensions deferred; measurement/tuning pending**
 
 ## 1. Clean-room rule
 
@@ -71,7 +71,7 @@ The Hangar assembly/staging lane may extend toward the orbital opening; very lon
 ## 3. Propulsion semantics
 
 ### GZ-SHIP-MOVE-001 — Front-only mobility
-**APPROVED outcome / OPEN implementation semantics**
+**APPROVED outcome / IMPLEMENTATION-FREE**
 
 Because Front-only is a valid deployable craft, it MUST have sufficient baseline propulsion/control to:
 - launch,
@@ -80,7 +80,7 @@ Because Front-only is a valid deployable craft, it MUST have sufficient baseline
 - brake,
 - travel between gameplay locations.
 
-Open: whether this is authored as Front-integrated main propulsion, maneuvering thrusters promoted to cruise propulsion, or another clean V2 propulsion abstraction.
+The contract intentionally does not prescribe whether V2 implements this with integrated cruise propulsion, maneuvering-thruster abstraction or another clean solution. Implementation must satisfy the movement/Boost/exhaust contracts without inheriting the legacy mechanism.
 
 ### GZ-SHIP-MOVE-002 — Final/Back effect
 **SUPERSEDED / RESOLVED**
@@ -120,12 +120,12 @@ Exact values are MEASURE/BALANCE.
 - Exact braking, turn-rate and acceleration values are BALANCE/MEASURE.
 
 ### GZ-MOVE-003 — Boost
-**PARTIAL FREEZE**
+**APPROVED**
 
 - All valid ship compositions have freely holdable Boost.
 - Bike has freely holdable Boost.
-- No heat, cooldown, fuel or Energy Cell drain for ship/Bike Boost in V1.
-- Astronaut EVA Boost remains an explicit unresolved decision.
+- Astronaut EVA retains freely holdable Boost.
+- V1 Boost has no heat, cooldown, fuel or Energy Cell drain.
 - Ally-controlled vehicles may use their own Boost automatically when needed to continue following/defending a boosted player-controlled vehicle; this adds no new tactical command.
 
 ## 5. Speed presentation contract
@@ -246,7 +246,7 @@ Therefore the explicitly approved relations are:
 
 `Front+Final > Bike > Front > Front+Middle...`
 
-Exact placement of `Front+Middle...+Final` relative to `Front` remains OPEN below.
+Resolved ordering: `Front > Front+Middle×N+Final > Front+Middle×N`.
 
 ### GZ-MOVE-007 — Bike acceleration
 **APPROVED**
@@ -326,7 +326,7 @@ This does not remove future balance knobs for other properties, but implementati
 ### GZ-MOVE-OPEN-003 — Astronaut Boost
 **RESOLVED / APPROVED**
 
-Astronaut EVA retains a Shift/Boost state in V2.
+Astronaut EVA retains the same freely holdable Shift/Boost resource semantics as V1 Ship/Bike Boost: no heat, cooldown, fuel or Energy Cell drain.
 
 Exact EVA boost top speed, acceleration response and presentation intensity remain BALANCE/TUNE. No legacy movement constant is copied as canonical.
 
