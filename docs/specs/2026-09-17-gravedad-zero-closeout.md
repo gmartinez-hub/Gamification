@@ -1,6 +1,6 @@
 # Gravedad Zero — especificación maestra de cierre
 
-**Estado: borrador controlado para decisiones y preparación; no acredita implementación.**
+**Estado: especificación funcional cerrada para implementación.** Permanecen verificaciones técnicas `V` y parámetros de balance que deben medirse/calibrarse; no quedan decisiones de producto `D` abiertas.
 **Fecha:** 2026-09-17. **Rama documental:** `docs/gz-closeout-spec`.
 **Base remota observada:** `main` → `ce1c5a7f025c1e522414cf87b73ef15331df29b7`.
 **Entrada de continuidad:** [Leer primero](gz-closeout-start-here.md).
@@ -12,7 +12,7 @@ Esta especificación consolida las instrucciones del usuario, no convierte propu
 
 - **C — Confirmado:** requisito del usuario que la entrega debe cubrir.
 - **P — Propuesta:** diseño recomendado para revisión; no implementación autorizada por silencio.
-- **D — Decisión de producto abierta:** requiere respuesta del usuario.
+- **D — Decisión de producto:** las decisiones `D-01` a `D-07` quedaron cerradas por el usuario el 17/09/2026 y se registran en la sección 10.
 - **V — Verificación técnica:** resolver mediante archivos, modelos, código o medición; no trasladar al usuario preguntas que la inspección puede contestar.
 
 **C-01. UI renovada completa.** El usuario rechazó limitar la intervención a retoques: menú principal, hangar, inventario/equipo, bitácora/mapa, HUD, pausa, ajustes, cargas, errores y cierres deben tener diseño visual coherente y usabilidad revisada en escritorio y táctil. No sustituir este alcance por cambiar etiquetas.
@@ -91,9 +91,9 @@ Convenciones de nombres nuevas, unidades y ejes se fijan a partir de los GLB obs
 
 ## 3. Estados separados y personalización estructural
 
-**C-08.** Separar: progreso de sector/gemas; tipos de piezas desbloqueados; unidades adquiridas; composición actualmente equipada; ubicación de vehículos; y, si se aprueba, diseños guardados o flota física. No usar `stage === número de módulos` para todo.
+**C-08.** Separar: progreso de sector/gemas; tipos de piezas desbloqueados; unidades adquiridas; composición actualmente equipada; moto; tripulación; y **2–3 configuraciones guardadas de una misma nave**. No hay flota física de varias naves propias en esta entrega. No usar `stage === número de módulos` para todo.
 
-**C-09. Configuraciones de aceptación:** frontal solo en el inicio existente; frontal+medio; frontal+final; frontal+medio+final; frontal+medio+medio+final. Las primeras dos siguen las condiciones de vuelo existentes. Estas configuraciones no establecen un máximo de dos medios: el máximo/obtención de unidades es D-05.
+**C-09. Configuraciones de aceptación:** frontal solo en el inicio existente; frontal+medio; frontal+final; frontal+medio+final; frontal+medio+medio+final. La implementación debe ser data-driven para repetir módulos medios; la entrega garantiza al menos hasta dos módulos medios sin convertir ese valor en un techo arquitectónico global. La progresión y la composición siguen siendo estados distintos.
 
 Los tres stages continúan como hitos/tipos de piezas de la expedición, no tres naves excluyentes. Tras desbloquear propulsión, una nave compacta frontal+final no pierde progreso por omitir el hábitat. No supeditar el final a una cantidad rígida de piezas instaladas sin una decisión explícita.
 
@@ -101,13 +101,13 @@ Los tres stages continúan como hitos/tipos de piezas de la expedición, no tres
 
 **C-11.** Torreta colocable por el jugador en superficies compatibles de cada módulo, moto y Nóma. No reducir silenciosamente a dos coordenadas prefijadas. Separar capacidad de posición. La base debe apoyar; no atravesar piezas, bloquear controles/accesos ni interrumpir propulsión. Mostrar motivo cuando una posición no es válida. Posición y orientación se guardan en coordenadas del huésped concreto.
 
-Las dos torretas por módulo tratadas previamente son una referencia de capacidad a cerrar en D-05, no seis como techo global. Probar más módulos y sus montajes. Una torreta compacta no es un diseño nuevo ni otro jet. Compartir el recurso gráfico no equivale a entregar otra unidad al jugador.
+**Capacidad mínima confirmada:** cada módulo de nave debe admitir al menos dos torretas compatibles; moto y Nóma admiten al menos una cada uno. Eso no fija un máximo global de torretas: la población efectiva se determina por piezas adquiridas, superficies válidas, rendimiento y balance. Una torreta compacta no es un diseño nuevo ni otro jet. Compartir el recurso gráfico no equivale a entregar otra unidad al jugador.
 
 **P-01. Edición transaccional:** selección → vista previa → mover/orientar → validar contacto/obstrucción/capacidad/coste → confirmar o cancelar. Confirmar guarda compra/descuento/instalación juntos; cancelar deja estado anterior. Cerrar durante cambios ofrece conservar/cancelar explícitamente. No perder una compra por fallo de carga o actualizar una segunda copia del inventario.
 
 ## 4. Hangar como escena y carga por etapas
 
-**C-12.** Diseñar el hangar como escena 3D autónoma con ciclo de carga y liberación, no sólo como un panel superpuesto al combate. Tener escena propia no decide todavía si es caminable ni dónde existe narrativamente (D-01).
+**C-12.** El hangar es una **escena 3D de mantenimiento**, separada del mapa de combate y del cambio de sector. No requiere exploración libre a pie en esta entrega. Allí se convierte/gasta carga, se ensamblan módulos, se colocan/mueven/retiran torretas, se inspecciona la moto/Nóma/aliado y se guardan 2–3 configuraciones de una misma nave. La cámara de mantenimiento es orbital/inspectiva y no reemplaza las cámaras de pilotaje.
 
 **P-02. Gestor de recursos compartido:** distinguir descargado, decodificado, preparado para GPU y visible. Un archivo descargado no está necesariamente listo para mostrarse. Compartir geometrías/texturas entre copias cuando corresponda; mantener transformaciones, rigs y datos de juego independientes. Elegir APIs compatibles con el Three vendorizado, sin actualizar motor por defecto.
 
@@ -117,7 +117,7 @@ Las dos torretas por módulo tratadas previamente son una referencia de capacida
 | Solicitud de hangar | Preservar estado; preparar zona de servicio y vehículo seleccionado con materiales completos; transición coordinada | Resetear sector, borrar enemigos o otorgar inmunidad por una decisión de acceso no aprobada |
 | Hangar disponible | Editar nave actual; mostrar carga y piezas; preparar recursos de inspección | Bloquear todos los controles mientras se descarga un recurso secundario |
 | Selección de otro diseño/vehículo | Priorizar ese modelo; preparar geometría, mapas y shaders; señal de preparación honesta | Cobrar/confirmar equipo no disponible; mostrar modelo borroso como calidad final |
-| Bahías adicionales | Cargar según visibilidad y decisión D-02; máxima calidad al inspeccionar | Ocultar permanentemente las otras naves en móvil para compensar rendimiento sin aprobación |
+| Configuraciones guardadas | Mostrar 2–3 presets guardados; sólo la selección activa necesita 3D hero en máxima calidad, las demás pueden usar miniaturas/render diferido derivados de assets reales | Cargar tres naves hero completas y todos sus materiales en GPU sólo para representar presets |
 | Preparación del destino | Precargar por presupuesto lo que el siguiente sector necesita; prioridad a la interacción activa | Cargar todos los sectores, todos los LOD y todos los enemigos en GPU a la vez |
 | Salida/cruce | Comprobar readiness del destino; transferir estado/configuración; liberar lo que dejó de usarse | Doble consumo de gema/carga, cabina negra, recursos compartidos destruidos o carga infinita |
 
@@ -127,23 +127,21 @@ Las dos torretas por módulo tratadas previamente son una referencia de capacida
 
 **P-03.** Un renderer/contexto y gestión de recursos común, sin visores WebGL independientes en cada tarjeta. Miniaturas derivadas de los assets reales y vista 3D de selección. No renderizar dos niveles completos permanentemente para suavizar un fundido. Evitar picos por solapar hangar, sector saliente y destino.
 
-Ocultar una escena no libera sus texturas; liberar requiere conocer quién sigue usando el recurso. Preservar estado lógico separado del estado gráfico. Al volver al sector, no reiniciar objetivos, enemigos, inventario o transporte por haber descargado mallas. Decidir simulación/pausa y acceso seguro en D-01: esto no se infiere del cargador.
+Ocultar una escena no libera sus texturas; liberar requiere conocer quién sigue usando el recurso. Preservar estado lógico separado del estado gráfico. Al volver al sector, no reiniciar objetivos, enemigos, inventario o transporte por haber descargado mallas. El hangar no funciona como escape de combate ni como transición de stage: su entrada/salida debe preservar estado y sólo habilitar edición cuando la escena de mantenimiento sea segura.
 
 Solicitudes duplicadas deben unificarse; cambiar de selección reprioriza/cancela lo innecesario y una respuesta tardía nunca reemplaza la selección nueva. Reintento tras error de red, salida durante carga, pestaña suspendida y contexto gráfico perdido forman parte de la aceptación.
 
-### Varias naves y moto: capacidad técnica no es decisión de producto
+### Configuraciones guardadas y moto
 
-**D-02. Varias naves** puede significar tres cosas distintas, todas registradas: (a) varios diseños de la misma nave; (b) varias naves propias físicamente construidas con inventarios separados; (c) otras naves ambientales en bahías. No decidir una en nombre del usuario. Mostrar la nave enemiga tampoco autoriza pilotarla ni inventar un sistema de captura. No se ha pedido multijugador.
+**C-23.** El hangar guarda **2–3 configuraciones** de una misma nave. Son presets de ensamblado que reutilizan las unidades realmente adquiridas; guardar un diseño no duplica módulos ni torretas. No se implementa una flota física independiente como requisito de esta entrega. Las otras configuraciones pueden verse como miniaturas/slots y cargarse en 3D sólo al seleccionarlas.
 
-**D-03. Moto estacionada:** distinguir dejarla físicamente en una bahía, quitarla del manifiesto de salida o transportarla dentro de la nave sin renderizarla. Resolver persistencia, disponibilidad en otro sector, retorno al hangar y recuperación antes de crear el botón. No teletransportar ni duplicar la moto por cambiar de escena.
-
-**P-04.** Si se aprueba la opción de llevar/dejar moto, interfaz con ubicación y estado explícitos, vista de su plaza y confirmación de salida sin ella. El diseño de misión debe permitir terminar/recuperarse sin quedar bloqueado. No imponer esta propuesta como regla final.
+**C-24.** La moto **viaja siempre con la expedición entre sectores** y está disponible en el hangar. No existe una decisión de dejarla perdida en un mapa. Su torreta, si está instalada, pertenece a esa instancia de moto y viaja con ella. La representación visual de transporte/acople se resuelve con los assets existentes sin crear un jet nuevo.
 
 ## 5. Storytelling y mapa de escenas
 
 **C-15. Elementos a integrar:** inicio en moto con Nóma, encuentro con la nave, baliza con utilidad real, extracción y reacción hostil, gemas de avance, carga de equipamiento, aliado verde, personalización y cierre de viaje. Conservar identidad visual y las tres regiones conocidas.
 
-**P-05. Arco narrativo para aprobación D-06:** una expedición dispersa intenta reconstruir su ruta; una señal ajena convierte la recuperación en colaboración. Nóma interpreta nuestros sistemas; el aliado conoce la región. La nave muestra nuestras decisiones, no premios que se materializan sin explicación.
+**C-25. Arco narrativo aprobado:** una expedición dispersa intenta reconstruir su ruta; una señal ajena convierte la recuperación en colaboración. Nóma interpreta nuestros sistemas; el aliado verde conoce la región. La nave muestra las decisiones del jugador, no premios que se materializan sin explicación. El aliado aparece obligatoriamente en Vesper, se incorpora a la tripulación y puede usar la pistola existente.
 
 | Escena | Relato/objetivo propuesto | Uso de assets y resultado |
 |---|---|---|
@@ -156,9 +154,9 @@ Solicitudes duplicadas deben unificarse; cambiar de selección reprioriza/cancel
 | Umbra / salida | Usar la nave elegida y la ayuda de la tripulación para abrir la ruta | Combate, última gema y anomalía; la nave final tiene tiempo de juego |
 | Final | Respuesta a la señal, resumen de la expedición | Nave realmente equipada, tripulación, inspección y compartir opcional |
 
-**P-06. Roles:** baliza = orientación/enlace; celda = carga para equipo; gemas = progreso de ruta. Precios, obtención, duplicados y balance son D-05. No agregar otra moneda sin aprobación. El equipo básico debe evitar bloqueos por una compra; precisar esa regla antes de cerrar economía.
+**C-26. Roles/economía:** baliza = orientación/enlace; celda = representación canónica de **carga** para equipamiento; gemas = progreso de ruta. **Asteroides y enemigos entregan carga.** La carga compra/adquiere torretas y módulos medios adicionales; las gemas no se gastan en mejoras. No agregar otra moneda. Reubicar equipo ya adquirido no vuelve a cobrar su compra. Los valores exactos de recompensa/precio son parámetros de balance a calibrar con el loop real y deben quedar centralizados/configurables, no dispersos en UI.
 
-**D-04. Momento de salida:** el sistema heredado recoge gema y vuelve/aborda/cruza automáticamente. La propuesta nueva de elegir salir después de obtenerla no está confirmada. No combinar ambas secuencias ni cambiarla dentro de PERF. Tras decidir, conservar toda la cadena: gema, reacción, regreso/abordaje, cable, preparación, cruce, llegada y acople correspondiente, guardado y recuperación de error.
+**C-27. Momento de salida y transición:** al recoger la gema se resuelve el encuentro y se inicia el **regreso automático a la nave/abordaje**. Una vez a bordo, el jugador **elige cuándo partir**. La salida se realiza en el espacio atravesando la **anomalía/agujero negro 3D**; el hangar no cambia de stage. Conservar la cadena completa: gema → reacción → regreso/abordaje → preparación → aproximación/entrada en anomalía → carga del destino → llegada → primer acople automático del nuevo módulo cuando corresponda → guardado/recuperación de error. Después de ese primer acople, el módulo puede retirarse/reordenarse en el hangar. La tercera gema no crea un cuarto tipo de módulo.
 
 **C-16. Anomalía de salto:** producir con geometría/materiales/efectos y reutilización, no exigir otro GLB Meshy. No simular física astrofísica por inferencia. Mantener coherencia de cámara, audio, carga, skip y preferencia de vista. Omitir una cinemática no duplica ni salta los eventos de progreso.
 
@@ -173,14 +171,14 @@ Solicitudes duplicadas deben unificarse; cambiar de selección reprioriza/cancel
 | UI-01 | Entrada/menú principal | Nueva expedición, continuar, hangar, bitácora, ajustes; continuar sólo con partida válida; estado real y carga/errores |
 | UI-02 | Hangar/ensamblado | Composición real, piezas adquiridas/instaladas/bloqueadas, separar desbloqueo de montaje; nave corta/normal/larga; rotación, zoom, centrar, vista inferior |
 | UI-03 | Colocación de torreta | Selección, contacto válido/inválido con explicación, orientar/mover, confirmar/cancelar, coste/capacidad; sin luchar contra la cámara |
-| UI-04 | Vehículos y otras naves | Inspección y gestión según D-02; no afirmar «flota» si sólo son presets; preservar configuración por objeto |
-| UI-05 | Moto, Nóma y tripulación | Montaje de torreta en huéspedes confirmados, personaje verde sólo tras incorporación; estados y arma existentes; llevar/dejar según D-03 |
+| UI-04 | Configuraciones guardadas | 2–3 presets de la misma nave; seleccionar, comparar, renombrar/guardar y activar sin duplicar inventario; modelo 3D hero sólo para la selección activa |
+| UI-05 | Moto, Nóma y tripulación | Moto siempre disponible en la expedición; montaje de torreta en moto/Nóma; aliado verde disponible tras Vesper; estados, arma y animaciones coherentes |
 | UI-06 | Inventario y carga | Gemas separadas de carga; disponible, equipado, guardado, preparación y error; no imagen genérica que invente otro objeto |
 | UI-07 | Mapa/bitácora | Sector, ruta descubierta, señal, objetivo, piezas desbloqueadas, registros; no revelar objetivos por cargar sus archivos |
 | UI-08 | HUD de partida | Objetivo inmediato, salud/contexto, mira y acción pertinente; moto/astronauta/nave en primera y tercera persona; no esconder disparo o visor |
 | UI-09 | Pausa/ajustes/ayuda | Audio y mezcla, controles/sensibilidad, vista y accesibilidad, reanudar/volver, confirmación de reinicio; foco/teclado/touch correctos |
 | UI-10 | Preparación/transiciones | Progreso verdadero por fase; fallo, reintento y cancelar donde sea seguro; estado persistido; no spinner perpetuo |
-| UI-11 | Sector completo/final | Recompensas reales, nave equipada, siguiente decisión según D-04, reinicio sin borrar accidentalmente inventario/bitácora; compartir voluntario |
+| UI-11 | Sector completo/final | Recompensas reales, nave equipada, regreso automático y decisión de partir; anomalía de salto; reinicio sin borrar accidentalmente inventario/bitácora; compartir voluntario |
 
 Escritorio y móvil vertical/horizontal deben mantener funciones equivalentes. No ocultar funciones aprobadas por tamaño de pantalla. Paneles extensos colapsables; centro de juego libre. Contraste y estados no dependen sólo del color. Subtítulos legibles, sonido opcional, reducción de movimiento, safe areas, pausa real y foco visible. No lanzar disparos al tocar UI ni retener inputs al perder foco/cambiar de app.
 
@@ -205,7 +203,7 @@ Inspección, colocación y pilotaje tienen propiedad exclusiva de input. Una min
 
 El export previo propuso transición de cabina 0,35–0,5 s, balanceo lateral 8–12° e inclinación 3–6°. Son referencias del paquete acordado, no permiso para hacer oscilar el aim ni para inventar una nueva física. Respetar reducción de movimiento y comprobar mareo/legibilidad.
 
-**P-08. Input de pilotaje:** mouse/gesto de mirada gobierna referencia de aim; teclado/joystick gobierna desplazamiento. Definir explícitamente mirar libre vs dirigir vehículo. El modo de captura del mouse, fallback sin pointer lock y combinación táctil de apuntar/disparar son D-07; no imponerlos sin revisar la experiencia existente.
+**C-28. Input aprobado:** en PC, el **mouse controla directamente mirada/aim** y el clic dispara; WASD/flechas controlan desplazamiento y nunca son necesarios para corregir una segunda orientación oculta. En táctil, joystick izquierdo controla desplazamiento y la zona derecha controla mirada/aim; el disparo debe poder combinarse con el mismo pulgar derecho (mantener/arrastrar para apuntar y disparar) sin requerir un tercer dedo para el loop básico. Menús/hangar toman propiedad exclusiva del puntero y liberan el control de cámara. Mantener primera/tercera persona.
 
 **Pruebas AIM:** apuntar quieto sin teclas de movimiento; desplazarse lateral/vertical disparando al mismo punto; blanco móvil; obstáculo delante del arma; cambio de vista con input sostenido; montar/desmontar; perder foco; touch simultáneo sin tener que usar tres dedos para acciones básicas. Mantener trayectoria, daños y cadencia que funcionan salvo cambio de producto aprobado.
 
@@ -215,7 +213,7 @@ El export previo propuso transición de cabina 0,35–0,5 s, balanceo lateral 8�
 
 **V-06.** El checkpoint heredado requiere migración para esos estados; revisar sus límites de longitud/arrays/versiones antes de extender. Hacer copia del guardado anterior y migración validada. Si una versión no puede leerse, ofrecer recuperación explícita, no reiniciar silenciosamente.
 
-Guardar confirmaciones de compra/montaje como unidad lógica. Cortar red, cerrar pestaña en instalación o durante salto, abandonar vista previa y recargar no duplica gemas, módulos ni torretas. Un conflicto de unidades entre diseños/flota se resuelve según D-02, nunca creando equipo gratuito.
+Guardar confirmaciones de compra/montaje como unidad lógica. Cortar red, cerrar pestaña en instalación o durante salto, abandonar vista previa y recargar no duplica gemas, módulos ni torretas. Los 2–3 presets guardados referencian unidades reales y nunca crean equipo gratuito.
 
 Para ships de bahía o skins derivados: no atribuir derechos de propiedad/captura/uso a que el modelo esté descargado. La lista de recursos gráficos y el inventario del jugador son sistemas separados.
 
@@ -223,25 +221,46 @@ Para ships de bahía o skins derivados: no atribuir derechos de propiedad/captur
 
 Aplican todos los requisitos del [anexo PERF](gz-closeout-performance.md). La arquitectura de hangar debe respetarlos; no financiar varias naves reduciendo de forma oculta las texturas de la seleccionada.
 
-**C-20.** Medir dos peores casos distintos: combate con configuración máxima aprobada y hangar con población/cámaras máximas aprobadas; además picos de entrada/salida, primera aparición y cambio rápido de selección. Instanciar reduce trabajo repetido/draw calls cuando aplica; no elimina los triángulos de cada nave visible.
+**C-20.** Medir dos peores casos distintos: combate con configuración frontal+dos medios+final, torretas instaladas, Nóma armado, aliado verde animado, enemigos/asteroides/disparos/fuego/partículas; y hangar con nave seleccionada en máxima calidad, moto, tripulación y cambios rápidos entre 2–3 presets. Medir también picos de entrada/salida y primera aparición. Instanciar reduce trabajo repetido/draw calls cuando aplica; no elimina los triángulos visibles.
 
-**C-21.** Registrar también configuración frontal+dos medios+final con torretas y posible número mayor aprobado, no sólo el stage 3 antiguo. Varias bahías visibles requieren ensayo propio. Sin límite acordado y medido de población simultánea no se puede certificar un «peor caso» universal.
+**C-21.** Registrar como mínimo frontal+dos medios+final con **dos torretas por módulo**, más la torreta de moto y la de Nóma. La arquitectura no debe hardcodear seis como techo global. Si se permite una población mayor tras las pruebas, volver a medir antes de considerarla soportada en producción.
 
 **C-22.** Máxima calidad de originales en elementos cercanos, objetivos, inspección y cinemáticas; LOD sólo por distancia/tamaño. Carga anticipada con presupuestos separados de red, CPU y GPU. No usar cambio de nivel como pretexto para congelar entrada, repetir shaders o retener todos los recursos indefinidamente.
 
-## 10. Registro de decisiones — resolver sin recortar
+## 10. Decisiones de producto cerradas — 17/09/2026
 
-| ID | Decisión del usuario todavía abierta | Propuesta explícita / por qué importa |
-|---|---|---|
-| D-01 | ¿Hangar físico al que llegar, escena de mantenimiento accesible desde menú en estado seguro, o ambas? ¿Se recorre a pie? | Diseñar entrada/salida/pausa, ubicación persistente, acceso durante combate, carga y cámara. No asumir teletransporte ni mapa caminable nuevo. |
-| D-02 | ¿Otras naves = configuraciones guardadas, flota propia real, ambientación, o combinación? ¿Cuántas visibles juntas y cuáles? | Presets reutilizan equipo al activarse; flota requiere posesión e inventario por unidad. La visibilidad no concede pilotaje de la enemiga. |
-| D-03 | ¿La moto puede quedar en una bahía al salir? ¿Viaja con la nave o se recupera al volver? | Registrar ubicación y manifiesto; impedir bloqueo de misiones sin moto. |
-| D-04 | ¿Gema inicia automáticamente la cadena de regreso/cruce o habilita elegir partir? | Mantener el comportamiento actual hasta resolver, sin descartar la propuesta de salida voluntaria. |
-| D-05 | ¿Cómo se obtiene otro módulo medio/torreta? ¿Capacidades, precios y límite de ensamblado/población? | Confirmar economía y balance; no fijar dos medios o seis torretas como límite global. |
-| D-06 | Cerrar motivo del viaje, aparición/rol del aliado, continuidad del hangar y texto de final | El arco recuperar–conectar–salir juntos es propuesta; la incorporación del aliado y nueva narrativa sí están en alcance. |
-| D-07 | Captura de mouse / aim táctil y gesto de disparo | Presentar prueba de control sin tocar reglas de combate; conservar alternativa accesible y ambas perspectivas. |
+No quedan decisiones `D` abiertas para que Codex invente durante la implementación. Si la inspección local contradice una suposición técnica, registrar un bloqueo `V` con evidencia y preservar el alcance.
 
-Estas decisiones no paralizan V-01 a V-06, inventario de assets, recuperación de PERF y prototipos visuales de revisión; sí bloquean dar por final el comportamiento dependiente. Registrar respuesta y fecha en la decisión, no inventar un valor por defecto para «cerrar».
+| ID | Decisión cerrada |
+|---|---|
+| D-01 Hangar | **Escena 3D de mantenimiento**, no mapa de exploración ni transición de stage. Permite gastar/canjear carga, ensamblar módulos, colocar/mover/retirar torretas, inspeccionar equipo y guardar configuraciones. Cámara orbital/inspectiva; no requiere caminar libremente en esta entrega. |
+| D-02 Naves | Guardar **2–3 configuraciones de una misma nave**. No flota física independiente. Los presets reutilizan unidades adquiridas y no duplican inventario. |
+| D-03 Moto | La moto **viaja siempre con la expedición**, está disponible en el hangar y conserva su equipamiento. |
+| D-04 Salto | Gema → regreso/abordaje automático → jugador decide cuándo partir → anomalía/agujero negro 3D → nuevo sector → primer acople automático del nuevo módulo cuando corresponda. El hangar no cambia de mapa. |
+| D-05 Economía/equipo | Asteroides y enemigos otorgan carga; carga adquiere torretas y módulos medios adicionales; gemas sólo progresan la ruta. Al menos dos torretas por módulo de nave, una en moto y una en Nóma. Los precios/recompensas exactos son balance configurable, no una regla narrativa. |
+| D-06 Historia/aliado | Arco recuperar → responder a señal → salir juntos. El aliado verde aparece obligatoriamente en Vesper, se suma a la tripulación y usa la pistola existente. |
+| D-07 Aim | PC: mouse = aim/cámara, clic = disparo, teclado = desplazamiento. Táctil: joystick izquierdo = desplazamiento; zona derecha = aim y disparo con el mismo pulgar sin exigir tercer dedo. Primera y tercera persona se conservan. |
+
+### Movimiento y vida de acompañantes
+
+**C-29. Nóma y aliado verde no pueden quedar estáticos.** Ambos deben tener estados de movimiento y reacción visibles equivalentes en intención al alien enemigo, adaptados a su morfología:
+
+- **Nóma:** idle flotante, seguimiento, reorientación, aceleración/frenado, evitación/reposicionamiento, alerta, defensa automática, orientación/disparo de su torreta, retroceso/reacción y retorno a formación.
+- **Aliado verde:** idle/hover, desplazamiento, orientación hacia interés/amenaza, apuntado, disparo con pistola existente, retroceso, reacción al impacto/amenaza, gesto narrativo y seguimiento/posición de apoyo.
+- **Alien enemigo:** conservar su movimiento ofensivo existente y usarlo como referencia de riqueza/lectura, no como rig literal para Nóma.
+- Las animaciones visuales lejanas pueden actualizarse a menor frecuencia según PERF, pero física, daño, posición lógica y decisiones de combate siguen activas.
+
+### Comportamiento de torretas
+
+**C-30.**
+- **Nave:** torretas de apoyo automático + **botón de salva** coordinada bajo control del jugador.
+- **Nóma:** defensa automática priorizando amenazas al jugador; no dispara objetivos de misión para activar encuentros por su cuenta.
+- **Moto:** torreta sincronizada con el disparo del jugador.
+- Todas usan el proyectil/sistema balístico existente salvo que la geometría real requiera adaptación de muzzle; no crear otra familia de munición por defecto.
+
+### Balance sin inferencias ocultas
+
+**C-31.** Los valores exactos de carga obtenida, precios y cooldown de salva deben estar centralizados como parámetros de balance y calibrarse con QA del loop real. No fijar un máximo arquitectónico de módulos medios o torretas más bajo que los casos de aceptación. Si rendimiento obliga a proponer un límite superior de producción, medirlo y presentarlo como decisión explícita, no como recorte silencioso.
 
 ## 11. Recorridos de aceptación del cierre
 
@@ -253,14 +272,14 @@ Estas decisiones no paralizan V-01 a V-06, inventario de assets, recuperación d
 | QA-04 Ensamblado | Todas las composiciones C-09, mismo tamaño de piezas, colisiones/acoples/cámara/anclas válidos; persiste tras recarga |
 | QA-05 Torretas | Montar y mover en nave/moto/Nóma, posiciones válidas/invalidas, disparo real y guardado; sin slots fijos impuestos |
 | QA-06 Hangar | Entrada, inspección, carga secundaria, cambios de selección, salida y retorno; no fuga ni pérdida de estado |
-| QA-07 Flota/moto | Cubrir exactamente D-02/D-03 aprobados, incluyendo cambio de nave y salida sin moto cuando corresponda |
+| QA-07 Presets/moto | Guardar/cambiar 2–3 configuraciones sin duplicar piezas; moto presente entre sectores y en hangar con su equipamiento |
 | QA-08 Aim/cabina | CAM-01 a CAM-08, tiro estático/móvil, asiento/pararse con carga lenta, cambios de vista/reanudación |
 | QA-09 Historia | Tres sectores, baliza útil, aliado y apoyo, carga vs gemas, secuencia de cruce y cierre según decisiones |
 | QA-10 Rendimiento | Arranque frío/caliente, primer enemigo, combate máximo, hangar máximo, transiciones repetidas y térmica en dispositivos reales |
 | QA-11 Fallos | Red interrumpida, doble clic, cancelar, respuesta tardía, refresh, app suspendida, guardado viejo o corrupto; no progreso duplicado/perdido |
 | QA-12 Publicación | SHA y artefactos reales, smoke de URL de prueba, assets permitidos/licencias y rollback; no promover rama documental |
 
-No declarar «completo» porque existan paneles vacíos, mocks o anclas sin acción. Un modelo preparado a la espera de integración y una función bloqueada por decisión se reportan como tales, no como recortes aprobados. Preservar todos los requisitos no sustituidos de specs previas, aplicando sus correcciones posteriores (balística actual, no restaurar el RNG antiguo; cabina actual sin imponer caminabilidad libre).
+No declarar «completo» porque existan paneles vacíos, mocks o anclas sin acción. Un modelo preparado a la espera de integración o una verificación técnica pendiente se reporta como tal, no como recorte aprobado. Preservar todos los requisitos no sustituidos de specs previas, aplicando sus correcciones posteriores (balística actual, no restaurar el RNG antiguo; cabina actual sin imponer caminabilidad libre).
 
 ## 12. Mapa de trabajo para Codex y evidencia
 
@@ -290,4 +309,4 @@ Actualizar un registro breve por IDs: confirmado, implementado sin validar, vali
 - [Three.js OrbitControls](https://threejs.org/docs/pages/OrbitControls.html): órbita y giro automático para inspección, no reemplazo del pilotaje.
 - [Three.js InstancedMesh](https://threejs.org/docs/pages/InstancedMesh.html): reutilización de geometría/material y transformación independiente, no coste nulo por copia.
 
-**Estado de entrega de este documento:** especificación consolidada y decisiones visibles. No se han implementado cambios de juego, ejecutado Blender, importado los cuatro assets ni medido nuevos FPS desde esta conversación.
+**Estado de entrega de este documento:** especificación funcional cerrada para implementación, con decisiones de producto registradas. Siguen pendientes la inspección local de assets/worktree, Blender/rigging donde corresponda, implementación, QA y mediciones reales; este documento no acredita que esas tareas ya estén realizadas.
