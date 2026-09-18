@@ -553,17 +553,21 @@ Superseded by GZ-BIKE-FAIL-001..004. Bike/Boosted Bike destruction leaves the pl
 
 ## Ally combat behavior
 
-### GZ-ALLY-AI-001 — No extra tactical-role system
+### GZ-ALLY-AI-001 — Shared simple command family
 **APPROVED**
 
 Do not add a new ally-only tactical role menu such as Follow / Tank / Attack.
+
+The ally uses the same intentionally small high-level command family already approved for companions:
+- Explore,
+- Defend.
 
 The ally's combat output emerges from the configured setup:
 - same ship/module/turret rules as the player,
 - independently configured physical loadout,
 - more turrets/equipment naturally means more available firepower.
 
-Existing companion command semantics (Explore / Defend) are not expanded into a second, more complex ally tactical-command system by default.
+No hidden Tank/Attack role class is added.
 
 ### GZ-ALLY-AI-002 — Loadout-driven firepower
 **APPROVED**
