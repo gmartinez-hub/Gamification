@@ -324,9 +324,11 @@ No progressive speed-tier penalty by Middle count in V1. One or seven Middles re
 This does not remove future balance knobs for other properties, but implementation must not invent per-Middle speed decay.
 
 ### GZ-MOVE-OPEN-003 — Astronaut Boost
-**OPEN**
+**RESOLVED / APPROVED**
 
-Ship and Bike Boost are approved. Whether astronaut EVA also has Boost in V2 is not yet frozen.
+Astronaut EVA retains a Shift/Boost state in V2.
+
+Exact EVA boost top speed, acceleration response and presentation intensity remain BALANCE/TUNE. No legacy movement constant is copied as canonical.
 
 ### GZ-MOVE-OPEN-004 — Boost resource model
 **RESOLVED for Ship/Bike**
@@ -601,3 +603,52 @@ Its extreme speed is balanced partly by the fact that it is not a protected ship
 Do not silently spawn a replacement Bike, warp the player to Hangar, or auto-recover the player merely because the Bike was destroyed.
 
 Any future recovery mechanic must be an explicit product contract.
+
+
+---
+
+# Decision Update — Player Death Companion Recovery / Ship Destruction
+
+## Player death with living/downed companions
+
+### GZ-DEATH-COMP-001 — Companion equipment recovery overrides general deployed-setup loss for living/downed companions
+**APPROVED**
+
+If the player dies while Nóma and/or the ally is still ALIVE or DOWNED:
+
+- the companion character is recovered to Hangar according to existing companion recovery rules,
+- the physical equipment currently assigned to that living/downed companion returns with that companion,
+- that recovered companion equipment is NOT counted as lost setup for the 50% death-salvage calculation,
+- all other deployed player-owned physical setup follows the normal player-death loss/salvage rule.
+
+If the ally is DEAD, normal dead-ally/revival and item-loss rules apply.
+
+This is the explicit priority rule between GZ-DEATH-001 and GZ-COMP-007.
+
+## Ship destruction with surviving pilot
+
+### GZ-SHIP-FAIL-001 — Player ship destroyed
+**APPROVED**
+
+If the player ship is destroyed while the player survives:
+
+- the destroyed ship and physical equipment attached to that destroyed ship are lost,
+- the player continues in EVA,
+- the player may manually recover by reaching another owned vehicle/ship, an available portal, or another explicitly approved recovery route,
+- there is no automatic teleport or replacement ship,
+- if no viable recovery route remains, the sortie is lost and normal player-death/recovery resolution applies.
+
+### GZ-SHIP-FAIL-002 — Ally ship destroyed
+**APPROVED**
+
+If the ally ship is destroyed while the ally survives:
+
+- the destroyed ally ship and equipment attached to that ship are lost,
+- the ally continues according to the ally/companion survival state (ACTIVE/DOWNED/DEAD as gameplay resolves),
+- a living/downed ally may still be rescued/recovered independently of the destroyed ship,
+- no replacement ally ship is spawned automatically.
+
+### GZ-SHIP-FAIL-003 — Destruction is physical loss
+**APPROVED**
+
+A destroyed ship is a lost physical setup, even when the pilot survives. Unlocks/recipes remain and the ship can later be rebuilt/reconfigured from owned/reacquired components according to inventory/economy rules.
