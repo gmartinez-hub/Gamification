@@ -1,6 +1,6 @@
 # Gravedad Zero — Spatial Experience Audit V1
 
-Status: **PROPOSED / evidence-gathering before contract freeze**
+Status: **SEMANTICS CLOSED — raw asset/camera evidence pending VERIFY**
 
 Purpose: prevent Cockpit, Hangar, Inventory and Portal implementation from inventing spaces that do not match the canonical models.
 
