@@ -8,7 +8,7 @@ This folder translates the approved product and technical decisions from the Gra
 ## Source of truth order
 
 1. **Factual asset atlas**: what assets actually exist.
-2. **FigJam canonical sections 20–30**: approved product/experience decisions and production intent.
+2. **FigJam canonical sections 20–34**: approved product/experience decisions and production intent.
 3. **This contract pack**: executable wording, IDs, semantic tests, verification gates.
 4. **Runtime code**: must implement the contracts; code does not redefine them.
 
@@ -33,6 +33,11 @@ A performance failure does **not** authorize deleting a capability. First adjust
 - [asset-manifest-contract-v1.md](./asset-manifest-contract-v1.md) — source/runtime asset boundaries and semantic keys.
 - [blender-production-audit-v1.md](./blender-production-audit-v1.md) — operational Blender/asset review.
 - [perf-verification-v1.md](./perf-verification-v1.md) — perf lab, telemetry and verification gates.
+- [spatial-experience-audit-v1.md](./spatial-experience-audit-v1.md) — cockpit/hangar/portal spatial evidence and camera constraints.
+- [clean-room-reconstruction-v1.md](./clean-room-reconstruction-v1.md) — clean-room rebuild rules and legacy-evidence classification.
+- [scale-spatial-semantics-audit-v1.md](./scale-spatial-semantics-audit-v1.md) — canonical scale hierarchy and ScaleProfile audit.
+- [ship-composition-movement-contract-v1.md](./ship-composition-movement-contract-v1.md) — ship grammar, movement, Boost and Bike failure semantics.
+- [party-damage-death-presentation-v1.md](./party-damage-death-presentation-v1.md) — ally/Nóma/player damage, downed and death presentation.
 
 ## Repository strategy
 
