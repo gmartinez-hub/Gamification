@@ -224,3 +224,152 @@ Ship MovementProfile may be derived from composition only through explicitly app
 - SEM-MOVE-001: baseline Ship top speed > Bike top speed > Astronaut top speed.
 - SEM-MOVE-002: speed feedback increases perceptibly with normalized speed without obscuring aiming.
 - SEM-MOVE-003: changing LOD/VFX tier does not change movement physics.
+
+
+---
+
+# Decision Update — Movement / Boost / Thruster Semantics
+
+## Approved composition-speed relations
+
+### GZ-MOVE-004 — Front + Final is the fastest ship composition
+**APPROVED**
+
+Among player/ally ship compositions, `Front + Final` is the fastest and most agile ship configuration.
+
+It is the mobility-specialist configuration: minimum hull plus dedicated Final/Back propulsion.
+
+### GZ-MOVE-005 — Middle modules trade mobility for weapon surface
+**APPROVED**
+
+Adding Middle modules exists primarily to increase usable surface/capacity for turret mounting and other module-provided capability.
+
+A composition containing Middle modules is slower than `Front + Final`.
+
+### GZ-MOVE-006 — Front-only and Bike relative ordering
+**APPROVED**
+
+- Front-only is a valid mobile ship.
+- Bike is faster than Front-only.
+- Front-only remains faster than a Middle-heavy configuration without the mobility benefit of the Final/Back.
+- `Front + Final` is faster than Bike.
+
+Therefore the explicitly approved relations are:
+
+`Front+Final > Bike > Front > Front+Middle...`
+
+Exact placement of `Front+Middle...+Final` relative to `Front` remains OPEN below.
+
+### GZ-MOVE-007 — Bike acceleration
+**APPROVED**
+
+Bike has stronger/faster acceleration response than ship configurations, especially when Boost is engaged.
+
+Ship may retain the highest top speed in `Front+Final`, while Bike remains the sharper short-response vehicle.
+
+## Boost
+
+### GZ-BOOST-001 — Boost on all ship compositions
+**APPROVED**
+
+Every valid ship composition has Boost, including:
+- Front-only,
+- Front + Final,
+- Front + Middle × N,
+- Front + Middle × N + Final.
+
+Boost is not conditional on having Final/Back.
+
+### GZ-BOOST-002 — Bike Boost
+**APPROVED**
+
+Bike has Boost and its acceleration response must feel especially strong.
+
+### GZ-BOOST-003 — Normal thrust vs Boost exhaust
+**APPROVED visual behavior**
+
+Normal directional/maneuvering thrust feedback is active during ordinary movement according to the actual thrust vector; it is not a Shift-only effect.
+
+When Boost is engaged:
+- a distinct large central/main exhaust effect activates at the exposed rear of the current vehicle/ship,
+- its intensity/length/burst is substantially stronger than normal maneuvering exhaust,
+- the change is accompanied by speed-presentation FX/audio.
+
+For ships, every valid composition therefore requires a valid **PrimaryBoostExhaust** representation at its exposed rear. The exact Blender socket/runtime VFX solution is PRODUCE and must follow the assembled terminal module rather than assume Final is present.
+
+### GZ-BOOST-004 — Bike nozzle family
+**PARTIAL**
+
+Current Bike evidence has four authored nozzles. V2 requires those normal thrust/directional cues plus one additional central/main effect.
+
+OPEN: confirm whether the new central Bike nozzle is specifically the Boost/main-exhaust cue or a maneuvering-only cue. Do not infer from the phrase "para maniobrar".
+
+## Boost presentation
+
+### GZ-BOOST-FX-001 — Shift/Boost presentation state
+**APPROVED requirement / TUNE values**
+
+Boost must be perceptible beyond exhaust/audio.
+
+Use a restrained stack such as:
+- edge-biased star/particle streaks,
+- short FOV expansion,
+- camera inertia/impulse,
+- subtle edge distortion/contrast/exposure treatment,
+- stronger vehicle exhaust/emissive,
+- layered boost audio.
+
+Avoid full-screen blur that compromises navigation or aim.
+
+## Remaining movement questions
+
+### GZ-MOVE-OPEN-001 — Front + Middle × N + Final ordering
+**OPEN**
+
+Need exact ordering:
+- Is `Front + Middle × N + Final` slower than Front-only?
+- Or does Final recover enough performance that it sits between Front-only and Front+Final?
+
+This matters for acceleration/top-speed formulas.
+
+### GZ-MOVE-OPEN-002 — Additional Middle penalty curve
+**OPEN**
+
+Once more than one Middle is present, does each additional Middle:
+- apply the same mobility penalty,
+- use diminishing penalty,
+- or use mass/energy derived values?
+
+No hard module-count cap is implied.
+
+### GZ-MOVE-OPEN-003 — Astronaut Boost
+**OPEN**
+
+Ship and Bike Boost are approved. Whether astronaut EVA also has Boost in V2 is not yet frozen.
+
+### GZ-MOVE-OPEN-004 — Boost resource model
+**OPEN**
+
+Need to decide whether Boost is:
+- freely held,
+- heat-limited,
+- cooldown-limited,
+- energy-limited.
+
+Do not spend Energy Cells per second unless explicitly approved.
+
+### GZ-MOVE-OPEN-005 — Speed upgrade progression
+**OPEN**
+
+A speed/acceleration upgrade family is allowed conceptually, but unlock/purchase semantics remain unresolved.
+
+### GZ-FIRE-OPEN-001 — Minimum ship weapon
+**OPEN**
+
+Need confirmation whether Front-only always includes a baseline integrated ship weapon, independently from mountable turrets.
+
+## Middle-module limit clarification
+
+There is **no approved Middle hard cap right now**.
+
+V2 must support `Middle × N` structurally. A practical V1 maximum may be introduced only if benchmark/reliability evidence requires it. If introduced, it must be an explicit visible gameplay rule, never a hidden runtime clamp.
