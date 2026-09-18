@@ -191,7 +191,7 @@ test('prepared surface maps are reused across sectors and a failed biome can be 
 });
 
 
-test('mobile world loads the full source once and never substitutes a fracture proxy', async () => {
+test('mobile world loads each full source once plus geometry-only screen-space LODs', async () => {
   const fixture=assetFixture(), urls=[];
   const loader={async loadAsync(url) {
     urls.push(url);
@@ -199,8 +199,9 @@ test('mobile world loads the full source once and never substitutes a fracture p
     return {scene:fixture.assets[key],animations:[]};
   }};
   const assets=await loadWorldAssets({mobile:true,loader});
-  assert.equal(urls.length,3,'one full source per visible model, with no second fracture download');
-  assert.ok(urls.every(url=>url.includes('/streamed-models/')));
+  assert.equal(urls.length,5,'three full visible sources plus two geometry-only LODs');
+  assert.equal(urls.filter(url=>url.includes('/streamed-models/')).length,3);
+  assert.equal(urls.filter(url=>url.includes('/performance-lods/')).length,2);
   const world=createSectorWorld(new THREE.Scene(),{assets});world.load(layout());
   for(const target of world.targets) target.object.traverse(mesh=>{
     if(!mesh.isMesh)return;

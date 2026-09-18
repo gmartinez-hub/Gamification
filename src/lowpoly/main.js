@@ -1162,6 +1162,9 @@ function animate(now) {
   eventLight.intensity = reducedMotion ? 0 : Math.max(0, eventLightUntil - time) * 26;
   renderer.toneMappingExposure = world.lighting.exposure;
   destruction.update(worldTime);
+  const heroQuality=inspecting||state.phase==='transit'||time<assemblyUntil;
+  world.updateLOD(camera,{heroId:selectedId,forceHigh:heroQuality});
+  ship.updateLOD(camera.position,{forceHigh:heroQuality});
   presentation.setBloom(.16 + (reducedMotion ? 0 : Math.min(.13, Math.max(0,eventLightUntil-time)*.09)) + (state.phase === 'transit' && !reducedMotion ? .07 : 0));
   presentation.render(scene, camera, world);
   if (!paused && realDelta > 0 && realDelta < .25 && frames > 120) {
