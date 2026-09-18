@@ -154,3 +154,14 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-BIKE-EXP-001 | Back-derived Bike concept evaluated | Pass only if rider/camera/collision/silhouette checks all pass or require bounded support geometry; no forced distortion. |
 | SEM-PRES-ALLY-001 | Ally damaged/downed/dead | Each state has distinct escalation and remains distinguishable from player/Nóma events. |
 | SEM-PRES-PLAYER-001 | Player enters critical then dies | Critical remains readable; death sequence takes priority and disables control before recovery. |
+
+
+## Bike failure / ally loadout semantics
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-ALLY-AI-001 | Ally configured with heavy turret ship | Ally uses the actual equipped weapons/turrets; no separate tank-role bonus or extra tactical-role menu is required. |
+| SEM-BIKE-FAIL-001 | Bike destroyed, player ship exists in world | Player continues in EVA and must manually recover/board/reach portal; no teleport to ship. |
+| SEM-BIKE-FAIL-002 | Bike destroyed, no ship deployed, portal reachable | Player may continue in EVA and attempt emergency return through portal. |
+| SEM-BIKE-FAIL-003 | Bike destroyed, no ship deployed, no viable recovery route remains | Sortie is lost and normal death/recovery resolution applies. |
+| SEM-BIKE-FAIL-004 | Boosted Bike destroyed | Same stranding/exposure semantics as normal Bike; no hidden special recovery. |
