@@ -178,3 +178,16 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-MOVE-012 | Ally follows/defends a player vehicle that Boosts | Ally-controlled vehicle may engage its own Boost as needed to maintain follow/defend behavior; no new command mode is created. |
 | SEM-BOOST-010 | Normal movement without Shift | Directional/maneuver thrusters respond; PrimaryBoostExhaust remains off. |
 | SEM-BOOST-011 | Shift/Boost engaged | PrimaryBoostExhaust activates on the actual exposed terminal module/Bike center and performative speed state becomes visible. |
+
+
+## Death priority / ship destruction / astronaut boost
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-EVA-BOOST-001 | Astronaut presses Shift/Boost in EVA | EVA Boost state activates; exact speed/FX values come from balance/tuning, not legacy constants. |
+| SEM-DEATH-COMP-001 | Player dies while living/downed ally carries owned equipment | Ally + carried equipment return to Hangar; that equipment is excluded from lost-setup salvage value. |
+| SEM-DEATH-COMP-002 | Player dies while living/downed Nóma carries owned equipment | Nóma + carried equipment return to Hangar; that equipment is excluded from lost-setup salvage value. |
+| SEM-DEATH-COMP-003 | Player dies with other deployed setup present | All deployed setup not protected by living/downed companion recovery is lost and contributes to the 50% salvage calculation. |
+| SEM-SHIP-FAIL-001 | Player ship destroyed, player survives | Ship + attached equipment are lost; player remains EVA and must manually recover. |
+| SEM-SHIP-FAIL-002 | Player ship destroyed, no viable recovery route | Sortie is lost; normal death/recovery resolution applies. |
+| SEM-SHIP-FAIL-003 | Ally ship destroyed, ally survives | Ship + attached equipment are lost; ally remains a character and can continue/down/be rescued/recovered. |
