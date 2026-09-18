@@ -186,18 +186,21 @@ Browsing and physical presentation are separate:
 
 ---
 
-## Remaining decisions before APPROVED
+## Historical checklist — mostly resolved
 
-1. Cockpit seated: keep current third-person as default and allow first-person toggle, or make first-person primary?
-2. Cockpit standing: third-person only, or also first-person walking?
-3. In-world boarding: enter standing then sit, or auto-seat?
-4. Hangar WALK mode: third-person only for V1?
-5. Hangar backdrop: stable base/orbital identity, or destination-dependent physical backdrop?
-6. Unlocked-but-unowned inventory: thumbnail only, holographic preview, or temporary inspection model clearly marked as not owned?
-7. Is the fixed base ring visible from the Hangar aperture?
-8. World-to-world transit arrival: restore the actor/vehicle used to enter the portal, or use a mission-configured primary deployment actor?
+The earlier eight-question checklist is superseded by the decisions below.
 
-No implementation may answer these eight by inference.
+Resolved:
+- seated third-person presentation preserved; first-person piloting remains available,
+- standing cockpit is third-person with bounded local walk,
+- boarding enters standing then explicit Sit,
+- Hangar walk targets first-person if audited geometry supports it,
+- Hangar backdrop is a stable orbital-base identity,
+- unlocked/unowned content uses clearly marked preview/hologram behavior in Build/Inventory,
+- cross-world arrival restores the actor/vehicle used to enter the portal.
+
+Visual-only VERIFY:
+- whether the fixed base ring is visible from the Hangar aperture is a storyboard/composition decision, not permission to change transit semantics.
 
 
 ---
@@ -219,9 +222,9 @@ No implementation may answer these eight by inference.
 ### Evidence required before Blender extension
 Cockpit raw-vs-runtime proof and Hangar multi-angle proof remain mandatory. Do not model a replacement shell merely from concept art.
 
-### Still open — do not infer
-1. **Hangar walk camera:** latest voice wording is ambiguous between third-person only and allowing first-person walking too.
-2. **Arrival control after portal:** restore the same actor/vehicle that entered the portal, or use a setup-defined Primary Deployment Actor.
+### Closed after subsequent product decisions
+1. **Hangar walk camera:** first-person is desired if the audited service-bay geometry supports it; third-person is only an explicitly reviewed fallback.
+2. **Arrival control after portal:** restore the same actor/vehicle used to enter the portal.
 
 
 ### Hangar walk clarification
