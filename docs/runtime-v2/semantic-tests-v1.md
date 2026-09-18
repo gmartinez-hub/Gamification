@@ -16,8 +16,8 @@ These tests validate meaning before implementation detail. A runtime may be tech
 | ID | Scenario | Expected |
 |---|---|---|
 | SEM-PORTAL-001 | Discover portal | It remains available for the current world instance and appears on Tactical Map. |
-| SEM-PORTAL-002 | Choose unlocked world | Destination preloads while current selected setup enters ring cinematic. |
-| SEM-PORTAL-003 | Successful handoff | Destination is a fresh procedural instance; old world instance is released. |
+| SEM-PORTAL-002 | Choose unlocked world | Party Check resolves first; then destination preloads while surviving/present selected setup enters ring cinematic. |
+| SEM-PORTAL-003 | Successful handoff | Destination is a fresh procedural instance; old world instance is released; control returns to the same actor/vehicle used to enter the portal. |
 | SEM-PORTAL-004 | Destination load fails | Player returns safely to source portal; inventory/save remains valid. |
 | SEM-PORTAL-005 | Choose Hangar | Same transit contract, destination is Hangar memory boundary. |
 
@@ -165,3 +165,16 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-BIKE-FAIL-002 | Bike destroyed, no ship deployed, portal reachable | Player may continue in EVA and attempt emergency return through portal. |
 | SEM-BIKE-FAIL-003 | Bike destroyed, no ship deployed, no viable recovery route remains | Sortie is lost and normal death/recovery resolution applies. |
 | SEM-BIKE-FAIL-004 | Boosted Bike destroyed | Same stranding/exposure semantics as normal Bike; no hidden special recovery. |
+
+
+## Ship composition / movement semantics
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-SHIP-COMP-010 | Try to confirm a ship without Front | Rejected before launch. |
+| SEM-SHIP-COMP-011 | Front-only with no mounted turrets | Valid ship; retains baseline integrated ship shot capability. |
+| SEM-MOVE-010 | Compare standard V1 traversal classes | Front+Final > Bike > Front > Front+Middle×N+Final > Front+Middle×N > Astronaut, before conditional Boosted Bike. |
+| SEM-MOVE-011 | Compare 1 Middle vs 7 Middles with same Back presence | Same qualitative cargo/heavy speed tier; no hidden per-Middle speed decay. |
+| SEM-MOVE-012 | Ally follows/defends a player vehicle that Boosts | Ally-controlled vehicle may engage its own Boost as needed to maintain follow/defend behavior; no new command mode is created. |
+| SEM-BOOST-010 | Normal movement without Shift | Directional/maneuver thrusters respond; PrimaryBoostExhaust remains off. |
+| SEM-BOOST-011 | Shift/Boost engaged | PrimaryBoostExhaust activates on the actual exposed terminal module/Bike center and performative speed state becomes visible. |
