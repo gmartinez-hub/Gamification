@@ -711,3 +711,25 @@ No requirement exists for physically manipulating every inventory item while wal
 **APPROVED intent / VERIFY implementation**
 
 First-person Hangar walking is desired if the audited service-bay geometry supports a coherent camera path and visible enclosure/support shell. If raw model/camera evidence proves first-person composition invalid, third-person may be used only as an explicit verified fallback; implementation must not silently switch camera mode.
+
+
+---
+
+## 21. Death-priority and ship-destruction resolution
+
+### GZ-DEATH-COMP-001 — Player death + living/downed companion equipment
+**APPROVED**
+
+On player death, equipment physically assigned to living/downed Nóma or ally returns with that companion to Hangar and is excluded from the player's lost-setup salvage value.
+
+All other deployed player-owned physical setup follows GZ-DEATH-001.
+
+### GZ-SHIP-FAIL-001 — Player ship destruction with surviving pilot
+**APPROVED**
+
+Destroyed ship/equipment is lost. Surviving pilot remains in EVA and must manually recover through another available vehicle/ship/portal route. If no viable route exists, the sortie is lost.
+
+### GZ-SHIP-FAIL-002 — Ally ship destruction with surviving ally
+**APPROVED**
+
+Destroyed ally ship/equipment is lost. The surviving ally remains a character entity and may continue/become downed/be rescued/recovered under normal companion rules. No replacement ship appears automatically.
