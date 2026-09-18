@@ -89,44 +89,19 @@ Added `campaign-progression-contract-v1.md` covering:
 ## Product decisions still missing
 
 ### SA1-M01 — Astronaut EVA Boost
-**MISSING CONTRACT**
+**RESOLVED**
 
-Ship and Bike Boost are frozen.
-
-Need explicit decision:
-- astronaut EVA also has Shift/Boost,
-- or astronaut EVA has normal movement only.
-
-Legacy code having astronaut boost is evidence only and cannot answer this.
+Astronaut EVA retains Shift/Boost in V2. Exact movement/FX values remain BALANCE/TUNE.
 
 ### SA1-M02 — Player death vs companion equipment priority
-**CONTRADICTION REQUIRES PRODUCT DECISION**
+**RESOLVED — COMPANION RECOVERY PRIORITY**
 
-Current approved rules both exist:
-1. Player death: all deployed player-owned physical setup is lost; 50% value returns as Energy Cells.
-2. Companion alive/downed at sortie end: character + configured equipment return to Hangar.
-
-If the player dies while Nóma/ally is still alive/downed with equipment deployed, these rules overlap.
-
-Need one explicit priority rule, for example:
-- Death override: companion characters recover but all player-owned deployed equipment is lost/salvaged.
-- Companion override: equipment physically on living/downed companions recovers despite player death.
-- another explicit rule.
-
-Do not infer.
+If player dies while Nóma/ally is living/downed, that companion and the equipment physically assigned to them return to Hangar. That recovered companion equipment is excluded from the player's lost-setup salvage value. Other deployed setup follows normal death loss/salvage.
 
 ### SA1-M03 — Ship destruction while pilot survives
-**MISSING CONTRACT**
+**RESOLVED**
 
-Bike destruction is now explicit, but player/ally ship destruction outside player death is not.
-
-Need to define:
-- can player survive ship destruction in EVA?
-- is destroyed ship/equipment immediately lost?
-- can player reach another vehicle/portal?
-- ally ship destruction + living ally behavior.
-
-Do not reuse Bike rules automatically unless explicitly approved.
+Destroyed ship + attached equipment are lost. Surviving player remains EVA and must manually recover through another vehicle/ship/portal route; no viable route means lost sortie. Destroyed ally ship follows the same physical-loss rule while a surviving ally remains a recoverable character entity.
 
 ## Deferred product/progression decisions — not blockers for initial vertical slice
 
