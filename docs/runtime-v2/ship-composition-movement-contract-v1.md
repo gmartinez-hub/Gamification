@@ -492,3 +492,82 @@ This is not part of V1 scope yet. It requires:
 - no conflict with Bike's new central Boost exhaust.
 
 Do not implement without explicit approval.
+
+
+---
+
+# Decision Update — Ally Parity / Unlimited Boost / Boosted Bike Candidate
+
+## Ally ship parity
+
+### GZ-ALLY-SHIP-001 — Same configuration system
+**APPROVED**
+
+The ally ship uses the same ship composition grammar, module families, turret compatibility, movement classes and upgrade compatibility as the player ship.
+
+The player configures the ally ship independently.
+
+Therefore:
+- player may run a light/agile configuration,
+- ally may simultaneously run a heavy/cargo/turret configuration,
+- or vice versa.
+
+This does not clone inventory. Physical ownership remains enforced: a module/turret assigned to the ally ship cannot simultaneously exist on the player ship unless a second physical unit is owned.
+
+### GZ-ALLY-SHIP-002 — Same formulas, independent loadout
+**APPROVED**
+
+Player and ally ships share the same semantic rules; there is no hidden ally-only ship scale or movement formula.
+
+AI behavior may react to the ally's actual equipped capability, but no ally tactical-role behavior is inferred here.
+
+## Boost resource semantics
+
+### GZ-BOOST-009 — Freely holdable Boost
+**APPROVED**
+
+Ship and Bike Boost may be held indefinitely.
+
+V1 Boost has:
+- no heat meter,
+- no cooldown,
+- no per-second Energy Cell consumption,
+- no fuel drain.
+
+Its cost is positional/risk/gameplay exposure rather than a hidden resource tax.
+
+Performance/VFX systems must sustain the Boost presentation without unbounded particle/audio allocation.
+
+## Boosted Bike candidate
+
+### GZ-BIKE-EXP-002 — Back-derived Boosted Bike
+**CONDITIONAL PRODUCT INTENT — VERIFY GEOMETRY**
+
+If the Final/Back visual language can be adapted/scaled to the Bike without breaking silhouette, rider clearance, first-person view, third-person camera, collision envelope or current nozzle layout, it becomes a late-game Boosted Bike variant/upgrade.
+
+If approved after visual/geometry audit:
+- it is the fastest player-controlled vehicle in the game,
+- it is intentionally difficult/late to unlock,
+- it preserves Bike vulnerability/exposure compared with travelling inside a ship,
+- it uses the central PrimaryBoostExhaust as its hero propulsion cue.
+
+Exact unlock economy is OPEN.
+
+The geometry audit must classify:
+- FIT_OK,
+- SUPPORT_GEOMETRY_NEEDED,
+- CAMERA_CONFLICT,
+- RIDER_CONFLICT,
+- SILHOUETTE_FAIL.
+
+Do not force-fit or distort the canonical Back module merely to satisfy this idea.
+
+### GZ-BIKE-OPEN-001 — Stranding consequence
+**OPEN**
+
+Need exact rule if Bike/Boosted Bike becomes disabled or destroyed while the player is far from ship/base:
+- continue in EVA and manually recover,
+- recall/recovery rule,
+- other explicit behavior.
+
+"Very fast but exposed" is approved as design intent; the actual failure/recovery state must still be frozen.
