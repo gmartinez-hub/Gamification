@@ -191,3 +191,11 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-SHIP-FAIL-001 | Player ship destroyed, player survives | Ship + attached equipment are lost; player remains EVA and must manually recover. |
 | SEM-SHIP-FAIL-002 | Player ship destroyed, no viable recovery route | Sortie is lost; normal death/recovery resolution applies. |
 | SEM-SHIP-FAIL-003 | Ally ship destroyed, ally survives | Ship + attached equipment are lost; ally remains a character and can continue/down/be rescued/recovered. |
+
+
+## Companion command parity
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-COMP-CMD-001 | Issue Explore to unlocked ally | Ally uses the shared Explore high-level command; no separate ally role menu appears. |
+| SEM-COMP-CMD-002 | Issue Defend to ally with heavy turret loadout | Ally defends using actual equipped weapons/turrets; no hidden tank-role multiplier is added. |
