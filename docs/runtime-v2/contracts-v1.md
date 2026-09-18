@@ -84,14 +84,17 @@ No arbitrary locked destination is shown as available.
 On confirm:
 
 1. Validate destination.
-2. Auto-recall selected mobile setup.
-3. Recover living/recoverable deployed equipment according to recovery rules.
-4. Begin destination preload.
-5. Show the selected setup travelling through the ring/tunnel.
-6. Perform safe handoff.
-7. Release the old world instance.
+2. Run the Party Check for unresolved/downed companions.
+3. If the player chooses Rescue First, cancel transit and keep the current world instance active.
+4. If the player chooses Travel Anyway, resolve left-behind companion recovery according to GZ-PORTAL-009.
+5. Preserve the currently controlled actor/vehicle and the surviving/present selected setup for the transit presentation.
+6. Begin destination preload.
+7. Show that real active setup travelling through the ring/tunnel.
+8. Perform safe handoff.
+9. Restore control to the same actor/vehicle used to enter the portal.
+10. Release the old world instance.
 
-The ring sequence is the diegetic loading screen.
+The ring sequence is the diegetic loading screen. No silent auto-recall may bypass the Party Check.
 
 ### GZ-PORTAL-004 — Failure
 **APPROVED**
@@ -143,12 +146,13 @@ At minimum:
 - Vehicle/module loadouts.
 - World deployed-state references.
 
-### GZ-ITEM-005 — Hangar presentation
-**PROPOSED / visual validation required**
+### GZ-ITEM-005 — Inventory / Hangar presentation
+**APPROVED direction / visual QA required**
 
-- Menus use pre-rendered 256–512px thumbnails of canonical models.
-- The Hangar is the live 3D configurator/showroom.
-- Selecting Inspect/Configure promotes that host/item to the Hangar 3D stage.
+- Inventory/Build remains a separate fast UI using pre-rendered 256–512px thumbnails.
+- Inspect/Configure may promote the selected canonical asset to a focused live 3D preview/inspection view.
+- The ambient walkable Hangar is not the inventory warehouse: it stages only the confirmed sortie setup.
+- Unlocked/unowned content may appear only as a clearly marked preview/hologram while configuring.
 - Menus do not instantiate many live GLBs simultaneously.
 
 ---
@@ -468,6 +472,7 @@ Mothership destruction ejects the gem weak points through space as the final vis
 - Bike TP.
 - Ship cockpit.
 - Ship exterior/chase.
+- Hangar first-person walk (VERIFY against audited geometry).
 - Hangar orbit/inspection.
 - Cinematic director camera.
 - Tactical Map 2D view.
@@ -665,21 +670,17 @@ If Travel Anyway is chosen:
 - Ally DEAD remains unavailable until paid revival.
 - Travel cinematic contains the surviving/present mobile setup.
 
-### GZ-SPATIAL-OPEN-001 — Hangar walk camera
-**OPEN**
+### GZ-HANGAR-011 — Hangar walk camera
+**APPROVED intent / VERIFY implementation**
 
-Freeze whether Hangar WALK is:
-- third-person only, or
-- first + third person.
+First-person Hangar WALK is the desired mode. It is a simple pre-departure spatial view of the confirmed sortie setup and a boarding path, not an inventory interaction replacement.
 
-Do not infer from voice transcription.
+If raw service-bay geometry/camera evidence proves first-person composition invalid, any third-person fallback requires explicit review; implementation may not silently switch modes.
 
-### GZ-SPATIAL-OPEN-002 — Arrival control after portal
-**OPEN**
+### GZ-PORTAL-010 — Arrival control continuity
+**APPROVED**
 
-Freeze whether control after world-to-world handoff:
-- restores the actor/vehicle that entered the portal, or
-- uses a setup-defined Primary Deployment Actor.
+Cross-world transit restores control to the same actor/vehicle used to enter the portal. The cinematic may take temporary camera ownership, but it does not redefine the player's controlled deployment actor on arrival.
 
 
 ### GZ-HANGAR-008 — Walkable Hangar shows current sortie setup
