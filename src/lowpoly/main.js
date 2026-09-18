@@ -26,7 +26,11 @@ import { createPresentationClock, createGemSequence } from './presentation-clock
 import { createDestruction } from './destruction.js';
 import { createExpeditionAudio } from './audio.js';
 import { createCheckpointStore, DEFAULT_SETTINGS } from './checkpoint.js';
-import { createLoadoutState } from './loadout.js';
+import { awardCharge, createLoadoutState, installComposition, placeTurret, purchaseEquipment, savePreset, unlockRoutePieces } from './loadout.js';
+import { createHangarSession } from './hangar.js';
+import { createCloseoutActors, loadCloseoutAssets } from './closeout-assets.js';
+import { createJumpAnomaly } from './jump-anomaly.js';
+import { installedTurrets } from './support-fire.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -51,6 +55,21 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false;
 const scene = new THREE.Scene();
 scene.background = null;
+const jumpAnomaly=createJumpAnomaly();scene.add(jumpAnomaly.group);
+const hangarStage=new THREE.Group();hangarStage.name='maintenance-hangar-stage';hangarStage.visible=false;scene.add(hangarStage);
+let closeoutActors=null,closeoutLoad=null,hangarWasPaused=false,hangarAutoRotate=true,allySupportCooldown=0,nomaSupportCooldown=0,shipSupportCooldown=0,allyAction='AllyIdle';
+async function prepareCloseoutAssets(){
+  if(closeoutActors)return true;if(closeoutLoad)return closeoutLoad;
+  closeoutLoad=loadCloseoutAssets({mobile:mobileGPU}).then(assets=>{
+    closeoutActors=createCloseoutActors(assets);
+    const {hangar,ally,turret,energyCell}=closeoutActors;
+    hangar.group.scale.setScalar(18);hangar.group.position.set(0,-1.2,0);
+    ally.group.scale.setScalar(1.15);ally.group.position.set(2.5,0,1.2);
+    turret.group.scale.setScalar(.8);turret.group.position.set(-2.4,0,1.1);
+    energyCell.scale.setScalar(.55);energyCell.position.set(0,0,1.15);
+    hangarStage.add(hangar.group,ally.group,turret.group,energyCell);return true;
+  }).finally(()=>{closeoutLoad=null;});return closeoutLoad;
+}
 const reflection = createReflectionEnvironment(renderer);
 scene.environment = reflection.texture; scene.environmentIntensity = .32;
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, .1, 600);
@@ -77,6 +96,9 @@ let loadout = createLoadoutState(saved?.loadout || { routeGems:saved?.sector || 
 document.body.dataset.touchLayout = settings.touchLayout;
 const momentClock = createPresentationClock(), gemSequence = createGemSequence();
 if (saved) mission.restoreCheckpoint(saved);
+loadout=unlockRoutePieces(loadout,state.moduleStage);
+if(!saved?.loadout)loadout.activeComposition=loadout.modules.filter(module=>['front-1','middle-1','final-1'].includes(module.id)).map(module=>module.id);
+const hangarSession=createHangarSession(loadout,{prepare:()=>prepareCloseoutAssets()});
 let actorAssets;
 try { actorAssets = await loadActorAssets((done,total) => { $('loading').querySelector('p').textContent = `Preparando modelos y texturas · ${done} / ${total}`; }, { mobile: mobileGPU, only: [...['capsula','habitat','propulsion'].slice(0,state.moduleStage), 'astronauta-armado','robot', ...(settings.firstPerson && !saved ? ['astronauta-brazos-armado'] : [])] }); }
 catch(error) { $('loading').classList.add('error'); $('loading').querySelector('p').textContent = 'No se pudo completar la descarga de los modelos. Recargá para volver a intentar.'; throw error; }
@@ -336,6 +358,10 @@ function stopNavigation() {
 }
 function navigate() {
  if(paused||combat.shot)return;
+ if(gemSequence.phase==='ready'){
+  if(gemSequence.depart()){notify('Rumbo confirmado · Entrando en la anomalía',4);say('Ruta lista. Cruzamos cuando vos lo decidís.');}
+  return;
+ }
  if(state.phase==='complete'){void resetExpedition();return;}
  if(inspecting)setInspect(false);
  hintUntil=time+14;stopNavigation();
@@ -441,6 +467,8 @@ function emitShot(ndc){
   const shot=ballistics.fire({owner:'player',kind:'energy',origin,direction:heading,speed:projectileSpeed,radius:weapon==='ship'?.24:.13,damage:weapon==='ship'?60:25,maxDistance:WEAPON_RANGE[flight.actor]});
   if(!shot)return;
   shot.weapon=weapon;combat.cooldown=weapon==='ship'?.72:.34;lastShotAt=time;shotProtectedUntil=time+.10;scanning=false;
+  const salvo=flight.actor==='bike'?installedTurrets(loadout,loadout.bike.id):flight.actor==='ship'?loadout.activeComposition.flatMap(host=>installedTurrets(loadout,host)):[];
+  salvo.forEach((_,index)=>{const side=index%2?1:-1,extraOrigin=origin.clone().add(new THREE.Vector3(side*.28,.16,0).applyQuaternion(flight.actor==='ship'?flight.shipQuaternion:flight.bikeQuaternion));const extra=ballistics.fire({owner:'player',kind:'energy',origin:extraOrigin,direction:heading,speed:projectileSpeed,radius:.11,damage:18,maxDistance:WEAPON_RANGE[flight.actor]});if(extra)extra.weapon=weapon;});
   if(visorActive()&&flight.actor==='astronaut')visor?.kick();
   illuminate(origin,weapon==='ship'?0xffbd75:0x80e8ff,.18);triggerBurst(origin,weapon==='ship'?'shipMuzzle':'evaMuzzle',{velocity:flight.velocity});play(weapon==='ship'?'shipFire':'evaFire');
 }
@@ -477,7 +505,7 @@ function setInspect(value) {
 function setPaused(value) {
   if(value)userActionEpoch++;
   paused = value; controls.clear();
-  $('pauseOverlay').hidden = !value || flightMenuOpen || $('helpDialog').open;
+  $('pauseOverlay').hidden = !value || flightMenuOpen || $('helpDialog').open || $('entryDialog').open || $('hangarDialog').open;
   $('pauseButton').setAttribute('aria-pressed', String(value));
   $('pauseButton').setAttribute('aria-label', value ? 'Continuar' : 'Pausar');
   audio.setPaused(value || document.hidden);
@@ -571,12 +599,78 @@ function closeFlightMenu() {
   $('flightMenu').close(); finishFlightMenuClose();
 }
 function fromFlightMenu(action) { closeFlightMenu(); action(); updateHUD(); }
+const hangarVisibility=new Map();
+function updateHangarUI(message='Listo para editar. Confirmá para guardar los cambios.'){
+  const draft=hangarSession.draft;
+  const labels={front:'Cabina',middle:'Hábitat',final:'Propulsión'};
+  $('hangarComposition').textContent=draft.activeComposition.map(id=>labels[draft.modules.find(module=>module.id===id)?.type]||id).join(' + ');
+  $('hangarCharge').textContent=String(draft.charge);$('hangarGems').textContent=`${state.gems} gema${state.gems===1?'':'s'} de ruta`;
+  $('hangarInventory').textContent=`${draft.modules.length} módulos · ${draft.turrets.length} torretas · ${draft.presets.length} / 3 configuraciones`;
+  $('hangarCrew').textContent=`Astronauta · Nóma${draft.crew.greenAlly?' · aliado de Vesper':''}`;
+  $('hangarLog').textContent=`${state.layout.name.split(' · ')[0]} · señal ${state.phase==='complete'?'respondida':state.phase} · ${state.destroyed.length} objetivos resueltos`;
+  $('buyMiddle').disabled=!draft.unlocked.includes('middle')||draft.charge<6;
+  $('buyTurret').disabled=!draft.unlocked.includes('turret')||draft.charge<3;
+  $('mountTurret').disabled=!draft.turrets.some(turret=>!draft.placements[turret.id]);
+  $('compactPreset').disabled=!draft.modules.some(module=>module.type==='final');
+  $('longPreset').disabled=draft.modules.filter(module=>module.type==='middle').length<2||!draft.modules.some(module=>module.type==='final');
+  $('hangarStatus').textContent=message;
+}
+async function openHangar(){
+  if(gemSequence.active||state.phase==='transit'||encounters.entities.length){notify('El hangar estará disponible cuando la zona sea segura.',4);return;}
+  if(!flight.shipDiscovered){notify('Primero encontrá tu nave.',4);return;}
+  hangarWasPaused=paused;hangarSession.replace(loadout);hangarSession.open();
+  $('hangarDialog').showModal();setPaused(true);updateHangarUI('Preparando bahía y materiales completos…');
+  try{
+    const current=await hangarSession.select('ship');if(!current||!$('hangarDialog').open)return;
+    const {hangar,ally,turret,energyCell}=closeoutActors;hangarStage.add(hangar.group,ally.group,turret.group,energyCell);
+    ally.group.position.set(2.5,0,1.2);turret.group.position.set(-2.4,0,1.1);energyCell.position.set(0,0,1.15);
+    for(const object of [scene.getObjectByName('expedition-sector'),astronaut.group,companion.group,bike.group,cabinRoot].filter(Boolean)){hangarVisibility.set(object,object.visible);object.visible=false;}
+    hangarVisibility.set(ship.group,ship.group.visible);hangarStage.add(ship.group);ship.group.visible=true;ship.group.position.set(0,.6,0);ship.group.quaternion.identity();ship.setComposition(hangarSession.draft.activeComposition);
+    hangarAutoRotate=true;hangarStage.position.set(-4,0,0);hangarStage.rotation.set(0,0,0);hangarStage.visible=true;camera.position.set(10,6.5,14);camera.lookAt(-4,1.6,0);camera.updateMatrixWorld();
+    updateHangarUI();
+  }catch(error){console.warn('Hangar preparation failed',error);updateHangarUI('No se pudo preparar la bahía. Cerrá y reintentá.');}
+}
+function exitHangar(confirmChanges=false){
+  if(!hangarSession.active)return;
+  if(confirmChanges){loadout=hangarSession.confirm();ship.setComposition(loadout.activeComposition);saveProgress();}
+  else hangarSession.cancel();
+  hangarSession.close();hangarStage.visible=false;
+  scene.add(ship.group);
+  for(const [object,visible] of hangarVisibility)object.visible=visible;hangarVisibility.clear();
+  if($('hangarDialog').open)$('hangarDialog').close();setPaused(hangarWasPaused);updateHUD();
+  notify(confirmChanges?'Configuración instalada y guardada':'Cambios del hangar cancelados',3);
+}
 $('mobileMenuButton').onclick = openFlightMenu;
+$('continueExpedition').disabled=!saved;
+$('entryHangar').disabled=!saved||!flight.shipDiscovered;
+$('entryDetails').textContent=saved?`${state.layout.name.split(' · ')[0]} · ${state.gems} / 3 gemas · ${loadout.charge} carga`:'Nueva ruta lista · inicio en moto con Nóma';
+function closeEntry(){if($('entryDialog').open)$('entryDialog').close();setPaused(false);}
+$('continueExpedition').onclick=closeEntry;
+$('newExpedition').onclick=()=>{closeEntry();void resetExpedition();};
+$('entryHangar').onclick=()=>{closeEntry();void openHangar();};
+$('entryLog').onclick=()=>{$('entryDetails').textContent=`MAPA · ${state.layout.name.split(' · ')[0]} · Señal ${state.phase} · Piezas: ${loadout.unlocked.join(', ')} · Tripulación: Astronauta, Nóma${loadout.crew.greenAlly?', aliado de Vesper':''}`;};
+$('entrySettings').onclick=()=>{closeEntry();openFlightMenu();};
 $('closeFlightMenu').onclick = closeFlightMenu;
 $('flightMenu').addEventListener('close', finishFlightMenuClose);
+$('hangarButton').onclick=()=>fromFlightMenu(openHangar);
+$('closeHangar').onclick=()=>exitHangar(false);
+$('hangarDialog').addEventListener('cancel',event=>{event.preventDefault();exitHangar(false);});
+$('hangarDialog').addEventListener('close',()=>{if(hangarSession.active)exitHangar(false);});
+$('confirmHangar').onclick=()=>exitHangar(true);
+$('compactPreset').onclick=()=>{try{const draft=hangarSession.draft,front=draft.modules.find(m=>m.type==='front'),final=draft.modules.find(m=>m.type==='final');hangarSession.preview(installComposition(draft,[front.id,final.id]));updateHangarUI('Vista previa compacta.');}catch(error){updateHangarUI(error.message);}};
+$('longPreset').onclick=()=>{try{const draft=hangarSession.draft,front=draft.modules.find(m=>m.type==='front'),middle=draft.modules.filter(m=>m.type==='middle').slice(0,2),final=draft.modules.find(m=>m.type==='final');hangarSession.preview(installComposition(draft,[front.id,...middle.map(m=>m.id),final.id]));updateHangarUI('Vista previa de largo alcance.');}catch(error){updateHangarUI(error.message);}};
+$('buyMiddle').onclick=()=>{try{hangarSession.preview(purchaseEquipment(hangarSession.draft,'middle'));updateHangarUI('Hábitat adquirido. La compra se guarda al confirmar.');}catch(error){updateHangarUI(error.message);}};
+$('buyTurret').onclick=()=>{try{hangarSession.preview(purchaseEquipment(hangarSession.draft,'turret'));updateHangarUI('Torreta adquirida. Elegí montaje y confirmá.');}catch(error){updateHangarUI(error.message);}};
+$('mountTurret').onclick=()=>{try{const draft=hangarSession.draft,turret=draft.turrets.find(item=>!draft.placements[item.id]);if(!turret)throw new Error('No hay torretas libres.');const placed=Object.values(draft.placements),hosts=[...draft.activeComposition,draft.bike.id,draft.noma.id],hostId=hosts.find(host=>placed.filter(place=>place.hostId===host).length<(host===draft.bike.id||host===draft.noma.id?1:2));if(!hostId)throw new Error('No quedan superficies compatibles en esta configuración.');const slot=placed.filter(place=>place.hostId===hostId).length;hangarSession.preview(placeTurret(draft,{turretId:turret.id,hostId,position:[slot?.65:-.65,.8,0],rotation:[0,0,0]}));updateHangarUI(`Torreta montada en ${hostId===draft.bike.id?'moto':hostId===draft.noma.id?'Nóma':'nave'}.`);}catch(error){updateHangarUI(error.message);}};
+$('saveHangarPreset').onclick=()=>{try{const draft=hangarSession.draft;hangarSession.preview(savePreset(draft,`Diseño ${draft.presets.length+1}`));updateHangarUI('Configuración guardada sin duplicar piezas.');}catch(error){updateHangarUI(error.message);}};
+$('hangarRotateLeft').onclick=()=>{hangarAutoRotate=false;hangarStage.rotation.y-=Math.PI/8;};
+$('hangarRotateRight').onclick=()=>{hangarAutoRotate=false;hangarStage.rotation.y+=Math.PI/8;};
+$('hangarCenter').onclick=()=>{hangarAutoRotate=false;hangarStage.rotation.set(0,0,0);camera.position.set(10,6.5,14);camera.lookAt(-4,1.6,0);};
+$('hangarUnderside').onclick=()=>{hangarAutoRotate=false;camera.position.set(6,-7,12);camera.lookAt(-4,0,0);};
+$('inspectCrew').onclick=async()=>{updateHangarUI('Preparando inspección de tripulación…');const current=await hangarSession.select('crew');if(current){closeoutActors?.ally.play('AllyNarrative');updateHangarUI('Nóma y la tripulación mantienen formación y apoyo.');}};
 $('mobileActionButton').onclick = () => {
   if (mobileAction.disabled) return;
-  const actions = { bike:mountBike, cabin:toggleCabin, navigate, return: returnToShip, deploy, interact, fire, restart: resetExpedition, inspect: () => setInspect(false) };
+  const actions = { bike:mountBike, cabin:toggleCabin, navigate, depart:navigate, return: returnToShip, deploy, interact, fire, restart: resetExpedition, inspect: () => setInspect(false) };
   actions[mobileAction.action]?.(); updateHUD();
 };
 $('mobileTargetButton').onclick = () => { targetNext(); updateHUD(); };
@@ -667,6 +761,7 @@ function updateTransit(dt){
 function updateCinematic(dt){
  const event=gemSequence.update(dt,{aboard:flight.actor==='ship',seated:!!cabin&&cabinController.canPilot,ready:nextStageReady,reducedMotion});
  if(event==='return'){flight.returnToShip({automatic:true});scanning=false;controls.clear();play('return');}
+ if(event==='ready'){notify('Nave lista · Elegí cuándo partir',6);say('Estamos a bordo. Confirmá la partida cuando estés listo.');saveProgress();}
  if(event==='travel'&&mission.enterCorridor('ship')){
   transitStart=time;transitEntry.copy(flight.shipPosition);controls.clear();play('transit');triggerBurst(flight.shipPosition,'warp');say('Siguiente horizonte. Preparando el viaje.');saveProgress();
  }
@@ -683,10 +778,13 @@ function updateCinematic(dt){
    const fit=Math.max(1,.78/camera.aspect);
    camera.position.set(Math.sin(orbit)*Math.cos(.48),Math.sin(.48),Math.cos(orbit)*Math.cos(.48)).multiplyScalar((shipFrameRadius(state.moduleStage)*2.8+5)*zoom*fit).add(cameraTarget);camera.lookAt(cameraTarget);
    flight.health.ship=Math.min(100,flight.health.ship+25);health=flight.integrity;notify(state.moduleStage===2?'HÁBITAT ACOPLADO · Vesper':'PROPULSIÓN ACOPLADA · Umbra',5);say('Nuevo módulo. Otro sector para descubrir.');
+   loadout=unlockRoutePieces(loadout,state.moduleStage);
+   const newPiece=state.moduleStage===2?'middle-1':state.moduleStage===3?'final-1':null;if(newPiece&&!loadout.activeComposition.includes(newPiece))loadout.activeComposition.push(newPiece);
+   if(state.sector>=1)loadout.crew.greenAlly=true;hangarSession.replace(loadout);
   }
   nextStageReady=false;saveProgress();
  }
- if(event==='finish'){interiorView=firstPerson;orbit=flight.shipYaw;elevation=-flight.shipPitch;controls.clear();saveProgress();}
+ if(event==='finish'){ship.setComposition(loadout.activeComposition);interiorView=firstPerson;orbit=flight.shipYaw;elevation=-flight.shipPitch;controls.clear();saveProgress();}
  const waiting=gemSequence.phase==='travel'&&gemSequence.age>=5.5&&!nextStageReady;
  if(!graphicsRecoveryActive){
   if(waiting){stageWaiting=true;$('loading').hidden=false;$('loading').style.opacity='1';$('loading').querySelector('p').textContent='Preparando el próximo horizonte…';}
@@ -719,8 +817,15 @@ function damagePlayer(amount,position){
     notify('Recuperación de emergencia · Tu progreso se conserva',5);say('Te recupero. El camino que despejamos sigue abierto.');play('rescue');saveProgress();
   }
 }
+function emitSupportShot(origin,target,{damage=16,weapon='astronaut'}={}){
+  if(!projectileTemplates||!target)return false;
+  const direction=new THREE.Vector3().subVectors(target.position,origin).normalize();
+  const shot=ballistics.fire({owner:'player',kind:'energy',origin,direction,speed:weapon==='ship'?48:30,radius:weapon==='ship'?.20:.11,damage,maxDistance:weapon==='ship'?85:42});
+  if(!shot)return false;shot.weapon=weapon;triggerBurst(origin,weapon==='ship'?'shipMuzzle':'evaMuzzle');return true;
+}
 function updateCombat(dt,worldDt){
   combat.cooldown=Math.max(0,combat.cooldown-dt);
+  allySupportCooldown=Math.max(0,allySupportCooldown-dt);nomaSupportCooldown=Math.max(0,nomaSupportCooldown-dt);shipSupportCooldown=Math.max(0,shipSupportCooldown-dt);
   if(pendingShot&&time>=pendingShot.due){const queued=pendingShot;pendingShot=null;if(queued.actor===flight.actor)emitShot(queued.ndc);}
   if(enemyAssets.alienShip){
     const center=flight.position.clone().add(new THREE.Vector3(0,flight.actor==='astronaut'?1:flight.actor==='bike'?1.2:0,0));
@@ -735,6 +840,16 @@ function updateCombat(dt,worldDt){
       const shot=ballistics.fire({...event, id:undefined,kind:event.projectileKind,origin,direction});
       if(shot){shot.weapon=event.kind==='alienShip'?'ship':'rock';triggerBurst(origin,event.kind==='alienShip'?'shipMuzzle':'evaMuzzle');play(event.kind==='alienShip'?'shipFire':'evaFire',.35);}
     }
+    const threat=encounters.entities.reduce((best,entity)=>!best||entity.position.distanceToSquared(flight.position)<best.position.distanceToSquared(flight.position)?entity:best,null);
+    if(threat&&closeoutActors?.ally.group.visible&&allySupportCooldown<=0){
+      const origin=closeoutActors.ally.muzzle.getWorldPosition(new THREE.Vector3());if(emitSupportShot(origin,threat,{damage:14})){allySupportCooldown=1.25;allyAction='AllyFire';closeoutActors.ally.play('AllyFire');}
+    }
+    if(threat&&installedTurrets(loadout,loadout.noma.id).length&&nomaSupportCooldown<=0){
+      const origin=companion.group.position.clone();if(emitSupportShot(origin,threat,{damage:12}))nomaSupportCooldown=1.5;
+    }
+    if(threat&&flight.actor==='ship'&&loadout.activeComposition.some(host=>installedTurrets(loadout,host).length)&&shipSupportCooldown<=0){
+      const origin=ship.muzzle.getWorldPosition(new THREE.Vector3());if(emitSupportShot(origin,threat,{damage:18,weapon:'ship'}))shipSupportCooldown=1.1;
+    }
   }
   const shots=new Map(ballistics.projectiles.map(p=>[p.id,p]));
   const hits=ballistics.update(worldDt,combatTargets());
@@ -745,7 +860,10 @@ function updateCombat(dt,worldDt){
     if(enemy){
       const point=new THREE.Vector3().copy(hit.position);triggerBurst(point,enemy.destroyed?(enemy.entity.kind==='alienShip'?'ship':'eva'):'impact',{velocity:enemy.entity.velocity});
       play(enemy.destroyed?'largeBreak':'smallBreak',.65);illuminate(point,0xff9977,enemy.destroyed?.9:.2);
-      if(enemy.destroyed){momentClock.moment('impact');notify(enemy.entity.kind==='alienShip'?'Nave hostil destruida':'Amenaza neutralizada',2);}
+      if(enemy.destroyed){
+        momentClock.moment('impact');loadout=awardCharge(loadout,enemy.entity.kind==='alienShip'?'enemyShip':'enemy');
+        notify(`${enemy.entity.kind==='alienShip'?'Nave hostil destruida':'Amenaza neutralizada'} · Carga recuperada`,2);saveProgress();
+      }
       continue;
     }
     const target=world.targets.find(t=>t.id===hit.targetId),weapon=shots.get(hit.projectileId)?.weapon||'astronaut';
@@ -758,7 +876,8 @@ function updateCombat(dt,worldDt){
       destruction.burst(target,worldTime,{velocity:target.velocity});triggerBurst(target.position,weapon==='ship'?'ship':'eva',{velocity:target.velocity});momentClock.moment(weapon==='ship'?'ship':'impact');
       illuminate(target.position,weapon==='ship'?0xffbb78:0x7deaff,weapon==='ship'?1:.45);play(weapon==='ship'?'largeBreak':'smallBreak');
       if(!optional&&encounters.trigger({id:target.id,position:target.position,playerPosition:flight.position}))void prepareEnemy('alienShip');
-      notify(optional?'Roca despejada':weapon==='ship'?'Núcleo destruido':'Asteroide fragmentado',2);saveProgress();
+      loadout=awardCharge(loadout,weapon==='ship'?'core':'asteroid');
+      notify(`${optional?'Roca despejada':weapon==='ship'?'Núcleo destruido':'Asteroide fragmentado'} · +${weapon==='ship'?2:1} carga`,2);saveProgress();
     }else{triggerBurst(new THREE.Vector3().copy(hit.position),'impact',{velocity:target.velocity});play('smallBreak',.5);}
   }
   shotVisuals.update(ballistics.projectiles,worldDt);
@@ -849,6 +968,19 @@ function updateActors(dt, input) {
     temp.set(1.8,1.6,.7).applyQuaternion(flight.actor==='bike'?flight.bikeQuaternion:astronaut.group.quaternion).add(flight.position);
     companion.update(worldTime,{dt,targetPosition:temp,targetVelocity:flight.velocity,targetQuaternion:flight.actor==='bike'?flight.bikeQuaternion:astronaut.group.quaternion,state:companionState,reducedMotion});
   }
+  if(state.sector>=1||loadout.crew.greenAlly){
+    if(!loadout.crew.greenAlly){loadout.crew.greenAlly=true;saveProgress();}
+    if(!closeoutActors&&!closeoutLoad)void prepareCloseoutAssets();
+    if(closeoutActors&&!hangarStage.visible){
+      const ally=closeoutActors.ally;if(ally.group.parent!==scene)scene.add(ally.group);ally.group.visible=state.phase!=='transit';ally.group.scale.setScalar(1.15);
+      const formation=new THREE.Vector3(-2.2,1.1,1.4).applyQuaternion(flight.actor==='ship'?flight.shipQuaternion:flight.actor==='bike'?flight.bikeQuaternion:astronaut.group.quaternion).add(flight.position);
+      ally.group.position.lerp(formation,1-Math.exp(-dt*3.2));
+      const threat=encounters.entities.reduce((best,entity)=>!best||entity.position.distanceToSquared(ally.group.position)<best.position.distanceToSquared(ally.group.position)?entity:best,null);
+      const nextAction=threat?'AllyAim':flight.velocity.length()>.4?'AllyMove':'AllyIdle';if(nextAction!==allyAction){allyAction=nextAction;ally.play(nextAction);}
+      if(threat)ally.group.lookAt(threat.position);else ally.group.quaternion.slerp(flight.actor==='ship'?flight.shipQuaternion:flight.actor==='bike'?flight.bikeQuaternion:astronaut.group.quaternion,1-Math.exp(-dt*4));
+      ally.update(dt);
+    }
+  }
   tether.visible = flight.actor === 'astronaut';
   if (tether.visible) {
     const a = (flight.base==='bike'?bike.tether:ship.tether).getWorldPosition(new THREE.Vector3()), b = flight.astronautPosition;
@@ -907,6 +1039,7 @@ function updateCamera(dt) {
   cameraLean = THREE.MathUtils.damp(cameraLean,leanTarget,4,dt); camera.rotateZ(cameraLean);
 }
 function updateMissionUI() {
+  const readyDeparture=gemSequence.phase==='ready';
   const content = !flight.shipDiscovered ? ['Una nave <br/>por encontrar.','Nóma detecta nuestra nave cerca de aquí. Explorá con la moto; usá el impulso para cubrir distancia.','Buscar la nave'] : {
     scan: ['Todo empieza <br/>con una señal.', 'Buscá el pulso de la baliza y bajá para escanear. Podés explorar con la moto o tu nave.', 'Consultar rumbo'],
     small: ['Abrir un camino.', 'Explorá las regiones y buscá el brillo cian. Podés disparar desde la moto o con el traje. No estamos solos en este sector.', 'Consultar región'],
@@ -917,8 +1050,8 @@ function updateMissionUI() {
     complete: ['Lo construimos <br/>juntos.', 'Tres sectores recorridos, tres gemas recuperadas. Tu nave está completa.', 'Nueva expedición'],
   }[state.phase];
   $('missionTitle').innerHTML = content[0]; $('missionDescription').textContent = content[1];
-  $('missionButton').textContent=gemSequence.active?'Próximo horizonte…':content[2]+' ↗';
-  $('missionButton').disabled = paused || gemSequence.active || flight.returning || state.phase === 'transit' || time < assemblyUntil;
+  $('missionButton').textContent=readyDeparture?'Partir por la anomalía →':gemSequence.active?'Regreso y preparación…':content[2]+' ↗';
+  $('missionButton').disabled = paused || (gemSequence.active&&!readyDeparture) || flight.returning || state.phase === 'transit' || time < assemblyUntil;
   $('biomeName').textContent = `${String(state.sector + 1).padStart(2, '0')} / ${state.layout.name.toUpperCase()}`;
   $('sectorNumber').textContent = `SECTOR ${String(state.sector + 1).padStart(2, '0')}`;
   $('sectorName').textContent = state.layout.name.split(' · ')[0].toUpperCase();
@@ -940,6 +1073,7 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
       cabinMode:cabinController.inside&&!cabinController.canPilot?cabinController.state.mode:null, canSit:cabinController.canSit, sequence:gemSequence.active,targetKind:selectedTarget()?.kind,
       shipDiscovered:flight.shipDiscovered,canBoardShip:flight.canBoardShip,base:flight.base,freeAim:true,
       actionDistance, targetDistance: distance, weaponRange: WEAPON_RANGE[flight.actor], chance });
+  if(gemSequence.phase==='ready')mobileAction={action:'depart',label:'Partir por la anomalía',disabled:false};
   const titles = {
     scan: 'Escaneá la baliza', small: 'Asteroides EVA · pulso cian',
     large: flight.actor === 'astronaut' ? 'Volvé a la nave' : 'Despejá los núcleos',
@@ -973,8 +1107,8 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
   $('mobileMenuGems').textContent = `◇ ${state.gems} / 3 gemas`;
   $('mobileMenuAssembly').textContent = `Nave ${Math.round(state.moduleStage / 3 * 100)}%`;
   $('mobileMenuCompanion').textContent = `Nóma · ${$('companionMessage').textContent}`;
-  $('mobileGuideButton').textContent=state.phase==='complete'?'Nueva expedición':'Consultar rumbo';
-  $('mobileGuideButton').disabled = locked || flight.returning || !!combat.shot;
+  $('mobileGuideButton').textContent=gemSequence.phase==='ready'?'Partir por la anomalía':state.phase==='complete'?'Nueva expedición':'Consultar rumbo';
+  $('mobileGuideButton').disabled = (locked || flight.returning || !!combat.shot)&&gemSequence.phase!=='ready';
   $('mobileReturnButton').disabled = actorLocked || flight.actor === 'ship' || flight.returning;
   $('mobileDeployButton').disabled = actorLocked || flight.actor === 'astronaut';
   $('mobileViewButton').textContent = visorActive() ? 'Pasar a vista exterior' : flight.actor === 'ship' ? 'Ver desde la cabina' : 'Ver desde el visor';
@@ -987,6 +1121,7 @@ function updateMobileHUD({ distance, actionDistance, chance, done, total }) {
   $('mobileInspectButton').disabled = !!combat.shot || gemSequence.active || locked;
   $('mobileSoundButton').textContent = soundEnabled&&soundReady ? 'Silenciar sonido' : 'Activar sonido';
   $('mobileSoundButton').setAttribute('aria-pressed', String(soundEnabled&&soundReady));
+  $('hangarButton').disabled=!flight.shipDiscovered||gemSequence.active||state.phase==='transit'||encounters.entities.length>0;
 }
 function updateHUD() {
   updateMissionUI();
@@ -1083,6 +1218,7 @@ function handlePhaseChange() {
   updateMissionUI();
 }
 ship.setStage(state.moduleStage, false); companion.group.position.copy(flight.position).add(new THREE.Vector3(1.8,1.6,.7));camera.position.set(12, 9, 27); updateMissionUI();
+ship.setComposition(loadout.activeComposition);
 updateSoundUI();
 saveProgress();
 if (saved) notify(saved.complete ? 'Tu expedición está completa · Podés inspeccionar la nave' : `Continuamos en ${state.layout.name.split(' · ')[0]} · Progreso recuperado`, 6);
@@ -1090,6 +1226,7 @@ else {notify('Arrastrá para orientar · Shift / ⟫ activa el boost',6);say('Mo
 if(saved&&flight.shipDiscovered){void prepareView('cabin');void prepareProjectile();}
 if(['large','gem','return','transit','complete'].includes(state.phase))void prepareGem();
 if(state.phase==='return')gemSequence.start({aboard:true});
+$('entryDialog').showModal();setPaused(true);
 function animate(now) {
   const realDelta = Math.max(0, (now - lastFrame) / 1000);
   lastFrame=now;
@@ -1134,6 +1271,8 @@ function animate(now) {
       carriedGem.position.lerpVectors(gemPickupOrigin,center,p);carriedGem.quaternion.slerpQuaternions(gemPickupRotation,rotation,p);
     }
     world.gate.visible=false;
+    jumpAnomaly.setActive(state.phase==='transit');
+    if(jumpAnomaly.group.visible){jumpAnomaly.group.position.copy(flight.shipPosition).add(new THREE.Vector3(0,0,-20).applyQuaternion(flight.shipQuaternion));jumpAnomaly.group.quaternion.copy(flight.shipQuaternion);jumpAnomaly.update(worldTime,worldDt,{reducedMotion});}
     const awaitingView=flight.actor==='ship'&&interiorView&&!cabin;
     if(!graphicsRecoveryActive){
       if(awaitingView){$('loading').hidden=false;$('loading').style.opacity='1';$('loading').querySelector('p').textContent='Preparando el puesto de mando…';$('loading').dataset.view='waiting';}
@@ -1161,6 +1300,7 @@ function animate(now) {
   renderer.shadowMap.needsUpdate = frames % (mobileGPU ? 2 : 1) === 0;
   eventLight.intensity = reducedMotion ? 0 : Math.max(0, eventLightUntil - time) * 26;
   renderer.toneMappingExposure = world.lighting.exposure;
+  if(hangarStage.visible&&closeoutActors){closeoutActors.ally.update(realDelta);if(hangarAutoRotate&&!reducedMotion)hangarStage.rotation.y+=realDelta*.025;}
   destruction.update(worldTime);
   const heroQuality=inspecting||state.phase==='transit'||time<assemblyUntil;
   world.updateLOD(camera,{heroId:selectedId,forceHigh:heroQuality});

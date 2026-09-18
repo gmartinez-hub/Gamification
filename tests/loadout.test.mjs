@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { activatePreset, createLoadoutState, installComposition, placeTurret, savePreset } from '../src/lowpoly/loadout.js';
+import { activatePreset, awardCharge, createLoadoutState, installComposition, placeTurret, purchaseEquipment, savePreset, unlockRoutePieces } from '../src/lowpoly/loadout.js';
 
 const fixtures = () => createLoadoutState({
   charge: 8,
@@ -46,4 +46,20 @@ test('presets reuse physical units and restore host-local placements', () => {
   state = activatePreset(state, state.presets[0].id);
   assert.deepEqual(state.activeComposition, ['front-1', 'middle-1', 'final-1']);
   assert.equal(state.placements['turret-1'].hostId, 'middle-1');
+});
+
+test('route unlocks grant canonical pieces once while purchases spend charge atomically', () => {
+  let state=unlockRoutePieces(createLoadoutState({charge:20}),3);
+  state=unlockRoutePieces(state,3);
+  assert.deepEqual(state.modules.map(module=>module.id),['front-1','middle-1','final-1']);
+  state=purchaseEquipment(state,'middle');
+  state=purchaseEquipment(state,'turret');
+  assert.equal(state.charge,11);
+  assert.deepEqual(state.modules.map(module=>module.id),['front-1','middle-1','final-1','middle-2']);
+  assert.deepEqual(state.turrets.map(turret=>turret.id),['turret-1']);
+});
+
+test('combat rewards charge without touching route gems', () => {
+  const state=awardCharge(createLoadoutState({charge:2,routeGems:1}),'enemyShip');
+  assert.equal(state.charge,6);assert.equal(state.routeGems,1);
 });

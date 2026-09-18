@@ -39,3 +39,10 @@ test('turbo expands main plasma, illuminates active stage-three nozzles, and dri
  assert(engine.getObjectByName('exhaust-plasma-motes'));
  ship.update(3,{thrust:new Vector3()});assert.equal(engine.visible,false);assert.equal(light.intensity,0);
 });
+
+test('ship renders compact and repeated-middle compositions from owned instance ids',()=>{
+ const ship=fixture();ship.setStage(3,false);
+ let roots=ship.setComposition(['front-1','final-1']);assert.equal(roots.length,2);assert.deepEqual(ship.group.userData.composition,['front-1','final-1']);
+ roots=ship.setComposition(['front-1','middle-1','middle-2','final-1']);assert.equal(roots.length,4);assert.equal(ship.visual.children.filter(child=>child.name.startsWith('module-body-repeat')).length,1);
+ assert.throws(()=>ship.setComposition(['front-1','final-1','middle-1']),/invalid/i);
+});

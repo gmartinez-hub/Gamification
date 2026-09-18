@@ -16,6 +16,9 @@ test('skip still physically boards, waits for seating and resources, and emits e
  assert.equal(seq.update(.1),null);assert.equal(seq.update(.1),'return');
  for(let i=0;i<100;i++)assert.equal(seq.update(.1),null);
  assert.equal(seq.update(.1,{aboard:true}),'board');assert.equal(seq.update(.1,{aboard:true}),null);
+ assert.equal(seq.update(.1,{aboard:true,seated:true}),'ready');
+ for(let i=0;i<20;i++)assert.equal(seq.update(.1,{aboard:true,seated:true,ready:true}),null);
+ assert.equal(seq.depart(),true);assert.equal(seq.depart(),false);
  assert.equal(seq.update(.1,{aboard:true,seated:true}),'travel');
  for(let i=0;i<100;i++)assert.equal(seq.update(.1,{aboard:true,seated:true,ready:false}),null);
  assert.equal(seq.update(.1,{aboard:true,seated:true,ready:true}),'arrive');

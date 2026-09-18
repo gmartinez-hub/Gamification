@@ -20,19 +20,21 @@ export function createPresentationClock() {
 
 /** The cinematic never substitutes a teleport for boarding or skips resource readiness. */
 export function createGemSequence() {
- let phase='idle',age=0,skip=false;
+ let phase='idle',age=0,skip=false,departure=false;
  const set=next=>{phase=next;age=0;};
  return {
   get phase(){return phase;}, get age(){return age;}, get active(){return phase!=='idle';},
-  start({aboard=false}={}){if(phase!=='idle')return false;skip=false;set(aboard?'boarding':'suspension');return true;},
+  start({aboard=false}={}){if(phase!=='idle')return false;skip=false;departure=false;set(aboard?'boarding':'suspension');return true;},
+  depart(){if(phase!=='ready'||departure)return false;departure=true;return true;},
   skip(){if(phase==='idle')return false;skip=true;return true;},
-  reset(){skip=false;set('idle');},
+  reset(){skip=false;departure=false;set('idle');},
   update(dt,{aboard=false,seated=false,ready=false,reducedMotion=false}={}){
    if(!Number.isFinite(dt)||dt<=0||phase==='idle')return null;age+=Math.min(dt,.1);
    const brief=skip||reducedMotion;
    if(phase==='suspension'&&age>=(brief?.15:1.8)){set('returning');return 'return';}
    if(phase==='returning'&&aboard){set('boarding');return 'board';}
-   if(phase==='boarding'&&aboard&&seated){set('travel');return 'travel';}
+   if(phase==='boarding'&&aboard&&seated){set('ready');return 'ready';}
+   if(phase==='ready'&&departure){departure=false;set('travel');return 'travel';}
    if(phase==='travel'&&age>=(brief?.5:6)&&ready){set('assembly');return 'arrive';}
    if(phase==='assembly'&&age>=(brief?2.5:3.4)){set('idle');return 'finish';}
    return null;

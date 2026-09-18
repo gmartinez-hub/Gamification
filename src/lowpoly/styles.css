@@ -228,3 +228,25 @@ body.free-aim .reticle:before{left:8px;top:13px}body.free-aim .reticle:after{lef
 body.free-aim .reticle.has-target{border-color:#f2c780bd;box-shadow:0 0 12px #e6b77533}
 #mobileFreeFireButton,#mobileDismountButton,#mobileRideButton{min-width:54px;min-height:48px;border-radius:12px;padding:8px;font-size:11px;background:#16333de8}
 #mobileFreeFireButton{border-color:#eab9789c;color:#ffdaaa}
+
+.hangar-dialog{width:min(570px,calc(100% - 32px));max-width:none;max-height:calc(100dvh - 32px);overflow:auto;margin-right:16px;color:var(--ink);border:1px solid #8cdad34f;border-radius:18px;background:linear-gradient(145deg,#07131ae6,#102734e8);box-shadow:0 30px 90px #000b;padding:24px;backdrop-filter:blur(14px)}
+.hangar-dialog::backdrop{background:#02070b61}
+.hangar-dialog header,.hangar-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.hangar-dialog h2{margin:.2rem 0 1rem;font-size:clamp(28px,3vw,44px);font-weight:500}
+.hangar-dialog h3{margin:0 0 12px;color:#aee9dd;font-size:12px;letter-spacing:1.6px;text-transform:uppercase}
+.hangar-dialog header>button{font-size:28px;min-width:44px;min-height:44px}
+.hangar-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}
+.hangar-grid section{min-height:0;padding:16px;border:1px solid #b7ece126;border-radius:12px;background:#07131ab8}
+.hangar-grid section button{display:block;width:100%;margin-top:10px;min-height:42px}
+.hangar-grid p{color:#bfd1ce;line-height:1.5;font-size:13px}
+.hangar-camera{display:grid;grid-template-columns:44px 1fr 1fr 44px;gap:6px}.hangar-grid .hangar-camera button{margin:0;min-height:40px;padding:7px;font-size:10px}
+.hangar-dialog footer{border-top:1px solid #b7ece126;padding-top:16px;color:#aac3bf;font-size:12px}
+@media(max-width:700px){.hangar-dialog{padding:16px;max-height:calc(100dvh - 24px)}.hangar-grid{grid-template-columns:1fr;overflow:auto;max-height:54dvh}.hangar-grid section{min-height:0}.hangar-dialog footer{align-items:stretch;flex-direction:column}}
+.entry-dialog{width:min(760px,calc(100% - 28px));max-height:calc(100dvh - 24px);overflow:auto;padding:clamp(24px,5vw,58px);border:1px solid #9fe8db52;border-radius:20px;color:var(--ink);background:radial-gradient(circle at 80% 10%,#1c4c556b,transparent 42%),linear-gradient(145deg,#061019f7,#10242ff2);box-shadow:0 34px 100px #000c}
+.entry-dialog::backdrop{background:linear-gradient(#02070bba,#02070be8);backdrop-filter:blur(7px)}
+.entry-dialog h2{margin:.5rem 0 1rem;font-size:clamp(36px,7vw,74px);font-weight:450;line-height:.98;letter-spacing:-2px}
+.entry-dialog>div:first-child>p:not(.eyebrow){max-width:46ch;color:#b9cfcb;line-height:1.6}
+.entry-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:28px 0 18px}
+.entry-actions button{min-height:52px;font-size:12px}.entry-actions .primary-button{grid-column:1/-1}
+#entryDetails{color:#9fb9b5;line-height:1.5}
+@media(max-width:560px){.entry-dialog{padding:24px}.entry-dialog h2{font-size:39px}.entry-actions{grid-template-columns:1fr}.entry-actions .primary-button{grid-column:auto}}

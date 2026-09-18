@@ -73,9 +73,11 @@ export function createAssetShip(assets) {
     rcs.push({source:jet(mount,`rcs-${axis}-${sign}`,[0,0,0]),axis,sign});
   }
   const exhaust=createPropulsion(group); const local=new THREE.Vector3();
-  const positions=modules.map(m=>m.position.clone()), arrivals=new Map();let last=0,previous=null,stage=1,disposed=false;
+  const positions=modules.map(m=>m.position.clone()), arrivals=new Map();let last=0,previous=null,stage=1,disposed=false,compositionClones=[];
+  function clearCompositionClones(){for(const clone of compositionClones)clone.removeFromParent();compositionClones=[];}
   function setStage(next,animate=true) {
     if(!Number.isInteger(next)||next<1||next>3)throw new RangeError('Invalid ship stage');
+    clearCompositionClones();
     modules.forEach((m,i)=>{
       const arriving=i>=stage&&i<next;m.visible=i<next;
       if(arriving&&animate)arrivals.set(m,{time:last,from:positions[i].clone().add(new THREE.Vector3(i===1?-5:5,2,4)),index:i});
@@ -88,9 +90,24 @@ export function createAssetShip(assets) {
     for(const module of modules){if(module.userData.high)module.userData.high.visible=high||!module.userData.medium;if(module.userData.medium)module.userData.medium.visible=!high;}
     group.userData.lod=high?'high':'medium';
   }
-  return {group,visual,setStage,updateLOD,muzzle,door,tether,modules,exhaust,
+  function setComposition(ids){
+    if(!Array.isArray(ids)||!ids.length)throw new Error('Ship composition is required');
+    const types=ids.map(id=>id.startsWith('front-')?'front':id.startsWith('middle-')?'middle':id.startsWith('final-')?'final':null);
+    if(types[0]!=='front'||types.some(type=>!type)||types.slice(1,-1).some(type=>type!=='middle')||(types.includes('final')&&types.at(-1)!=='final'))throw new Error('Invalid ship composition');
+    clearCompositionClones();modules.forEach(module=>module.visible=false);
+    const roots=[];let middleIndex=0;
+    for(const type of types){
+      let root;if(type==='front')root=modules[0];else if(type==='final')root=modules[2];else if(middleIndex++===0)root=modules[1];else{root=modules[1].clone(true);root.name=`module-body-repeat-${middleIndex}`;visual.add(root);compositionClones.push(root);}
+      root.visible=true;roots.push(root);
+    }
+    const spacing=4.125,center=(roots.length-1)/2;roots.forEach((root,index)=>{root.position.set(0,0,(index-center)*spacing);root.rotation.set(0,0,0);});
+    const frontZ=roots[0].position.z;muzzle.position.z=frontZ-2.68;door.position.z=frontZ+1;tether.position.z=frontZ+1;
+    group.userData.composition=[...ids];group.userData.length=roots.length*spacing;
+    return roots;
+  }
+  return {group,visual,setStage,setComposition,updateLOD,muzzle,door,tether,modules,exhaust,
     reset(){previous=null;exhaust.reset();visual.position.set(0,0,0);visual.rotation.set(0,0,0);arrivals.clear();for(let i=0;i<modules.length;i++){modules[i].position.copy(positions[i]);modules[i].rotation.set(0,0,0);}},
-    dispose(){if(disposed)return;disposed=true;exhaust.dispose();group.removeFromParent();disposeRuntime(visual);},
+    dispose(){if(disposed)return;disposed=true;clearCompositionClones();exhaust.dispose();group.removeFromParent();disposeRuntime(visual);},
     hasStage(next){return modules.slice(0,next).every(m=>m.userData.loaded);},
     install(records){for(const name of moduleNames){const index=moduleNames.indexOf(name),module=modules[index],asset=records[name],lodAsset=records[name+'-medium'];
       if(asset&&!module.userData.loaded){asset.scene.rotation.x=-Math.PI/2;asset.scene.scale.setScalar(2.5);asset.scene.name=name+'-high';module.add(asset.scene);module.userData.high=asset.scene;module.userData.loaded=true;}

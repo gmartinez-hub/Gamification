@@ -1,7 +1,42 @@
 const copy = value => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
 const finiteVector = value => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
 
-export const LOADOUT_BALANCE = Object.freeze({ turretCost: 3, middleModuleCost: 6 });
+export const LOADOUT_BALANCE = Object.freeze({
+  turretCost:3,middleModuleCost:6,salvoCooldown:4,
+  rewards:Object.freeze({asteroid:1,core:2,enemy:2,enemyShip:4}),
+});
+
+export function awardCharge(current, source) {
+  const amount=LOADOUT_BALANCE.rewards[source];
+  if(!Number.isFinite(amount))throw new Error('Unknown charge source');
+  const state=createLoadoutState(current);state.charge+=amount;return state;
+}
+
+export function unlockRoutePieces(current, moduleStage) {
+  const state=createLoadoutState(current);
+  const grants=[['front','front-1'],['middle','middle-1'],['final','final-1']];
+  for(const [type,id] of grants.slice(0,Math.max(1,Math.min(3,Number(moduleStage)||1)))){
+    if(!state.unlocked.includes(type))state.unlocked.push(type);
+    if(!state.modules.some(module=>module.id===id))state.modules.push({id,type});
+  }
+  if(Number(moduleStage)>=2&&!state.unlocked.includes('turret'))state.unlocked.push('turret');
+  if(!state.activeComposition.length)state.activeComposition=['front-1'];
+  return state;
+}
+
+export function purchaseEquipment(current, type) {
+  const state=createLoadoutState(current);
+  const normalized=type==='middle'?'middle':type==='turret'?'turret':null;
+  if(!normalized)throw new Error('Unknown equipment type');
+  if(!state.unlocked.includes(normalized))throw new Error('Equipment is still locked');
+  const cost=normalized==='middle'?LOADOUT_BALANCE.middleModuleCost:LOADOUT_BALANCE.turretCost;
+  if(state.charge<cost)throw new Error('Insufficient charge');
+  const collection=normalized==='middle'?state.modules:state.turrets;
+  const count=normalized==='middle'?state.modules.filter(item=>item.type==='middle').length:state.turrets.length;
+  collection.push(normalized==='middle'?{id:`middle-${count+1}`,type:'middle'}:{id:`turret-${count+1}`});
+  state.charge-=cost;
+  return state;
+}
 
 export function createLoadoutState(source = {}) {
   const modules = (source.modules || [{ id: 'front-1', type: 'front' }]).map(module => ({ ...module }));
