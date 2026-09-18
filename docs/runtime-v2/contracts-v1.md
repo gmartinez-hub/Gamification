@@ -680,3 +680,33 @@ Do not infer from voice transcription.
 Freeze whether control after world-to-world handoff:
 - restores the actor/vehicle that entered the portal, or
 - uses a setup-defined Primary Deployment Actor.
+
+
+### GZ-HANGAR-008 — Walkable Hangar shows current sortie setup
+**APPROVED**
+
+The walkable Hangar is not an inventory warehouse. It physically stages the **currently confirmed mission setup** as a reminder and boarding space.
+
+Examples:
+- two selected bikes -> two bikes are present,
+- selected ally/Nóma -> that character is present,
+- selected turret/ship -> that deployed setup representation is present,
+- unselected/unowned inventory does not populate the ambient Hangar.
+
+Inventory browsing/configuration remains a separate UI/build mode.
+
+### GZ-HANGAR-009 — Boarding purpose
+**APPROVED**
+
+The core interaction of Hangar WALK is:
+1. review the physical sortie setup,
+2. approach the chosen vehicle/ship,
+3. board it using the existing boarding/cockpit flow,
+4. depart.
+
+No requirement exists for physically manipulating every inventory item while walking.
+
+### GZ-HANGAR-010 — Walk camera evidence rule
+**APPROVED intent / VERIFY implementation**
+
+First-person Hangar walking is desired if the audited service-bay geometry supports a coherent camera path and visible enclosure/support shell. If raw model/camera evidence proves first-person composition invalid, third-person may be used only as an explicit verified fallback; implementation must not silently switch camera mode.
