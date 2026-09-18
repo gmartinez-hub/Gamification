@@ -373,3 +373,122 @@ Need confirmation whether Front-only always includes a baseline integrated ship 
 There is **no approved Middle hard cap right now**.
 
 V2 must support `Middle × N` structurally. A practical V1 maximum may be introduced only if benchmark/reliability evidence requires it. If introduced, it must be an explicit visible gameplay rule, never a hidden runtime clamp.
+
+
+---
+
+# Decision Update — Terminal Propulsion / Cargo Speed / Central Boost Exhaust
+
+## Approved ship speed tiers
+
+### GZ-MOVE-008 — Composition tiering
+**APPROVED**
+
+Ship speed is determined primarily by whether the composition contains Middle cargo modules and whether it contains Final/Back propulsion.
+
+Approved qualitative ordering:
+
+`Front + Final` = fastest / most agile ship configuration.
+
+`Front` = compact baseline ship; slower than Bike and slower than Front+Final.
+
+`Front + Middle×N` = cargo/weapon-surface configuration; slower than Front.
+
+`Front + Middle×N + Final` = cargo configuration with propulsion support; still a large/slower ship, but faster than the same cargo configuration without Final.
+
+The number of Middle modules does **not** create additional speed tiers by itself for V1. One Middle or seven Middles share the same qualitative movement tier when Back presence is the same.
+
+Exact numeric speeds/acceleration remain BALANCE/MEASURE.
+
+### GZ-MOVE-009 — Middle count and speed
+**APPROVED V1 simplification**
+
+For V1:
+- `middleCount > 0` determines that the craft is in the cargo/heavy movement class.
+- Adding more Middle modules does not progressively reduce top speed.
+- Final/Back presence determines whether that cargo/heavy class receives the Back propulsion improvement.
+
+This avoids hidden per-module speed arithmetic and preserves extreme/N-middle compositions.
+
+## Central Boost exhaust requirement
+
+### GZ-BOOST-005 — Central boost exhaust is a required visual/asset semantic
+**APPROVED**
+
+Current legacy assets/code expose multiple normal/directional thruster points but do not include the desired central Boost engine cue.
+
+V2 requires a distinct central/main Boost exhaust for:
+- Front-only ship,
+- terminal Middle when no Final is present,
+- Final/Back when present,
+- Bike.
+
+This is a required semantic socket/effect, not an optional polish item.
+
+### GZ-BOOST-006 — Terminal module ownership of ship Boost exhaust
+**APPROVED**
+
+The central Boost exhaust belongs to the **exposed terminal rear module**:
+
+- `Front` -> Front PrimaryBoostExhaust
+- `Front + Middle×N` -> last Middle PrimaryBoostExhaust
+- `Front + ... + Final` -> Final PrimaryBoostExhaust
+
+No hidden rescaling/repositioning per shot.
+
+Each module family that can legally be terminal must provide a valid `PrimaryBoostExhaust` anchor and enough visual support for the effect.
+
+### GZ-BOOST-007 — Normal thrust vs Boost
+**APPROVED**
+
+Normal movement:
+- existing directional/attitude/exposed thrusters respond continuously to actual thrust/maneuvering.
+
+Boost/Shift:
+- central/main Boost exhaust activates strongly,
+- normal thrusters may remain active according to actual control vector,
+- boost presentation stack activates.
+
+The central exhaust is therefore not ordinary movement thrust.
+
+### GZ-BOOST-008 — Bike central Boost exhaust
+**APPROVED**
+
+Bike keeps its existing normal four-nozzle family for ordinary movement/attitude feedback and adds one central/main `PrimaryBoostExhaust` used for Boost/Shift.
+
+Exact model treatment is PRODUCE:
+- if the raw bike body supports a convincing central outlet, add socket + runtime VFX only;
+- if it visually lacks an outlet, create the smallest necessary nozzle/collar/recess support geometry.
+Do not remodel the bike broadly for this requirement.
+
+## Boost presentation state
+
+### GZ-BOOST-FX-002 — Clear performative Shift state
+**APPROVED**
+
+Boost must create a clearly different presentation state, not only higher speed.
+
+Required direction:
+- central exhaust burst/elongation,
+- edge-weighted star/particle streaks,
+- short controlled FOV increase,
+- camera acceleration/inertial pull,
+- restrained edge distortion/contrast/exposure treatment,
+- dedicated boost transient + loop audio.
+
+The center of the screen and aiming information remain readable.
+
+## Exploration only — not approved
+
+### GZ-BIKE-EXP-001 — Scaled Back module on Bike
+**EXPLORATION**
+
+Idea: test whether the Final/Back visual language can be scaled/adapted into a Bike boost module.
+
+This is not part of V1 scope yet. It requires:
+- raw model silhouette check,
+- mount/contact plausibility,
+- first/third-person rider-camera check,
+- no conflict with Bike's new central Boost exhaust.
+
+Do not implement without explicit approval.
