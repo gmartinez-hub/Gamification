@@ -2,11 +2,14 @@ qa-*
 qa/
 .superpowers/
 .worktrees/
+handoff/
 docs/
 tests/
 scripts/
 background-lab/
 tools/
+assets/runtime/models/
+gravedad_zero_unlock_asset_pack_v1/
 assets/*.png
 assets/*.gif
 assets/ship/debug/
