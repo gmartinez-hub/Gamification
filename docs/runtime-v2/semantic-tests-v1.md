@@ -141,3 +141,16 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-HANGAR-007 | Unlocked but unowned item exists | It does not populate the ambient Hangar; it is available only through Inventory/Build preview. |
 | SEM-HANGAR-008 | Player approaches selected ship/vehicle | Boarding action is available and leads into the established boarding/cockpit flow. |
 | SEM-HANGAR-009 | First-person Hangar camera | Must be validated against real audited service-bay geometry; no silent third-person substitution. |
+
+
+## Ally parity / Boost / presentation
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-ALLY-SHIP-001 | Player light ship, ally heavy turret ship | Both use same module/movement rules; independent physical loadouts; no item cloning. |
+| SEM-ALLY-SHIP-002 | Same physical turret assigned to player and ally | Rejected unless two owned turret units exist. |
+| SEM-BOOST-001 | Hold Bike/Ship Boost continuously | Boost remains active without heat/cooldown/Cell drain; allocations remain bounded. |
+| SEM-BOOST-002 | Ship terminal module changes | PrimaryBoostExhaust resolves at actual exposed terminal module. |
+| SEM-BIKE-EXP-001 | Back-derived Bike concept evaluated | Pass only if rider/camera/collision/silhouette checks all pass or require bounded support geometry; no forced distortion. |
+| SEM-PRES-ALLY-001 | Ally damaged/downed/dead | Each state has distinct escalation and remains distinguishable from player/Nóma events. |
+| SEM-PRES-PLAYER-001 | Player enters critical then dies | Critical remains readable; death sequence takes priority and disables control before recovery. |
