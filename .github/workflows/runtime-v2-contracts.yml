@@ -1,0 +1,35 @@
+name: Runtime V2 Semantic Contracts
+
+on:
+  push:
+    branches:
+      - docs/gz-runtime-v2-spec
+    paths:
+      - .github/workflows/runtime-v2-contracts.yml
+      - spec/runtime-v2/**
+      - tests/runtime-v2-contracts.test.mjs
+      - docs/runtime-v2/**/*.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout contract branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/gz-runtime-v2-spec
+          fetch-depth: 1
+
+      - name: Enforce clean-room oracle boundary
+        run: |
+          if grep -R "src/lowpoly" spec/runtime-v2; then
+            echo "Executable semantic oracle must not import legacy gameplay code."
+            exit 1
+          fi
+
+      - name: Run V2 executable semantic contracts
+        run: node --test tests/runtime-v2-contracts.test.mjs
