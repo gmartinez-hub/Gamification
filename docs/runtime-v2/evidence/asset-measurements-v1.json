@@ -1,6 +1,6 @@
 {
   "schema": "gz-scale-measurement-v1",
-  "generatedAt": "2026-09-19T01:06:00.021Z",
+  "generatedAt": "2026-09-19T01:08:56.704Z",
   "sourceBranch": "docs/gz-runtime-v2-spec",
   "note": "Raw authoring bounds + explicitly labeled legacy evidence. No gameplay code copied into V2.",
   "measured": [
@@ -850,13 +850,112 @@
         "note": "Evidence only: legacy ship module rotation X=-90deg and scale=2.5"
       },
       "legacyCompositionSpacingMetres": 4.125,
-      "nominalThreeModuleLengthMetres": 12.375,
+      "envelopes": {
+        "frontOnly": {
+          "types": [
+            "front"
+          ],
+          "width": 4.73893,
+          "height": 4.536493,
+          "length": 4.491315,
+          "minZ": -2.245658,
+          "maxZ": 2.245658,
+          "spacing": 4.125
+        },
+        "frontFinal": {
+          "types": [
+            "front",
+            "final"
+          ],
+          "width": 4.73893,
+          "height": 4.613097,
+          "length": 8.74432,
+          "minZ": -4.308158,
+          "maxZ": 4.436163,
+          "spacing": 4.125
+        },
+        "frontMiddle": {
+          "types": [
+            "front",
+            "middle"
+          ],
+          "width": 4.73893,
+          "height": 4.536493,
+          "length": 8.745027,
+          "minZ": -4.308158,
+          "maxZ": 4.43687,
+          "spacing": 4.125
+        },
+        "frontMiddleFinal": {
+          "types": [
+            "front",
+            "middle",
+            "final"
+          ],
+          "width": 4.73893,
+          "height": 4.613097,
+          "length": 12.86932,
+          "minZ": -6.370658,
+          "maxZ": 6.498663,
+          "spacing": 4.125
+        },
+        "front5MiddleFinal": {
+          "types": [
+            "front",
+            "middle",
+            "middle",
+            "middle",
+            "middle",
+            "middle",
+            "final"
+          ],
+          "width": 4.73893,
+          "height": 4.613097,
+          "length": 29.36932,
+          "minZ": -14.620658,
+          "maxZ": 14.748663,
+          "spacing": 4.125
+        }
+      },
       "warning": "These are legacy measured references, NOT V2 semantic dimensions."
     },
     "alienShipLegacyEvidence": {
       "runtimeDeclaredLengthMetres": 25.7335,
       "sourceCommentLengthMetres": 12.86675,
       "warning": "Declared legacy runtime length is evidence only."
+    },
+    "cockpitStandingEvidence": {
+      "pilot": {
+        "min": [
+          0.251727,
+          0,
+          0.854782
+        ],
+        "max": [
+          1.224296,
+          1.89899,
+          1.843191
+        ]
+      },
+      "shell": {
+        "min": [
+          -1.836,
+          -0.12,
+          -0.324
+        ],
+        "max": [
+          1.836,
+          2.22,
+          3.744
+        ]
+      },
+      "sideClearancePositiveX": 0.611704,
+      "headClearance": 0.32101,
+      "sourceRearClearance": 1.900809,
+      "currentClipRearZ": 1.224,
+      "currentClipRearOverflow": 0.619191,
+      "classification": "SOURCE_EXISTS_RUNTIME_HIDES",
+      "note": "Evidence uses current legacy dashboardScale/stand anchor only to diagnose the existing composition; it is not a V2 implementation prescription."
     },
     "authoringNormalizationCheck": {
       "allyLongest": 1.899266,

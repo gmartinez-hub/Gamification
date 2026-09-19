@@ -24,8 +24,10 @@ Canonical human anchor for V2: **1.90 m**.
 ## Key evidence
 
 - Astronaut raw Y height: **1.899**; scale-to-1.90 factor: **1.001**.
-- Legacy player-ship composition spacing: **4.125 m/module**; three-module nominal length: **12.375 m**. Evidence only.
-- Legacy alien-ship declared runtime length: **25.734 m**. Evidence only.
+- Legacy player-ship measured envelope: Front-only **4.491 m** long; Front+Final **8.744 m**; Front+Middle+Final **12.869 m**; Front+5 Middle+Final **29.369 m**. Evidence only.
+- Legacy player-ship module spacing: **4.125 m**.
+- Legacy alien-ship declared runtime length: **25.734 m**, almost exactly 2× the current measured Front+Middle+Final player-ship envelope. Evidence only.
+- Cockpit depth diagnosis: uncut source shell leaves **1.901 m** behind the standing astronaut, while the current rear clip cuts **0.619 m** into the standing astronaut envelope. Initial classification: **SOURCE_EXISTS_RUNTIME_HIDES**.
 - No portal-ring GLB was found in main.
 - No mothership GLB was found in main.
 - Closeout/raw assets must not be interpreted as world scale merely from GLB bounds.
