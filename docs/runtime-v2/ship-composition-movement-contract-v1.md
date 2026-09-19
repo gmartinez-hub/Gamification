@@ -162,22 +162,17 @@ VFX tier/LOD may reduce visual complexity at distance/device pressure, but it mu
 ## 6. Speed upgrades
 
 ### GZ-MOVE-UPGRADE-001 — Faster-travel upgrade family
-**PROPOSED / NOT FROZEN**
+**APPROVED / RECONCILED**
 
-A progression upgrade may improve one or more of:
-- ship top speed,
-- acceleration,
-- boost,
-- efficiency.
+The permanent global friendly movement upgrade is closed by GZ-SPEED-UPGRADE-007..009:
+- one level,
+- +15% base top speed,
+- +20% base acceleration,
+- unlock after second gem / World 3 access,
+- price 1,000 Energy Cells,
+- additive with moment-to-moment Boost.
 
-Implementation is primarily configuration/code plus corresponding VFX/audio scaling.
-
-Open economy/progression choice:
-- Energy Cells purchase the upgrade,
-- Gem/world milestone unlocks a tier and Energy Cells purchase it,
-- another explicitly approved rule.
-
-Narrative gems are not assumed to become spendable currency.
+Narrative gems remain progression keys and are not spendable currency.
 
 ## 7. Measurement model
 
