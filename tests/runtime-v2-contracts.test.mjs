@@ -343,3 +343,14 @@ test('V2 contract: player death loss mode is destroyed-only',async()=>{
   assert.equal(mod.PLAYER_DEATH_LOSS_MODE,'DESTROYED_ONLY');
   assert.equal(mod.PLAYER_DEATH_AUTO_RECOVERS_SURVIVING_COMPANIONS,true);
 });
+
+
+test('V2 contract: Hangar confirmation does not persist until exit',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.HANGAR_PERSISTENCE_BOUNDARY,'EXIT_COMMIT');
+  assert.equal(mod.HANGAR_CONFIRM_PERSISTS,false);
+  assert.equal(mod.HANGAR_EXIT_COMMIT_ATOMIC,true);
+  assert.deepEqual(mod.hangarTransaction({confirmed:false,exiting:false}),{persist:false,state:'DRAFT'});
+  assert.deepEqual(mod.hangarTransaction({confirmed:true,exiting:false}),{persist:false,state:'CONFIRMED_UNCOMMITTED'});
+  assert.deepEqual(mod.hangarTransaction({confirmed:true,exiting:true}),{persist:true,state:'EXIT_COMMIT'});
+});
