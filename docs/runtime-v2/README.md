@@ -41,7 +41,8 @@ A performance failure does **not** authorize deleting a capability. First adjust
 - [campaign-progression-contract-v1.md](./campaign-progression-contract-v1.md) — prologue, World 1/2/3 progression, ally rescue, incursions and final boss canon.
 - [semantic-audit-pass-1.md](./semantic-audit-pass-1.md) — contradiction log and resolved pass-1 blockers.
 - [semantic-audit-pass-2.md](./semantic-audit-pass-2.md) — core semantic freeze result and evidence gates before implementation freeze.
-- [pre-implementation-adversarial-audit-v1.md](./pre-implementation-adversarial-audit-v1.md) — current no-inference adversarial audit and unresolved semantic-question register.
+- [pre-implementation-adversarial-audit-v1.md](./pre-implementation-adversarial-audit-v1.md) — current no-inference adversarial audit.
+- [assumption-register-v1.md](./assumption-register-v1.md) — current explicit semantic-question register; implementation must not choose answers.
 - [evidence/asset-measurements-v1.md](./evidence/asset-measurements-v1.md) — generated raw bounds, legacy semantic-scale evidence and first cockpit/Hangar/ring findings.
 - [visual-proof-pack-v1.md](./visual-proof-pack-v1.md) — exact cockpit/Hangar/portal/Boosted-Bike visual evidence gate; no formation or geometry outcome is inferred.
 - [../spec/runtime-v2/README.md](../../spec/runtime-v2/README.md) — executable semantic oracle boundary and coverage.
