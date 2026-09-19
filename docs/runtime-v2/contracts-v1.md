@@ -1181,3 +1181,23 @@ If the browser/app closes, crashes or the session is otherwise interrupted after
 - no temporary Hangar journal is required for product semantics.
 
 This preserves the rule that **Hangar exit is the only persistence boundary for staged configuration changes**.
+
+
+### GZ-HANGAR-TXN-004 — All intentional Hangar exits commit
+**APPROVED**
+
+All explicit/intended exits from the Hangar/configuration session use the same atomic exit-commit boundary before leaving.
+
+This includes:
+- Launch World,
+- return to Main/Menu,
+- explicit Exit/Quit action from Hangar.
+
+For each of those intentional exits:
+1. validate the confirmed Hangar configuration,
+2. atomically persist staged purchases, Cell deductions, upgrades, assignments and loadout,
+3. only after a successful commit, leave the Hangar.
+
+If the commit fails, remain in Hangar and do not partially apply the staged state.
+
+This is intentionally different from an unexpected close/crash/forced interruption before exit, which discards the uncommitted session and restores the last persisted state on next launch.
