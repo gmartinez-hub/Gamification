@@ -541,5 +541,20 @@ test('V2 contract: Portable Portal once-per-sortie use does not reset across wor
 test('V2 contract: Portable Portal uses standard Party and Equipment Check',async()=>{
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.PORTABLE_PORTAL_USES_STANDARD_PARTY_EQUIPMENT_CHECK,true);
-  assert.equal(mod.PORTABLE_PORTAL_SLOT_ACCOUNTING_STATUS,'SEMANTIC_QUESTION');
+  assert.equal(mod.PORTABLE_PORTAL_SLOT_ACCOUNTING_STATUS,'NO_TURRET_SLOT_COST');
+});
+
+
+test('V2 contract: natural portal detection shows marker direction distance and countdown',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NATURAL_PORTAL_MAP_MARKER,true);
+  assert.equal(mod.NATURAL_PORTAL_DIRECTION_GUIDANCE,true);
+  assert.equal(mod.NATURAL_PORTAL_DISTANCE_GUIDANCE,true);
+  assert.equal(mod.NATURAL_PORTAL_COUNTDOWN_REQUIRED,true);
+  assert.equal(mod.NATURAL_PORTAL_MARKER_EXPIRY_STATUS,'SEMANTIC_QUESTION');
+});
+
+test('V2 contract: Portable Portal has no turret-slot cost',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTABLE_PORTAL_SLOT_ACCOUNTING_STATUS,'NO_TURRET_SLOT_COST');
 });
