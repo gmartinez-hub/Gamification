@@ -423,3 +423,19 @@ OPEN:
 - exact per-map unlock threshold / what counts as an access,
 - global vs per-world unlock scope,
 - exact setup slot/mount category for the Portable Portal.
+
+
+---
+
+## Natural portal window / turret-slot Portable Portal — resolved / open
+
+RESOLVED:
+- natural portal appears for a finite window,
+- missed/ignored portal closes and a later one appears procedurally elsewhere,
+- each opportunity must be reachable,
+- exact cadence/window/placement distances remain BALANCE/MEASURE,
+- Portable Portal consumes one normal turret slot,
+- once Portable Portal is acquired it is globally equipable in any unlocked world; no per-map re-unlock.
+
+OPEN:
+- exact first-acquisition condition/count for the Portable Portal.
