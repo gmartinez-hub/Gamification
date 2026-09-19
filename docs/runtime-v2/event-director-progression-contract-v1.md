@@ -115,8 +115,8 @@ These values are useful only as historical loop evidence. V2 must not inherit th
 | CAMPAIGN_STARTED_AFTER_PROLOGUE | defeat/recovery prologue completes | baseline recovery Bike available | none | APPROVED |
 | NOMA_RESCUED | World 1 rescue encounter resolved | Nóma persistent companion | none | APPROVED |
 | PLAYER_PISTOL_GRANTED | Nóma rescue narrative beat | first player Pistol physical unit granted | ammo unlimited | APPROVED |
-| W1_SHIP_BUILD_ACCESS | early post-rescue reconstruction beat | ship-building progression begins | exact first physical piece/order still open | RECOVERY / SEMANTIC_QUESTION |
-| W1_EQUIPMENT_FAMILY_UNLOCK_* | exact W1 milestones TBD | Front / Beacon / Turret / Middle / Final become owned or purchasable according to explicit event row | Cells when row says PURCHASE, no cost when row says GRANT | SEMANTIC_QUESTION — must be fully enumerated |
+| NOMA_RETURNED_TO_HANGAR | safe return to Hangar with rescued Nóma | Cabina / Front is available for assembly; ship-building progression begins | Cabina/Front does not require a new purchase at this beat | APPROVED |
+| W1_EQUIPMENT_FAMILY_UNLOCK_* | exact W1 milestones TBD after Cabina/Front availability | Beacon / Turret / Middle / Final and other approved improvements/articles become purchasable only when their explicit Director unlock row fires | purchase uses Energy Cells; no additional free grant is implied | SEMANTIC_QUESTION — must be fully enumerated |
 | CELLS_REWARDED | eligible asteroid/enemy reward event resolves | pending Cells increase | reward amount BALANCE | APPROVED mechanism |
 | HANGAR_RETURN_BANKED | safe world -> Hangar handoff | pending -> banked; surviving setup recovered/repaired | enables purchase loop | APPROVED |
 | GEM_1_EARNED | W1 protected gem encounter completed | World 2 unlocked | Gem not spent | APPROVED |
@@ -185,21 +185,27 @@ Rules:
 
 Exact Heat rates/thresholds/weights are BALANCE.
 
-## 8. Preset persistence proposal — pending explicit approval
+## 8. Preset persistence
 
-Because save is local and there is a maximum of three ship presets, the recommended clean-room behavior is:
-- three explicit named local slots per ship,
-- Save creates/updates the selected slot,
-- Save As may choose an empty slot,
-- when all three are occupied, saving a new preset requires explicit Replace Slot 1/2/3,
-- no rolling "latest three" FIFO,
-- no silent deletion,
-- overwrite is explicit and local,
-- inactive slots remain logical data + derived thumbnails; only selected ship is promoted to live HERO 3D,
-- if a referenced physical item is LOST, retain the preset as INCOMPLETE instead of deleting it; it cannot confirm a launch until repaired/replaced/edited.
+**APPROVED**
 
-Still open:
-- whether Player Ship and Ally Ship each own independent three-slot sets, or another explicitly approved relation.
+Save is local.
+
+Each physical player/ally ship owns its own independent set of **three explicit named local preset slots**.
+
+Semantics:
+- Save updates the currently selected slot.
+- Save As may use an empty slot.
+- If all three slots are occupied, saving a new configuration requires explicit Replace Slot 1/2/3.
+- No rolling "latest three" FIFO.
+- No silent deletion.
+- Presets may be renamed and explicitly overwritten.
+- Inactive presets remain logical data + derived thumbnail; only the selected ship is promoted to live HERO 3D.
+- Presets never duplicate physical modules/turrets.
+- If a referenced physical item is later LOST, the preset remains saved as **INCOMPLETE**.
+- An INCOMPLETE preset may be inspected/edited but cannot confirm a launch until the missing physical requirement is repaired/replaced/removed from the configuration.
+
+Player Ship presets and Ally Ship presets are independent. They do not consume one another's three slots.
 
 ## 9. Turret / Beacon measurement gate
 
@@ -229,8 +235,36 @@ This is **not** a mount proof: the actual Beacon top mounting surface/socket is 
 
 ## 10. Remaining semantic blockers
 
-1. Exact World 1 physical-item unlock/grant/purchase order for Front / Beacon / Turret / Middle / Final.
-2. Preset ownership relation between Player Ship and Ally Ship.
-3. Explicit preset-slot recommendation approval.
-4. Final turret inventory model after Beacon/Bike/Nóma/Ship scale proofs: generic purchased turret with fixed authored host assignment vs host-specific purchasable unit family.
-5. Encounter-family matrix per world/campaign layer. Counts/weights remain BALANCE after families are frozen.
+1. Exact World 1 purchase-unlock order for Beacon / Turret / Middle / Final and other approved improvements/articles after Cabina/Front becomes available.
+2. Final turret inventory model after Beacon/Bike/Nóma/Ship scale proofs: generic purchased turret with fixed authored host assignment vs host-specific purchasable unit family.
+3. Encounter-family matrix per world/campaign layer. Counts/weights remain BALANCE after families are frozen.
+
+
+## 11. Shared autonomous turret motion
+
+**APPROVED**
+
+Turret combat movement/automation is shared across every approved host surface.
+
+One authored logical motion profile is reused:
+- target acquisition under the autonomous-targeting contract,
+- yaw toward target,
+- pitch/elevation toward target,
+- muzzle/fire timing,
+- return-to-scan/idle behavior.
+
+Host differences do **not** require a different targeting animation/AI family.
+
+What may differ by host is physical production data only:
+- uniform asset scale / authored runtime variant,
+- mount adapter/base,
+- socket transform,
+- collider/clearance envelope,
+- allowed yaw/elevation limits if real geometry blocks motion,
+- muzzle socket offset.
+
+The underlying turret mesh must not be non-uniformly deformed at runtime merely to fit a host.
+
+Because the current canonical turret GLB is one mesh with no armature/clips, production must author the reusable articulation hierarchy once (for example base/yaw/pitch/barrel/muzzle or an equivalent proven hierarchy). That same motion hierarchy is then reusable across Ship, Bike, Nóma and Beacon host variants/profiles.
+
+Exact mechanical limits remain VERIFY from each real host surface; implementation may not assume 360-degree clearance.
