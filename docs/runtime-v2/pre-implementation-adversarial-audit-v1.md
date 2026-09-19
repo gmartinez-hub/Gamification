@@ -437,5 +437,8 @@ RESOLVED:
 - Portable Portal consumes one normal turret slot,
 - once Portable Portal is acquired it is globally equipable in any unlocked world; no per-map re-unlock.
 
-OPEN:
-- exact first-acquisition condition/count for the Portable Portal.
+RESOLVED:
+- after two successful natural-portal transits, the Portable Portal becomes purchasable globally.
+
+BALANCE:
+- exact Energy Cell purchase price for the Portable Portal.
