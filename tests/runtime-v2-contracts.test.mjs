@@ -302,3 +302,14 @@ test('V2 contract: player has no recoverable DOWNED state',async()=>{
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.PLAYER_DOWNED_STATE_ENABLED,false);
 });
+
+
+test('V2 contract: baseline recovery Bike is permanently available',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BASELINE_RECOVERY_BIKE_PERMANENT,true);
+});
+
+test('V2 contract: portal review is one panel with separate Party and Equipment sections',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTAL_REVIEW_UI,'UNIFIED_PARTY_EQUIPMENT_SECTIONS');
+});
