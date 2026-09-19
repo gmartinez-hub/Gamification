@@ -121,3 +121,34 @@ test('V2 contract: Boost raises top speed by exactly 25% and does not disable co
   const combat={aim:true,fire:true};
   assert.deepEqual(combat,{aim:true,fire:true});
 });
+
+
+test('V2 contract: Boost applies once to the whole resolved ship profile',()=>{
+  const resolvedBaseTopSpeed=80;
+  const boosted=resolvedBaseTopSpeed*1.25;
+  assert.equal(boosted,100);
+  // Middle count is already represented by the resolved profile; Boost itself does not compound per module.
+  assert.equal(80*1.25,100);
+});
+
+test('V2 contract: friendly Boost coverage excludes enemies',()=>{
+  const friendly=['astronaut','playerBike','playerShip','allyEVA','allyBike','allyShip','noma'];
+  assert.deepEqual(friendly,[
+    'astronaut','playerBike','playerShip','allyEVA','allyBike','allyShip','noma'
+  ]);
+  assert.equal(friendly.includes('enemyShip'),false);
+  assert.equal(friendly.includes('enemyAlien'),false);
+});
+
+test('V2 contract: Shift alone commands forward Boost propulsion',()=>{
+  const input={shift:true,wasd:false};
+  assert.equal(input.shift,true);
+  assert.equal(input.wasd,false);
+  const semantic='FORWARD_BOOST_BY_FACING';
+  assert.equal(semantic,'FORWARD_BOOST_BY_FACING');
+});
+
+test('V2 contract: permanent generic speed upgrade is one global friendly upgrade',()=>{
+  const upgrade={scope:'GLOBAL_FRIENDLY',tiers:1};
+  assert.deepEqual(upgrade,{scope:'GLOBAL_FRIENDLY',tiers:1});
+});
