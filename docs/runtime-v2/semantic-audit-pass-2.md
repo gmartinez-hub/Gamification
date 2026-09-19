@@ -24,15 +24,21 @@ Pass 2 rechecked the current canonical pack after resolving:
 **0** for the currently defined core game loop and vertical-slice systems.
 
 ### Deferred feature-level product decisions
-**1**, explicitly outside the first implementation tickets until resolved:
-1. exact generic speed-upgrade unlock/purchase progression.
+**0**
 
-Boosted Bike progression is now closed conditionally on geometry validation:
+Generic speed-upgrade progression is now closed:
+- one global friendly upgrade,
+- +15% base top speed,
+- +20% base acceleration,
+- unlock after second narrative gem / World 3 access,
+- price 1,000 Energy Cells,
+- additive with moment-to-moment Boost,
+- combined result: 140% top speed / 160% acceleration.
+
+Boosted Bike progression remains closed conditionally on geometry validation:
 - unlock after the World 3 mothership reveal,
 - purchase price **1,500 Energy Cells**,
 - cannot be purchased if the Back-derived Bike geometry/camera/rider/collider validation fails.
-
-The remaining generic speed-upgrade rule is not permission to infer; its implementation ticket stays blocked until explicitly approved.
 
 ## Reconciliations completed in Pass 2
 
