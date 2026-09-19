@@ -469,3 +469,19 @@ test('V2 contract: Portable Portal consumes a turret slot and unlocks globally o
   assert.equal(mod.PORTABLE_PORTAL_UNLOCK_SCOPE,'GLOBAL_ONCE_ACQUIRED');
   assert.equal(mod.PORTABLE_PORTAL_UNLOCK_STATUS,'SEMANTIC_QUESTION');
 });
+
+
+test('V2 contract: Portable Portal unlocks for purchase after two successful natural portal transits',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED,2);
+  assert.equal(mod.PORTABLE_PORTAL_ACQUISITION_MODE,'PURCHASE_AFTER_UNLOCK');
+  assert.equal(mod.PORTABLE_PORTAL_PRICE_STATUS,'BALANCE');
+  assert.deepEqual(
+    mod.portablePortalUnlock({successfulNaturalPortalTransits:1}),
+    {unlockedForPurchase:false,progress:1,required:2}
+  );
+  assert.deepEqual(
+    mod.portablePortalUnlock({successfulNaturalPortalTransits:2}),
+    {unlockedForPurchase:true,progress:2,required:2}
+  );
+});
