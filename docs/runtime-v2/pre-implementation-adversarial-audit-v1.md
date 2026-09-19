@@ -438,7 +438,11 @@ RESOLVED:
 - once Portable Portal is acquired it is globally equipable in any unlocked world; no per-map re-unlock.
 
 RESOLVED:
-- after two successful natural-portal transits, the Portable Portal becomes purchasable globally.
+- after two successful natural-portal transits, the Portable Portal becomes purchasable,
+- once acquired, it is globally equipable.
+
+OPEN:
+- whether the two qualifying transits can be across any worlds or must be within one map/world.
 
 BALANCE:
 - exact Energy Cell purchase price for the Portable Portal.
