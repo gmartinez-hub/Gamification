@@ -631,3 +631,15 @@ test('V2 contract: ally DOWNED dies only from additional hostile damage',async()
   assert.equal(mod.ALLY_DOWNED_DEATH_TRIGGER,'ADDITIONAL_HOSTILE_DAMAGE');
   assert.equal(mod.ALLY_PORTAL_DISCOVERY_RULE_STATUS,'SEMANTIC_QUESTION');
 });
+
+
+test('V2 contract: Noma never reaches permanent DEAD state',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NOMA_PERMANENT_DEATH_ALLOWED,false);
+});
+
+test('V2 contract: ally DOWNED dies only from additional damage, not bleedout timer',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.ALLY_DOWNED_DEATH_TRIGGER,'ADDITIONAL_DAMAGE_ONLY');
+  assert.equal(mod.ALLY_DOWNED_BLEEDOUT_TIMER,false);
+});
