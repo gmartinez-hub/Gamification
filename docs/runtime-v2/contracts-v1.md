@@ -1034,3 +1034,48 @@ The panel unifies decision visibility, not the underlying rules.
 Party recovery semantics and equipment recall semantics remain distinct and must not be collapsed into one generic ownership rule.
 
 Travel is allowed only after required explicit choices are resolved and any requested Portal Recall arrivals have completed.
+
+
+---
+
+## 27. Session interruption, player death return, and dead-ally intact setup recovery
+
+### GZ-SESSION-001 — Closing/reloading during a sortie returns to Hangar
+**APPROVED**
+
+If the game/session is closed, refreshed, suspended beyond recoverability, or reopened while the player is in an active world sortie, the runtime does **not** resume that exact sortie instance.
+
+On next valid resume:
+- return the player to Hangar,
+- preserve only persistent/banked campaign state,
+- discard the active world instance,
+- discard pending sortie Energy Cells,
+- do not restore the exact world position/seed/runtime state.
+
+This is intentionally different from a normal world-to-world portal handoff, where pending Cells remain part of the same continuing excursion.
+
+Exact crash-detection and save-journal implementation remain architecture details, but the product outcome above is fixed.
+
+### GZ-DEATH-004 — Player death returns directly to Hangar
+**APPROVED**
+
+Player death flow:
+1. resolve death/loss rules,
+2. lose pending sortie Cells,
+3. calculate and bank salvage,
+4. show a short recovery/death presentation,
+5. return directly to Hangar.
+
+There is no intermediate recovery world/location in V1.
+
+### GZ-COMP-009 — Dead ally returns intact surviving equipment to Hangar
+**APPROVED**
+
+If the ally character becomes DEAD:
+- the ally character requires paid revival before redeployment,
+- any ally-owned/assigned equipment or vehicle that is still intact is recovered automatically to Hangar,
+- destroyed ally vehicle/equipment remains lost,
+- no physical item is duplicated,
+- intact equipment recovery does not revive the ally character.
+
+This recovery is automatic and does not require Portal Recall merely because the ally died.
