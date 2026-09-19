@@ -63,10 +63,18 @@ Entering another world through a portal ends the current world instance. The des
 
 ## 2. Portal and transit
 
-### GZ-PORTAL-001 — Discovery
-**APPROVED**
+### GZ-PORTAL-001 — Natural portal discovery
+**APPROVED — RECONCILED**
 
-Portals appear/findable in the procedural world. Once found, the portal remains usable for the rest of that world instance.
+Natural portals appear procedurally as recurring, time-bounded opportunities in the active world.
+
+- each opportunity must be discoverable and reachable,
+- an active opportunity is usable only during its availability window,
+- if missed/ignored, it closes,
+- later opportunities recur procedurally at other valid reachable locations,
+- the player is never permanently denied normal extraction merely because an earlier portal window was missed.
+
+Discovery/notification semantics are governed by the later Portal contracts and still require the explicit companion/detection decisions tracked in the assumption audit.
 
 ### GZ-PORTAL-002 — Destinations
 **APPROVED**
@@ -1358,16 +1366,13 @@ Carrying a Portable Portal does not remove natural procedural portals.
 Natural portal opportunities continue to recur according to GZ-PORTAL-017, allowing the player to keep farming and choose when/how to extract.
 
 ### GZ-PORTAL-UNLOCK-OPEN — Portable Portal unlock threshold
-**SEMANTIC_QUESTION**
+**RESOLVED / SUPERSEDED**
 
-The product direction is that the Portable Portal becomes available only after the player has experienced natural portal discovery/use multiple times per map/world.
-
-Still requires explicit confirmation:
-- exact number of required accesses/visits,
-- whether the unlock is global after learning the mechanic or tracked separately per world/map,
-- whether "access" means finding the portal, successfully using it, or completing a visit to that map.
-
-Do not infer these values.
+Resolved by GZ-PORTAL-025:
+- two successful natural-portal transits,
+- counted globally across worlds,
+- discovery alone does not count,
+- unlock makes the Portable Portal purchasable, not granted.
 
 
 ### GZ-PORTAL-022 — Natural portal availability window and procedural relocation
@@ -1415,20 +1420,16 @@ Once the player owns/unlocks the Portable Portal:
 - entering a new world does not require re-learning or re-unlocking the Portable Portal,
 - natural portals in that world still continue to spawn/recur procedurally.
 
-The exact campaign condition that grants the first Portable Portal remains **SEMANTIC_QUESTION** until explicitly defined.
+The first-acquisition condition is closed by GZ-PORTAL-025.
 
 ### GZ-PORTAL-UNLOCK-OPEN — First Portable Portal acquisition condition
-**SEMANTIC_QUESTION**
+**RESOLVED / SUPERSEDED**
 
-Resolved:
-- unlock scope is global once acquired,
-- it is not tracked separately per map.
-
-Still requires explicit confirmation:
-- exact event/count that grants the first Portable Portal,
-- what counts toward that requirement (natural portal discoveries, successful uses, completed sorties, or another progression event).
-
-Do not infer a numeric threshold.
+Resolved by GZ-PORTAL-025:
+- two successful natural-portal transits,
+- counter is global across worlds,
+- unlock enables purchase in Hangar,
+- exact purchase price remains BALANCE.
 
 
 ### GZ-PORTAL-025 — Portable Portal unlock after two successful portal transits
