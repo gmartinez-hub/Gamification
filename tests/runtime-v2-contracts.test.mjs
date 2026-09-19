@@ -551,10 +551,22 @@ test('V2 contract: natural portal detection shows marker direction distance and 
   assert.equal(mod.NATURAL_PORTAL_DIRECTION_GUIDANCE,true);
   assert.equal(mod.NATURAL_PORTAL_DISTANCE_GUIDANCE,true);
   assert.equal(mod.NATURAL_PORTAL_COUNTDOWN_REQUIRED,true);
-  assert.equal(mod.NATURAL_PORTAL_MARKER_EXPIRY_STATUS,'SEMANTIC_QUESTION');
+  assert.equal(mod.NATURAL_PORTAL_MARKER_EXPIRY_STATUS,'REMOVE_COMPLETELY');
 });
 
 test('V2 contract: Portable Portal has no turret-slot cost',async()=>{
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.PORTABLE_PORTAL_SLOT_ACCOUNTING_STATUS,'NO_TURRET_SLOT_COST');
+});
+
+
+test('V2 contract: expired natural portal marker disappears completely',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NATURAL_PORTAL_MARKER_EXPIRY_STATUS,'REMOVE_COMPLETELY');
+  assert.equal(mod.NATURAL_PORTAL_MARKER_EXPIRES_WITH_WINDOW,true);
+});
+
+test('V2 contract: World 1 Gem source is Noma discovery plus protected encounter',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.WORLD1_GEM_SOURCE,'NOMA_DISCOVERY_PROTECTED_GUARDIAN_ENCOUNTER');
 });
