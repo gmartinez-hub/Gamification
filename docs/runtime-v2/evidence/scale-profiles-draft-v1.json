@@ -1,0 +1,118 @@
+{
+  "schema": "gz-scale-profiles-v1-draft",
+  "principle": "Raw GLB authoring bounds are never automatically semantic world dimensions.",
+  "humanAnchorMetres": 1.9,
+  "profiles": {
+    "character.player": {
+      "status": "APPROVED",
+      "authoringBounds": { "x": 0.972569, "y": 1.89899, "z": 0.988409 },
+      "semantic": { "height": 1.9 },
+      "provenance": ["asset-measurements-v1", "product decision: astronaut = 1.90 m"]
+    },
+    "cockpit.integrated": {
+      "status": "VERIFY",
+      "authoringBounds": { "x": 2.04, "y": 1.3, "z": 2.569153 },
+      "measuredReference": { "legacyDisplayScale": 1.8, "envelope": { "x": 3.672, "y": 2.34, "z": 4.624475 } },
+      "diagnosis": "SOURCE_EXISTS_RUNTIME_HIDES",
+      "provenance": ["asset-measurements-v1", "CABIN_LAYOUT.dashboardScale", "cockpit depth evidence"]
+    },
+    "ship.front": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 1.895572, "y": 1.796526, "z": 1.814597 },
+      "measuredReference": { "legacySemanticDimensions": { "width": 4.73893, "height": 4.536493, "length": 4.491315 } },
+      "constraints": ["mandatory first module", "valid standalone craft", "baseline integrated weapon", "PrimaryBoostExhaust when terminal"],
+      "provenance": ["asset-measurements-v1", "legacy ship scale evidence"]
+    },
+    "ship.middle": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 1.588412, "y": 1.899496, "z": 1.288278 },
+      "measuredReference": { "legacySemanticDimensions": { "width": 3.97103, "height": 3.220695, "length": 4.74874 } },
+      "constraints": ["repeatable N", "cargo/heavy class trigger", "turret-capacity surface", "PrimaryBoostExhaust when terminal"],
+      "provenance": ["asset-measurements-v1", "legacy ship scale evidence"]
+    },
+    "ship.final": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 1.824724, "y": 1.89893, "z": 1.845239 },
+      "measuredReference": { "legacySemanticDimensions": { "width": 4.56181, "height": 4.613098, "length": 4.747325 } },
+      "constraints": ["optional", "propulsion-performance differentiator", "PrimaryBoostExhaust when terminal"],
+      "provenance": ["asset-measurements-v1", "legacy ship scale evidence"]
+    },
+    "ship.composition.front": {
+      "status": "MEASURED_REFERENCE",
+      "semanticEvidence": { "length": 4.491 },
+      "provenance": ["asset-measurements-v1"]
+    },
+    "ship.composition.frontFinal": {
+      "status": "MEASURED_REFERENCE",
+      "semanticEvidence": { "length": 8.744 },
+      "provenance": ["asset-measurements-v1"]
+    },
+    "ship.composition.frontMiddleFinal": {
+      "status": "MEASURED_REFERENCE",
+      "semanticEvidence": { "length": 12.869 },
+      "provenance": ["asset-measurements-v1"]
+    },
+    "ship.composition.front5MiddleFinal": {
+      "status": "MEASURED_REFERENCE",
+      "semanticEvidence": { "length": 29.369 },
+      "provenance": ["asset-measurements-v1"]
+    },
+    "vehicle.bike": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 1.395172, "y": 1.298996, "z": 2.999908 },
+      "measuredReference": { "semanticEnvelope": { "width": 1.395172, "height": 1.298996, "length": 2.999908 } },
+      "constraints": ["PrimaryBoostExhaust at center", "Boosted Bike Back-fit remains geometry VERIFY"],
+      "provenance": ["asset-measurements-v1", "bike actor evidence"]
+    },
+    "enemy.alienShip": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 0.548798, "y": 0.290573, "z": 1.0 },
+      "measuredReference": { "legacySemanticDimensions": { "width": 14.122493, "height": 7.47746, "length": 25.7335 } },
+      "semanticConstraint": "must read materially larger than normal player ship",
+      "provenance": ["asset-measurements-v1", "ENEMY_SHIP_LENGTH legacy evidence"]
+    },
+    "hangar.serviceBay": {
+      "status": "VERIFY",
+      "authoringBounds": { "x": 1.899311, "y": 0.860787, "z": 1.790811 },
+      "measuredReference": { "legacyDisplayScale": 18, "envelope": { "x": 34.187598, "y": 15.494166, "z": 32.234598 } },
+      "semanticConstraints": ["large operational clearance for standard ship", "long valid ships may extend toward orbital opening", "first-person walk must be geometry-validated"],
+      "provenance": ["asset-measurements-v1", "legacy hangar staging evidence"]
+    },
+    "portal.ring": {
+      "status": "VERIFY",
+      "assetStatus": "NO_GLB_IN_MAIN",
+      "measuredReference": { "legacyProceduralEventHorizonDiameter": 6.8, "legacyVisualDiscOuterDiameter": 15.6 },
+      "semanticConstraint": "aperture must fit selected travelling setup without hidden per-shot ship scaling",
+      "provenance": ["jump-anomaly legacy procedural evidence"]
+    },
+    "weapon.turret": {
+      "status": "MEASURE",
+      "authoringBounds": { "x": 1.897091, "y": 1.152382, "z": 0.869767 },
+      "mountProfiles": {
+        "noma": { "status": "MEASURE" },
+        "bike": { "status": "MEASURE" },
+        "beacon": { "status": "MEASURE" },
+        "ship": { "status": "MEASURE" }
+      },
+      "provenance": ["asset-measurements-v1"]
+    },
+    "character.ally": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 1.53026, "y": 1.89927, "z": 0.61684 },
+      "measuredReference": { "legacyDisplayScale": 1.15, "envelope": { "x": 1.759799, "y": 2.184161, "z": 0.709366 } },
+      "provenance": ["asset-measurements-v1", "legacy staging evidence"]
+    },
+    "companion.noma": {
+      "status": "MEASURED_REFERENCE",
+      "authoringBounds": { "x": 1.898, "y": 1.174, "z": 1.355 },
+      "measuredReference": { "legacyDisplayScale": 0.36, "envelope": { "x": 0.68328, "y": 0.42264, "z": 0.4878 } },
+      "provenance": ["asset-measurements-v1", "legacy companion actor scale"]
+    },
+    "boss.mothership": {
+      "status": "PRODUCE_MEASURE",
+      "assetStatus": "NO_GLB_IN_MAIN",
+      "semanticConstraint": "must read dramatically larger than alien ship in boss establishing and combat cameras",
+      "provenance": ["approved boss visual canon"]
+    }
+  }
+}
