@@ -48,7 +48,7 @@ For every transition assert:
 
 - Left-behind intact player-owned equipment: **RESOLVED** — portal warns; player may recover manually, request Portal Recall, or Travel Anyway and lose it. Recalled equipment arrives diegetically after a short delay and joins the transit cinematic before handoff.
 - Deployed beacons/turrets: **RESOLVED by generic equipment rule** — if intact, player-owned and left behind, they are eligible for the same explicit Portal Recall / manual recovery / Travel Anyway decision.
-- Companion base recovery vs companion-owned remote vehicle/equipment remains open unless covered by explicit equipment recall.
+- Companion base recovery with intact remote vehicle/equipment: **RESOLVED — living/downed companion returns with their intact surviving setup; destroyed units remain lost**.
 
 ---
 
@@ -120,9 +120,9 @@ Verify:
 ### Semantic questions to expose
 
 - friendly fire: **RESOLVED — disabled for the friendly faction**.
-- can individual modules/turrets be destroyed independently, or only host-level destruction?
-- ammo/energy limits: infinite baseline fire or an authored resource/cooldown system?
-- repair/heal behavior during and between sorties.
+- independent module/turret destruction: **RESOLVED — no independent permanent destruction; attachments are lost with the host vehicle**.
+- ammo/energy limits: **RESOLVED — unlimited ammunition/weapon energy; cadence may still use fire-rate timing**.
+- repair/heal behavior during and between sorties: vehicle repair **RESOLVED — free/immediate at Hangar**; character healing semantics remain separate if needed.
 
 ---
 
