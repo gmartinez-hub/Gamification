@@ -98,16 +98,9 @@ Yes. Portable Portal uses the same Party & Equipment Check + Portal Recall + saf
 ## C. Campaign / persistence
 
 ### AS-PERSIST-001 — Narrative milestone save timing
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-When the player earns:
-- a narrative gem,
-- Nóma rescue/unlock,
-- ally rescue/unlock,
-- mothership reveal,
-- Portable Portal two-transit unlock progress,
-
-are these milestones persisted immediately when earned, or only when the player successfully returns to Hangar?
+Narrative gems, Nóma/ally unlocks, mothership reveal and Portable Portal unlock progress persist immediately when earned. They do not wait for Hangar return. Pending Energy Cells remain separate.
 
 ### AS-CAMPAIGN-001 — First narrative gem source
 **RESOLVED**
@@ -115,14 +108,9 @@ are these milestones persisted immediately when earned, or only when the player 
 World 1: after Nóma rescue and early ship progression, Nóma Explore discovers an anomalous signal / protected gem POI. Completing the hostile guardian/elite encounter grants Gem 1 and unlocks World 2.
 
 ### AS-CAMPAIGN-002 — Second narrative gem source
-**PARTIAL / SEMANTIC_QUESTION**
+**RESOLVED**
 
-User selected a combination for World 2. Exact combined sequence still requires explicit wording before freeze.
-
-Candidate to confirm:
-- rescued ally contributes intel/location knowledge,
-- that intel leads to a dangerous carrier/elite/fortified encounter,
-- completing that encounter grants Gem 2 and unlocks World 3.
+World 2: rescued ally contributes intel about the second gem; that opens a higher-threat carrier/elite/fortified encounter. Completing the encounter grants Gem 2 and unlocks World 3.
 
 ## D. Companion semantics
 
@@ -183,26 +171,22 @@ Does the player astronaut have a usable personal weapon in EVA/on foot? If yes, 
 Is the ally pistol unlimited-ammo, finite-ammo, or governed by another resource rule?
 
 ### AS-BEACON-001 — Beacon gameplay function
-**SEMANTIC_QUESTION**
+**PARTIAL / SEMANTIC_QUESTION**
 
-Current approved facts:
-- Beacon is a physical owned deployable/inventory item.
-- It may appear on Tactical Map.
-- It can host max 1 turret.
-- It is friendly/no-friendly-fire.
-- It follows normal intact-recovery / destroyed-loss / Portal Recall rules.
-- Asset direction includes radar/light/emissive areas, simple collider and long-distance readability.
+RESOLVED:
+- player astronaut deploys it manually,
+- deployed Beacon is always visible on Tactical Map,
+- it detects enemies, hordes and natural portals,
+- no generic POI detection is approved,
+- it is a navigation/parking anchor for player ship or Bike,
+- on portal/world transition an intact Beacon returns directly to inventory and does not fly to the ring/cinematic,
+- destroyed Beacon remains LOST.
 
-Prior product intent also included orientation/map marking, portal signaling and alien alerts, but those functions are not yet fully canonical.
-
-Explicitly define:
-1. deployment action: who plants it and from what inventory/context?
-2. primary sensor function: enemies, hordes, natural portals, POIs, or a subset?
-3. does it reveal/extend map information within a radius?
-4. does it act as a navigation anchor/waypoint for player/companions?
-5. can it signal or help locate the next natural portal?
-6. can multiple owned Beacons be deployed simultaneously, or is there a per-sortie cap?
-7. can the player remotely Recall a Beacon outside Portal Recall, or only recover manually/through portal resolution?
+Still open:
+- can multiple owned Beacons be deployed simultaneously, or max one active?
+- can the player recall/recover a Beacon remotely during normal world play, outside portal transition?
+- are parked ship/Bike still fully vulnerable while left at the Beacon?
+- do Beacon-detected enemies/hordes/portals become persistent map markers while within sensor coverage, and when are they removed?
 
 ### AS-BIKE-001 — Bike turret-capacity upgrade
 **SEMANTIC_QUESTION**
