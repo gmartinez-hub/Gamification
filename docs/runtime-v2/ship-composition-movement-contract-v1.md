@@ -683,3 +683,69 @@ Rationale:
 - the number is balance data and may be tuned after economy telemetry without changing the semantic contract.
 
 The unlock gate and physical-fit validation remain prerequisites; paying Cells cannot bypass them.
+
+
+---
+
+# Decision Update — Boost Kinematics / Combat Continuity
+
+### GZ-BOOST-010 — Boost changes real movement
+**APPROVED**
+
+Boost is a real kinematic state, not presentation-only.
+
+While Boost is active:
+- top speed increases by **25%** relative to that actor/vehicle's current non-Boost top speed,
+- acceleration increases as well,
+- the presentation stack intensifies to communicate the state.
+
+The exact acceleration multiplier is still **OPEN** and must not be inferred from the +25% top-speed rule.
+
+### GZ-BOOST-011 — Boost duration/resource semantics
+**APPROVED**
+
+Boost may be held indefinitely.
+
+V1 Boost has:
+- no heat,
+- no cooldown,
+- no fuel,
+- no per-second Energy Cell drain.
+
+### GZ-BOOST-012 — Combat continuity during Boost
+**APPROVED**
+
+Boost does not disable aiming or firing.
+
+Player-controlled actors/vehicles may continue to aim and shoot while Boost is active.
+
+### GZ-BOOST-013 — Propulsion presentation
+**APPROVED direction / TUNE values**
+
+Boost presentation includes:
+- stronger/more visible fire from active propulsion outlets,
+- the existing/required strong PrimaryBoostExhaust cue where the host supports it,
+- additional speed-presentation FX.
+
+Exact FX layers, intensities and camera treatment remain TUNE/VERIFY and must preserve aim readability.
+
+### GZ-BOOST-014 — Separate permanent speed-upgrade family exists
+**APPROVED existence / OPEN semantics**
+
+There are two distinct concepts:
+1. moment-to-moment Boost activated during play,
+2. a separate permanent generic speed/acceleration upgrade family.
+
+The permanent upgrade's ownership scope, stat effect, unlock gate and price are NOT yet frozen. Do not infer them from Boost.
+
+### GZ-BOOST-015 — Friendly-side coverage
+**PARTIAL / CONFIRM ACTOR LIST**
+
+Current product statement: Boost applies to the player and allies.
+
+The exact actor/vehicle coverage list still requires explicit confirmation before implementation, especially:
+- Nóma,
+- ally EVA/on-foot state,
+- ally Bike,
+- ally Ship,
+- enemy/hostile actors (currently not inferred).
