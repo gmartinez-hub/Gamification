@@ -1,0 +1,48 @@
+name: Runtime V2 Asset Measurement
+
+on:
+  push:
+    branches:
+      - docs/gz-runtime-v2-spec
+    paths:
+      - scripts/runtime-v2-measure-assets.mjs
+      - .github/workflows/runtime-v2-measure.yml
+      - assets/runtime/**/*.glb
+      - assets/runtime/**/manifest.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout measurement branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/gz-runtime-v2-spec
+          fetch-depth: 1
+
+      - name: Run clean-room asset measurement harness
+        run: node scripts/runtime-v2-measure-assets.mjs
+
+      - name: Upload measurement evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-v2-asset-measurements
+          path: |
+            docs/runtime-v2/evidence/asset-measurements-v1.json
+            docs/runtime-v2/evidence/asset-measurements-v1.md
+
+      - name: Commit evidence to spec branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/runtime-v2/evidence/asset-measurements-v1.json docs/runtime-v2/evidence/asset-measurements-v1.md
+          if git diff --cached --quiet; then
+            echo "No evidence changes"
+          else
+            git commit -m "docs(runtime-v2): record asset measurement evidence [skip ci]"
+            git push origin HEAD:docs/gz-runtime-v2-spec
+          fi
