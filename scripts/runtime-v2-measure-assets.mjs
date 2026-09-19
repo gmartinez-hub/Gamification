@@ -23,6 +23,8 @@ const ASSETS=[
 ];
 
 const HUMAN_HEIGHT=1.90;
+const sourceText=file=>fs.readFileSync(path.join(ROOT,file),'utf8');
+const matchNumber=(text,re,label)=>{const m=text.match(re); if(!m) throw new Error('Missing legacy evidence '+label); return Number(m[1]);};
 
 function readGlbJson(file){
   const b=fs.readFileSync(file);
@@ -162,6 +164,66 @@ const cockpitStandingEvidence=(()=>{
  };
 })();
 
+const mainSource=sourceText('src/lowpoly/main.js');
+const spatialSource=sourceText('src/lowpoly/spatial.js');
+const cabinLayoutSource=sourceText('src/lowpoly/cabin-controller.js');
+const assetActorsSource=sourceText('src/lowpoly/asset-actors.js');
+const enemyShipSource=sourceText('src/lowpoly/enemy-ship.js');
+const jumpSource=sourceText('src/lowpoly/jump-anomaly.js');
+
+const legacyCodeEvidence={
+ shipScale:matchNumber(spatialSource,/SHIP_SCALE\s*=\s*([0-9.]+)/,'SHIP_SCALE'),
+ cockpitDashboardScale:matchNumber(cabinLayoutSource,/dashboardScale:([0-9.]+)/,'dashboardScale'),
+ hangarDisplayScale:matchNumber(mainSource,/hangar\.group\.scale\.setScalar\(([0-9.]+)\)/,'hangar scale'),
+ allyDisplayScale:matchNumber(mainSource,/ally\.group\.scale\.setScalar\(([0-9.]+)\)/,'ally scale'),
+ turretDisplayScale:matchNumber(mainSource,/turret\.group\.scale\.setScalar\(([0-9.]+)\)/,'turret scale'),
+ energyCellDisplayScale:matchNumber(mainSource,/energyCell\.scale\.setScalar\(([0-9.]+)\)/,'energy cell scale'),
+ nomaDisplayScale:matchNumber(assetActorsSource,/model\.scale\.setScalar\(([0-9.]+)\);model\.rotation\.y=Math\.PI;visual\.add\(model\)/,'noma scale'),
+ alienShipLength:matchNumber(enemyShipSource,/ENEMY_SHIP_LENGTH\s*=\s*([0-9.]+)/,'enemy ship length'),
+ jumpEventHorizonRadius:matchNumber(jumpSource,/SphereGeometry\(([0-9.]+),48,32\)/,'jump horizon'),
+ jumpDiscInnerRadius:matchNumber(jumpSource,/RingGeometry\(([0-9.]+),7\.8,96,5\)/,'jump disc inner'),
+ jumpDiscOuterRadius:matchNumber(jumpSource,/RingGeometry\(3\.7,([0-9.]+),96,5\)/,'jump disc outer'),
+ jumpHaloRadius:matchNumber(jumpSource,/TorusGeometry\(([0-9.]+),\.22,16,96\)/,'jump halo')
+};
+
+function scaledDims(raw,scale){return raw?.dimensions?.map(v=>v*scale)??null;}
+const legacySemanticEvidence={
+ hangar: {
+   scale:legacyCodeEvidence.hangarDisplayScale,
+   dimensions:scaledDims(byKey['hangar.serviceBay']?.rawBounds,legacyCodeEvidence.hangarDisplayScale),
+   provenance:'src/lowpoly/main.js hangar.group.scale'
+ },
+ cockpit: {
+   scale:legacyCodeEvidence.cockpitDashboardScale,
+   dimensions:scaledDims(byKey['cockpit.integrated']?.rawBounds,legacyCodeEvidence.cockpitDashboardScale),
+   wallShellDimensions:scaledDims(cabinWalls,legacyCodeEvidence.cockpitDashboardScale),
+   provenance:'CABIN_LAYOUT.dashboardScale'
+ },
+ ally: {
+   scale:legacyCodeEvidence.allyDisplayScale,
+   dimensions:scaledDims(byKey['character.ally']?.rawBounds,legacyCodeEvidence.allyDisplayScale)
+ },
+ noma: {
+   scale:legacyCodeEvidence.nomaDisplayScale,
+   dimensions:scaledDims(byKey['companion.noma']?.rawBounds,legacyCodeEvidence.nomaDisplayScale)
+ },
+ turretHangarDisplay: {
+   scale:legacyCodeEvidence.turretDisplayScale,
+   dimensions:scaledDims(byKey['weapon.turret']?.rawBounds,legacyCodeEvidence.turretDisplayScale)
+ },
+ energyCellDisplay: {
+   scale:legacyCodeEvidence.energyCellDisplayScale,
+   dimensions:scaledDims(byKey['resource.energyCell']?.rawBounds,legacyCodeEvidence.energyCellDisplayScale)
+ },
+ jumpAnomaly: {
+   eventHorizonDiameter:legacyCodeEvidence.jumpEventHorizonRadius*2,
+   discInnerDiameter:legacyCodeEvidence.jumpDiscInnerRadius*2,
+   discOuterDiameter:legacyCodeEvidence.jumpDiscOuterRadius*2,
+   haloMajorDiameter:legacyCodeEvidence.jumpHaloRadius*2,
+   provenance:'src/lowpoly/jump-anomaly.js; procedural legacy reference, not GLB'
+ }
+};
+
 const derived={
  humanAnchorMetres:HUMAN_HEIGHT,
  astronaut:{
@@ -188,6 +250,8 @@ const derived={
    warning:'Declared legacy runtime length is evidence only.'
  },
  cockpitStandingEvidence,
+ legacyCodeEvidence,
+ legacySemanticEvidence,
  authoringNormalizationCheck:{
    allyLongest:byKey['character.ally']?.rawBounds?.longestDimension??null,
    turretLongest:byKey['weapon.turret']?.rawBounds?.longestDimension??null,
@@ -238,7 +302,11 @@ ${rows}
 - Legacy player-ship module spacing: **4.125 m**.
 - Legacy alien-ship declared runtime length: **25.734 m**, almost exactly 2× the current measured Front+Middle+Final player-ship envelope. Evidence only.
 - Cockpit depth diagnosis: uncut source shell leaves **${fmt(derived.cockpitStandingEvidence?.sourceRearClearance)} m** behind the standing astronaut, while the current rear clip cuts **${fmt(derived.cockpitStandingEvidence?.currentClipRearOverflow)} m** into the standing astronaut envelope. Initial classification: **SOURCE_EXISTS_RUNTIME_HIDES**.
-- No portal-ring GLB was found in main.
+- Legacy Hangar staging scale was **${legacyCodeEvidence.hangarDisplayScale}×**, giving an evidence envelope of **${legacySemanticEvidence.hangar.dimensions.map(fmt).join(' × ')} m**.
+- Legacy cockpit display scale was **${legacyCodeEvidence.cockpitDashboardScale}×**, giving an evidence envelope of **${legacySemanticEvidence.cockpit.dimensions.map(fmt).join(' × ')} m**.
+- Legacy Nóma display scale was **${legacyCodeEvidence.nomaDisplayScale}×**, giving an evidence envelope of **${legacySemanticEvidence.noma.dimensions.map(fmt).join(' × ')} m**.
+- Current procedural jump-anomaly reference: event-horizon diameter **${fmt(legacySemanticEvidence.jumpAnomaly.eventHorizonDiameter)} m**, disc outer diameter **${fmt(legacySemanticEvidence.jumpAnomaly.discOuterDiameter)} m**.
+- No portal-ring GLB was found in main; the current measured portal-size evidence is procedural code, not an authored ring asset.
 - No mothership GLB was found in main.
 - Closeout/raw assets must not be interpreted as world scale merely from GLB bounds.
 
