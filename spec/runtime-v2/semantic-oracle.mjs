@@ -61,7 +61,10 @@ export const PORTABLE_PORTAL_PHYSICAL_ITEM = true;
 export const PORTABLE_PORTAL_DESTINATIONS = Object.freeze(['HANGAR','UNLOCKED_WORLDS']);
 export const PORTABLE_PORTAL_USES_PER_SORTIE = 1;
 export const NATURAL_PORTAL_REMAINS_WITH_PORTABLE = true;
-export const PORTABLE_PORTAL_UNLOCK_STATUS = 'SEMANTIC_QUESTION';
+export const PORTABLE_PORTAL_UNLOCK_STATUS = 'CLOSED';
+export const PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED = 2;
+export const PORTABLE_PORTAL_ACQUISITION_MODE = 'PURCHASE_AFTER_UNLOCK';
+export const PORTABLE_PORTAL_PRICE_STATUS = 'BALANCE';
 export const NATURAL_PORTAL_WINDOWED = true;
 export const NATURAL_PORTAL_RELOCATES_PROCEDURALLY = true;
 export const PORTABLE_PORTAL_SLOT_TYPE = 'TURRET_SLOT';
@@ -274,5 +277,15 @@ export function sortieRepresentation({playerShipSelected,allyShipSelected,allySe
     allyInWorld:!!allySelected,
     allyShipInWorld:!!allySelected&&!!allyShipSelected,
     allyBikeInWorld:!!allySelected&&!!allyBikeSelected
+  };
+}
+
+
+export function portablePortalUnlock({successfulNaturalPortalTransits}){
+  const count=Number(successfulNaturalPortalTransits)||0;
+  return {
+    unlockedForPurchase:count>=PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED,
+    progress:Math.max(0,Math.min(count,PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED)),
+    required:PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED
   };
 }
