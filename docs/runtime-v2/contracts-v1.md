@@ -1466,3 +1466,76 @@ Resolved by GZ-PORTAL-025:
 - once acquired it is globally usable,
 - counter scope = global across worlds,
 - exact purchase price remains BALANCE.
+
+
+---
+
+## 33. Natural portal detection, destination, retry and recall guarantees
+
+### GZ-PORTAL-026 — Nóma is primary finder but not a hard gate
+**APPROVED**
+
+Nóma is the primary narrative/exploration finder for natural portals.
+
+However, natural portal discovery is not exclusively gated by Nóma:
+- the player can independently detect/discover a natural portal,
+- if Nóma is not deployed, unavailable or DOWNED, the player can still detect it,
+- the ally can also detect it when Nóma is unavailable/DOWNED.
+
+This guarantees that natural extraction cannot become impossible solely because Nóma is absent or incapacitated.
+
+Whether ally detection also runs in parallel while Nóma is fully active is not inferred beyond the fallback rule above.
+
+### GZ-PORTAL-027 — Detected portal shows expiration countdown
+**APPROVED PARTIAL PRESENTATION**
+
+Once a natural portal is detected, the player must be shown a countdown for the remaining availability window.
+
+The following presentation details are **still SEMANTIC_QUESTION**:
+- whether detection automatically creates a Tactical Map marker,
+- whether direction is shown,
+- whether distance is shown,
+- whether the marker, if any, disappears immediately when the portal window closes.
+
+Do not infer those UI/navigation channels from the countdown requirement.
+
+### GZ-PORTAL-028 — Maximum one active natural portal
+**APPROVED**
+
+At most one natural portal opportunity may be active in a world instance at a time.
+
+A later procedural portal opportunity can appear only after the current active opportunity is used or its availability window closes.
+
+### GZ-PORTAL-029 — Current world excluded as portal destination
+**APPROVED**
+
+Portal destinations include:
+- Hangar,
+- other unlocked worlds.
+
+The currently active world is excluded as a destination.
+
+A portal therefore cannot be used to intentionally reroll the same world into a fresh instance.
+
+### GZ-PORTAL-030 — Failed portal handoff does not consume opportunity/use
+**APPROVED**
+
+If destination preload or handoff fails:
+- the player returns safely to the source portal/world state,
+- the natural portal remains/reopens for retry rather than being consumed by the failed handoff,
+- a Portable Portal does **not** consume its once-per-sortie use on the failed attempt,
+- inventory, pending Cells and setup remain uncorrupted.
+
+Only a successful handoff counts as portal use/transit for progression and once-per-sortie Portable Portal consumption.
+
+### GZ-PORTAL-031 — Portal Recall arrival is guaranteed
+**APPROVED**
+
+Once the player explicitly requests Portal Recall for eligible intact owned equipment:
+- recall arrival is guaranteed,
+- recalled equipment cannot fail to arrive because of combat/pathing after the recall has been accepted,
+- recalled equipment cannot be destroyed during the protected recall transition,
+- the arrival is represented through a diegetic/cinematic presentation,
+- transit waits until that guaranteed recall presentation resolves.
+
+Exact arrival path, VFX, timing and camera treatment remain **TUNE/PRODUCE/VERIFY**.
