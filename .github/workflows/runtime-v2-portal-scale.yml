@@ -1,0 +1,37 @@
+name: Runtime V2 Portal Scale Proof
+
+on:
+  push:
+    branches:
+      - docs/gz-runtime-v2-spec
+    paths:
+      - .github/workflows/runtime-v2-portal-scale.yml
+      - tools/runtime-v2-visual-proof.js
+      - scripts/runtime-v2-capture-portal-size-proof.mjs
+      - docs/runtime-v2/contracts-v1.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portal-scale-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proof branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/gz-runtime-v2-spec
+          fetch-depth: 1
+
+      - name: Install Chromium
+        run: npx -y playwright@1.55.0 install --with-deps chromium
+
+      - name: Capture enlarged portal candidates
+        run: node scripts/runtime-v2-capture-portal-size-proof.mjs
+
+      - name: Upload portal scale proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-v2-portal-size-proof-v1
+          path: docs/runtime-v2/evidence/portal-size-proof-v1
