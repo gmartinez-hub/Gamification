@@ -374,3 +374,13 @@ test('V2 contract: pre-exit Hangar interruption discards uncommitted session',as
     }
   );
 });
+
+
+test('V2 contract: all intentional Hangar exits share the exit commit',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.deepEqual(mod.HANGAR_INTENTIONAL_EXIT_MODES,['LAUNCH_WORLD','MAIN_MENU','EXIT_QUIT']);
+  for(const mode of mod.HANGAR_INTENTIONAL_EXIT_MODES){
+    assert.deepEqual(mod.hangarExitDecision({mode,commitSucceeded:true}),{leave:true,reason:null});
+    assert.deepEqual(mod.hangarExitDecision({mode,commitSucceeded:false}),{leave:false,reason:'COMMIT_FAILED'});
+  }
+});
