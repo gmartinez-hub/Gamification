@@ -1298,3 +1298,73 @@ Choosing Hangar as the portal destination:
 - unloads/discards the source world only after successful handoff.
 
 World-to-world portal travel preserves pending Cells instead of banking them.
+
+
+---
+
+## 32. Natural portal cadence and portable portal equipment
+
+### GZ-PORTAL-017 — Natural portal opportunities recur during farming
+**APPROVED DIRECTION / BALANCE exact cadence**
+
+A natural portal must become available periodically during an active world so the player can keep farming without permanently missing extraction.
+
+Semantics:
+- portal opportunities recur over time,
+- each opportunity must be reachable from normal gameplay space,
+- the player may ignore an available portal and continue farming,
+- ignoring one does not permanently remove normal extraction from that world,
+- another natural portal opportunity appears later,
+- the exact recurrence interval / scheduling rule is BALANCE and must not be guessed.
+
+The portal remains the only normal voluntary extraction/travel mechanism from an active world.
+
+### GZ-PORTAL-018 — Portable Portal is a physical setup item
+**APPROVED DIRECTION**
+
+A Portable Portal / Portal deployable exists as a concrete 3D setup item with physical ownership semantics comparable to a turret:
+- one owned unit is one physical unit,
+- it is selected/assigned from Hangar setup,
+- presets cannot duplicate it,
+- it is deployed into the world as a real setup object,
+- it participates in normal ownership/recovery/loss accounting as an owned physical unit unless a later explicit exception is added.
+
+Exact slot category/mounting surface is not yet frozen merely by the phrase "tipo torreta".
+
+### GZ-PORTAL-019 — Portable Portal destinations
+**APPROVED**
+
+When successfully deployed/activated, the Portable Portal can offer:
+- Hangar,
+- any unlocked world that is otherwise a valid portal destination.
+
+It uses the same destination eligibility rules as natural portals.
+
+### GZ-PORTAL-020 — Portable Portal once per sortie
+**APPROVED**
+
+The Portable Portal may be activated/deployed for portal travel **once per sortie**.
+
+After successful use:
+- that Portable Portal capability is unavailable for the remainder of the current sortie,
+- the owned unit is not treated as a consumable purchase merely because its use is once-per-sortie,
+- future sortie availability follows normal ownership/setup rules.
+
+### GZ-PORTAL-021 — Natural portal remains available with Portable Portal
+**APPROVED**
+
+Carrying a Portable Portal does not remove natural procedural portals.
+
+Natural portal opportunities continue to recur according to GZ-PORTAL-017, allowing the player to keep farming and choose when/how to extract.
+
+### GZ-PORTAL-UNLOCK-OPEN — Portable Portal unlock threshold
+**SEMANTIC_QUESTION**
+
+The product direction is that the Portable Portal becomes available only after the player has experienced natural portal discovery/use multiple times per map/world.
+
+Still requires explicit confirmation:
+- exact number of required accesses/visits,
+- whether the unlock is global after learning the mechanic or tracked separately per world/map,
+- whether "access" means finding the portal, successfully using it, or completing a visit to that map.
+
+Do not infer these values.
