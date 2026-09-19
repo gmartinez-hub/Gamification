@@ -10,11 +10,24 @@ export const BOOST_TOP_SPEED_PERCENT = 0.25;
 export const BOOST_ACCELERATION_PERCENT = 0.40;
 export const GLOBAL_SPEED_UPGRADE_TOP_SPEED_PERCENT = 0.15;
 export const GLOBAL_SPEED_UPGRADE_ACCELERATION_PERCENT = 0.20;
+export const GLOBAL_SPEED_UPGRADE_PRICE = 1000;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
   const permanent=globalUpgrade?GLOBAL_SPEED_UPGRADE_TOP_SPEED_PERCENT:0;
   return baseTopSpeed*(1+permanent+BOOST_TOP_SPEED_PERCENT);
+}
+
+export function boostedAcceleration(baseAcceleration,{globalUpgrade=false}={}){
+  if(!Number.isFinite(baseAcceleration)||baseAcceleration<0)throw new Error('INVALID_BASE_ACCELERATION');
+  const permanent=globalUpgrade?GLOBAL_SPEED_UPGRADE_ACCELERATION_PERCENT:0;
+  return baseAcceleration*(1+permanent+BOOST_ACCELERATION_PERCENT);
+}
+
+export function globalSpeedUpgradePurchase({secondGemUnlocked,cells}){
+  if(!secondGemUnlocked)return {allowed:false,reason:'SECOND_GEM_REQUIRED'};
+  if(cells<GLOBAL_SPEED_UPGRADE_PRICE)return {allowed:false,reason:'INSUFFICIENT_CELLS'};
+  return {allowed:true,cost:GLOBAL_SPEED_UPGRADE_PRICE};
 }
 
 export function validateShipComposition(types){
