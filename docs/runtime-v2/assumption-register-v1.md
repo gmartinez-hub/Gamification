@@ -323,11 +323,11 @@ Approved mechanics:
 Still define the encounter-family matrix for Nereida/Vesper/Umbra at base, after World 2 unlock, after Mothership reveal and postgame. Counts/weights remain BALANCE.
 
 ### P3-POSTGAME-01 — Mothership incursions after final boss
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Free postgame sandbox is approved.
+Free postgame sandbox remains available after the ending.
 
-Explicitly define whether Mothership-incursion events cease after `bossDefeated = true`.
+After `bossDefeated = true`, Mothership-incursion events cease permanently and are removed from EventDirector eligibility. Other approved postgame farming/encounter systems remain available.
 
 ## Intentional non-semantic opens — do not ask product to guess
 
