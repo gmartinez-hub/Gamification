@@ -17,6 +17,9 @@ export const BOOST_ACCELERATION_PERCENT = 0.40;
 export const GLOBAL_SPEED_UPGRADE_TOP_SPEED_PERCENT = 0.15;
 export const GLOBAL_SPEED_UPGRADE_ACCELERATION_PERCENT = 0.20;
 export const GLOBAL_SPEED_UPGRADE_PRICE = 1000;
+export const ENERGY_CELL_BANKING_BOUNDARY = 'HANGAR_RETURN';
+export const HANGAR_REPAIR_MODE = 'AUTOMATIC';
+export const FRIENDLY_FIRE_ENABLED = false;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
