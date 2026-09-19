@@ -1368,3 +1368,64 @@ Still requires explicit confirmation:
 - whether "access" means finding the portal, successfully using it, or completing a visit to that map.
 
 Do not infer these values.
+
+
+### GZ-PORTAL-022 — Natural portal availability window and procedural relocation
+**APPROVED**
+
+Natural portal opportunities are time-bounded.
+
+When a natural portal opportunity appears:
+- it exists for a finite availability window,
+- the player may reach/use it during that window,
+- if the player ignores/misses it, that opportunity closes,
+- a later opportunity appears procedurally at another valid reachable location,
+- the portal does not remain permanently pinned to one location for the whole sortie.
+
+Exact values remain **BALANCE/MEASURE**:
+- spawn interval,
+- active window duration,
+- minimum/maximum distance from the active player/party,
+- placement exclusions and safety margin.
+
+Procedural placement must preserve reachability; RNG may not create an impossible extraction opportunity.
+
+### GZ-PORTAL-023 — Portable Portal consumes a turret slot
+**APPROVED**
+
+The Portable Portal uses one normal **turret slot** in the confirmed setup.
+
+Consequences:
+- equipping a Portable Portal competes directly with a turret for capacity,
+- it obeys the same physical-unit ownership/no-duplication rules,
+- it cannot be equipped if no compatible turret slot is available,
+- removing it frees that turret slot.
+
+This defines slot economy only. It does not make the Portable Portal a weapon or give it turret combat behavior.
+
+Exact compatible hosts/mount visuals remain **VERIFY/PRODUCE**.
+
+### GZ-PORTAL-024 — Portable Portal unlock is global once acquired
+**APPROVED**
+
+Portable Portal acquisition/unlock is **global campaign progression**, not per-world.
+
+Once the player owns/unlocks the Portable Portal:
+- it may be equipped for any unlocked map/world,
+- entering a new world does not require re-learning or re-unlocking the Portable Portal,
+- natural portals in that world still continue to spawn/recur procedurally.
+
+The exact campaign condition that grants the first Portable Portal remains **SEMANTIC_QUESTION** until explicitly defined.
+
+### GZ-PORTAL-UNLOCK-OPEN — First Portable Portal acquisition condition
+**SEMANTIC_QUESTION**
+
+Resolved:
+- unlock scope is global once acquired,
+- it is not tracked separately per map.
+
+Still requires explicit confirmation:
+- exact event/count that grants the first Portable Portal,
+- what counts toward that requirement (natural portal discoveries, successful uses, completed sorties, or another progression event).
+
+Do not infer a numeric threshold.
