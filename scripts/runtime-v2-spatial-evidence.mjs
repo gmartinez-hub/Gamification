@@ -168,7 +168,7 @@ Legacy semantic staging envelope: **${hangarSummary.bounds.dimensions.join(' × 
 
 Anchor ray evidence:
 
-```json
+\`\`\`json
 ${JSON.stringify(hangarSummary.anchorRays,null,2)}
 ```
 
