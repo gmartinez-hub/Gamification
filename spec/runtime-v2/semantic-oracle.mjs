@@ -40,6 +40,9 @@ export const SESSION_RESUME_MODE = 'RETURN_TO_HANGAR';
 export const SESSION_INTERRUPTION_LOSES_PENDING_CELLS = true;
 export const PLAYER_DEATH_DESTINATION = 'HANGAR';
 export const DEAD_ALLY_INTACT_SETUP_RECOVERY = 'AUTO_HANGAR';
+export const SESSION_INTERRUPTION_RECOVERS_INTACT_SETUP = true;
+export const PLAYER_DEATH_LOSS_MODE = 'DESTROYED_ONLY';
+export const PLAYER_DEATH_AUTO_RECOVERS_SURVIVING_COMPANIONS = true;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
@@ -107,18 +110,17 @@ export function assertUniquePhysicalAssignments(assignments){
   return new Set(ids).size===ids.length;
 }
 
-export function resolvePlayerDeath({items,companions}){
-  const recoveredCompanionItems=new Set();
-  for(const companion of companions||[]){
-    if(!['alive','downed'].includes(companion.state))continue;
-    for(const id of companion.itemIds||[])recoveredCompanionItems.add(id);
-  }
+export function resolvePlayerDeath({items,companions,destroyedItemIds=[]}){
+  const destroyed=new Set(destroyedItemIds);
   const recovered=[],lost=[];
   for(const item of items||[]){
-    (recoveredCompanionItems.has(item.itemId)?recovered:lost).push(item);
+    (destroyed.has(item.itemId)?lost:recovered).push(item);
   }
+  const recoveredCompanions=(companions||[])
+    .filter(c=>['alive','downed'].includes(c.state))
+    .map(c=>c.id);
   const lostValue=lost.reduce((sum,item)=>sum+(Number(item.value)||0),0);
-  return {recovered,lost,lostValue,salvageCells:lostValue*.5};
+  return {recovered,lost,recoveredCompanions,lostValue,salvageCells:lostValue*.5};
 }
 
 export function resolveDestroyedVehicle({kind,pilotSurvives,attachedItems=[],recoveryRouteAvailable}){
@@ -190,7 +192,7 @@ export function resolveDeathEconomy({bankedCells,pendingCells,lostSetupValue}){
 }
 
 
-export function resolveSessionInterruption({bankedCells,pendingCells}){
+export function resolveSessionInterruption({bankedCells,pendingCells,intactItemIds=[],destroyedItemIds=[]}){
   if(!Number.isFinite(bankedCells)||bankedCells<0)throw new Error('INVALID_BANKED_CELLS');
   if(!Number.isFinite(pendingCells)||pendingCells<0)throw new Error('INVALID_PENDING_CELLS');
   return {
@@ -198,6 +200,8 @@ export function resolveSessionInterruption({bankedCells,pendingCells}){
     bankedCells,
     pendingCells:0,
     lostPendingCells:pendingCells,
+    recoveredItemIds:[...intactItemIds],
+    lostItemIds:[...destroyedItemIds],
     resumeWorld:false
   };
 }
