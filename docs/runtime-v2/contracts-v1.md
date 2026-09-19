@@ -209,14 +209,22 @@ Exact `turretCapacity` for each existing ship module is PRODUCE/BALANCE and must
 
 The Hangar is a separate scene and primary memory boundary. Full world + full Hangar + next full world must not be resident simultaneously.
 
-### GZ-HANGAR-002 — Draft setup
-**APPROVED**
+### GZ-HANGAR-002 — Draft setup and exit commit
+**APPROVED — RECONCILED**
 
 Hangar setup uses:
 
-`OPEN -> DRAFT/PREVIEW -> CONFIRM | CANCEL`
+`OPEN -> DRAFT/PREVIEW -> CONFIRM_CONFIGURATION | CANCEL -> EXIT_COMMIT`
 
-Only CONFIRM changes the mission setup/persistent inventory assignments.
+Semantics:
+- configuration changes and purchases are staged inside the current Hangar session,
+- `CONFIRM_CONFIGURATION` accepts the current configuration as the intended Hangar result,
+- confirmation does **not** by itself persist the campaign save,
+- persistent inventory assignments, purchases, currency deltas and upgrade state are written atomically when leaving the Hangar/configuration session,
+- `CANCEL` discards the current unconfirmed draft,
+- the exit commit must be all-or-nothing: no item/currency split-brain state.
+
+Crash/forced-close behavior before the exit commit remains an explicit semantic question and must not be inferred.
 
 ### GZ-HANGAR-003 — Loadout-driven residency
 **APPROVED**
@@ -1125,3 +1133,38 @@ If the player dies and ally/Nóma are still alive or downed:
 - no Portal Recall is required,
 - their intact surviving vehicle/equipment returns with them,
 - destroyed units remain lost.
+
+
+---
+
+## 29. Hangar configuration transaction boundary
+
+### GZ-HANGAR-TXN-001 — Confirm first, persist on exit
+**APPROVED**
+
+The Hangar behaves as a staged configuration transaction.
+
+Within the Hangar session:
+- browse/select items,
+- preview/mount/reconfigure,
+- stage purchases/upgrades,
+- confirm the intended configuration.
+
+Persistence occurs only on successful exit from that Hangar/configuration session.
+
+The exit commit atomically persists, as one coherent campaign state:
+- banked Energy Cell deductions,
+- newly owned units/upgrades,
+- inventory assignments,
+- loadout configuration,
+- confirmed mission setup.
+
+A successful exit must never produce partial persistence.
+
+### GZ-HANGAR-TXN-002 — Pre-exit interruption
+**SEMANTIC_QUESTION**
+
+Still requires explicit decision:
+- if the app/browser closes or crashes after configuration was confirmed but before the Hangar exit commit, does the next launch restore the last persisted Hangar state and discard the confirmed-but-uncommitted session, or should that confirmed session be recovered?
+
+Do not infer this behavior.
