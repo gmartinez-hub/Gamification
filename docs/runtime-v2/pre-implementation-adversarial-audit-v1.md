@@ -363,5 +363,5 @@ RESOLVED:
 - persistence happens atomically on Hangar/configuration exit,
 - confirmation alone is not the persistence boundary.
 
-OPEN:
-- crash/forced-close after confirm but before exit commit: discard to last persisted state vs recover confirmed session.
+RESOLVED:
+- crash/forced-close after confirm but before exit commit -> discard the uncommitted Hangar session and restore the last successfully persisted state on next launch.
