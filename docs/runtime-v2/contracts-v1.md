@@ -1448,9 +1448,13 @@ Semantics:
 
 The exact Energy Cell purchase price remains **BALANCE** and must not be inferred.
 
-Still requires explicit confirmation:
-- whether the two qualifying natural-portal transits may occur across any worlds,
-- or must both occur within the same map/world before the global Portable Portal purchase unlock is granted.
+The two qualifying natural-portal transits are counted **globally across worlds**.
+
+Examples:
+- one successful natural-portal transit in World 1 + one in World 2 = unlock condition satisfied,
+- two successful natural-portal transits in the same world also satisfy the condition.
+
+No per-map counter exists for this unlock.
 
 ### GZ-PORTAL-UNLOCK-OPEN — Portable Portal acquisition condition
 **RESOLVED / SUPERSEDED**
@@ -1459,5 +1463,5 @@ Resolved by GZ-PORTAL-025:
 - unlock condition = two successful natural-portal transits,
 - Portable Portal is then purchasable, not granted,
 - once acquired it is globally usable,
-- counter scope (cross-world vs same-world) still requires explicit confirmation,
+- counter scope = global across worlds,
 - exact purchase price remains BALANCE.
