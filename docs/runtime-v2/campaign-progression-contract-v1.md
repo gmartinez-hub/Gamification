@@ -137,3 +137,24 @@ Energy Cells remain the single spendable gameplay currency/resource unless a lat
 - SEM-CAMPAIGN-007: mothership incursion outside World 3 cannot resolve permanent boss death.
 - SEM-CAMPAIGN-008: final boss kill only occurs in World 3.
 - SEM-CAMPAIGN-009: gems are not consumed as normal purchase currency.
+
+
+---
+
+## Gem acquisition encounter details
+
+### GZ-CAMPAIGN-015 — World 1 first-gem encounter
+**APPROVED**
+
+After Nóma has been rescued and normal ship-building/improvement progression has begun:
+
+1. Nóma Explore discovers an anomalous signal / gem-related POI in World 1.
+2. The player travels to the discovered location.
+3. The POI is protected by hostile aliens/ships using already-approved combat families.
+4. The player defeats the primary guardian/elite encounter.
+5. The first narrative gem is earned.
+6. World 2 unlocks.
+
+The first gem is therefore not granted merely for finding the signal; the protected encounter must be completed.
+
+Exact enemy composition, density, POI art and reward timing are BALANCE/PRODUCE/TUNE.
