@@ -453,7 +453,7 @@ test('V2 contract: natural portals recur and Portable Portal is once-per-sortie'
   assert.deepEqual(mod.PORTABLE_PORTAL_DESTINATIONS,['HANGAR','UNLOCKED_WORLDS']);
   assert.equal(mod.PORTABLE_PORTAL_USES_PER_SORTIE,1);
   assert.equal(mod.NATURAL_PORTAL_REMAINS_WITH_PORTABLE,true);
-  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_STATUS,'SEMANTIC_QUESTION');
+  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_STATUS,'CLOSED');
 });
 
 
@@ -467,7 +467,7 @@ test('V2 contract: Portable Portal consumes a turret slot and unlocks globally o
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.PORTABLE_PORTAL_SLOT_TYPE,'TURRET_SLOT');
   assert.equal(mod.PORTABLE_PORTAL_UNLOCK_SCOPE,'GLOBAL_ONCE_ACQUIRED');
-  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_STATUS,'SEMANTIC_QUESTION');
+  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_STATUS,'CLOSED');
 });
 
 
