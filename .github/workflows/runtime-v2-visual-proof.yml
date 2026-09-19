@@ -5,6 +5,7 @@ on:
     branches:
       - docs/gz-runtime-v2-spec
     paths:
+      - .github/workflows/runtime-v2-visual-proof.yml
       - tools/runtime-v2-visual-proof.html
       - tools/runtime-v2-visual-proof.js
       - scripts/runtime-v2-capture-visual-proof.mjs
