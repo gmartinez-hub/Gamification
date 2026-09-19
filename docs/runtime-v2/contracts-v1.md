@@ -1647,3 +1647,15 @@ Once a natural portal is detected, the player receives:
 
 Still requires explicit confirmation:
 - whether the Tactical Map marker disappears immediately when the portal window closes or leaves any expired/history trace.
+
+
+### GZ-PORTAL-033 — Expired natural-portal marker disappears
+**APPROVED**
+
+When a natural portal availability window expires:
+- the active portal closes,
+- its Tactical Map marker disappears,
+- its direction/distance/countdown guidance is removed,
+- no expired/history marker remains from that opportunity.
+
+A later natural portal opportunity creates a new marker at its new procedural location.
