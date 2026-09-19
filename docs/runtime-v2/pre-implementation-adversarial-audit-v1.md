@@ -378,3 +378,15 @@ RESOLVED:
 - crash/forced close before intentional exit -> no commit; discard uncommitted session.
 
 All intentional exits share the same atomic persistence boundary.
+
+
+---
+
+## Launch / world-entry consistency — resolved
+
+RESOLVED:
+- confirmed physical loadout is locked for the entire sortie; reconfiguration requires Hangar,
+- Bike-only launch is valid and an unselected ship remains purely in Hangar,
+- ally can launch without a ship, including foot/EVA or Bike according to the confirmed setup,
+- failure of any required confirmed-setup asset aborts launch and returns/remains in Hangar with the committed configuration preserved,
+- no degraded partial loadout or silent substitution is allowed on required asset failure.
