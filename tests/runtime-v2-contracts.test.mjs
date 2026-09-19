@@ -443,3 +443,15 @@ test('V2 contract: single autosave and portal-only normal extraction',async()=>{
   assert.equal(mod.NORMAL_WORLD_EXIT_MODE,'PORTAL_ONLY');
   assert.equal(mod.FREE_MENU_RETURN_TO_HANGAR,false);
 });
+
+
+test('V2 contract: natural portals recur and Portable Portal is once-per-sortie',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NATURAL_PORTAL_RECURS,true);
+  assert.equal(mod.NATURAL_PORTAL_RECURRENCE_STATUS,'BALANCE');
+  assert.equal(mod.PORTABLE_PORTAL_PHYSICAL_ITEM,true);
+  assert.deepEqual(mod.PORTABLE_PORTAL_DESTINATIONS,['HANGAR','UNLOCKED_WORLDS']);
+  assert.equal(mod.PORTABLE_PORTAL_USES_PER_SORTIE,1);
+  assert.equal(mod.NATURAL_PORTAL_REMAINS_WITH_PORTABLE,true);
+  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_STATUS,'SEMANTIC_QUESTION');
+});
