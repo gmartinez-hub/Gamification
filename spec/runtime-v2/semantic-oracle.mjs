@@ -6,6 +6,16 @@
  */
 
 export const BOOSTED_BIKE_PRICE = 1500;
+export const BOOST_TOP_SPEED_PERCENT = 0.25;
+export const BOOST_ACCELERATION_PERCENT = 0.40;
+export const GLOBAL_SPEED_UPGRADE_TOP_SPEED_PERCENT = 0.15;
+export const GLOBAL_SPEED_UPGRADE_ACCELERATION_PERCENT = 0.20;
+
+export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
+  if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
+  const permanent=globalUpgrade?GLOBAL_SPEED_UPGRADE_TOP_SPEED_PERCENT:0;
+  return baseTopSpeed*(1+permanent+BOOST_TOP_SPEED_PERCENT);
+}
 
 export function validateShipComposition(types){
   if(!Array.isArray(types)||types.length===0)return {valid:false,reason:'FRONT_REQUIRED'};
