@@ -122,44 +122,36 @@ The following must be removed or explicitly marked SUPERSEDED in canonical imple
 
 ## 4. Remaining semantic questions — implementation blockers only
 
-### P3-PRESET-01 — Preset scope
+### P3-PRESET-01..03 — Presets
+**RESOLVED**
+
+- local save,
+- three explicit named slots per ship,
+- Player Ship and Ally Ship own independent three-slot sets,
+- Save updates selected slot,
+- Save As uses an empty slot or explicit Replace Slot 1/2/3,
+- no FIFO / silent deletion,
+- explicit rename/overwrite,
+- presets never clone inventory,
+- LOST referenced item leaves preset saved as INCOMPLETE,
+- INCOMPLETE preset may be inspected/edited but cannot confirm launch.
+
+### P3-W1-01 — Exact Nereida purchase-unlock order
+**PARTIAL**
+
 Approved:
-- max three saved preset templates,
-- composition + placements,
-- presets do not clone physical inventory,
-- one confirmed setup is active for a sortie.
-
-Still unresolved:
-- does a preset describe only the player ship, or can a saved preset also include Ally Ship / other sortie-host assignments?
-- does Ally Ship have its own preset set, share the same three slots, or have no independent preset system?
-
-### P3-PRESET-02 — Missing physical item referenced by preset
-If a saved preset references a module/turret later LOST, define whether activation:
-- becomes unavailable until inventory satisfies it,
-- opens as an incomplete draft requiring repair/replacement,
-- or another explicit behavior.
-
-No silent cloning/substitution.
-
-### P3-PRESET-03 — Saving when all three slots are occupied
-Legacy code silently dropped the oldest preset. That behavior is not approved for clean-room.
-Need explicit overwrite / replace behavior.
-
-### P3-W1-01 — Exact Nereida ship/equipment unlock order
-Already fixed:
 - rescue Nóma,
 - Nóma gives player Pistol,
-- ship-building / first ship-piece progression begins,
-- Cells fund physical equipment/upgrades,
+- safely returning to Hangar with Nóma makes Cabina / Front available for assembly,
+- subsequent improvements/articles are purchased with Energy Cells once explicitly unlocked by EventDirector,
 - protected encounter grants Gem 1.
 
-Still needs exact reconciliation:
-- identity of the first ship piece,
-- when Front becomes owned/deployable,
-- when Beacon becomes purchasable,
-- when Turret becomes purchasable,
-- when Middle becomes purchasable,
-- when Final/Back becomes unlocked/owned.
+Still needs exact Director milestone/order for:
+- Beacon purchasable,
+- Turret purchasable,
+- Middle purchasable,
+- Final/Back purchasable,
+- any other already-approved World-1 improvement/article.
 
 Do not restore the legacy stage order automatically.
 
@@ -211,7 +203,7 @@ Remain MEASURE / VERIFY / PRODUCE / BALANCE:
 
 ## 6. Required next pass before implementation freeze
 
-1. Resolve P3-PRESET-01..03, P3-W1-01, P3-TURRET-01 and P3-ENCOUNTER-01.
+1. Resolve remaining P3-W1-01, P3-TURRET-01 and P3-ENCOUNTER-01.
 2. Rewrite stale sections in contracts / assumption register / semantic oracle.
 3. Add/update semantic tests for every newly approved rule.
 4. Run semantic CI.
@@ -225,3 +217,14 @@ Remain MEASURE / VERIFY / PRODUCE / BALANCE:
    - stale executable semantics = 0,
    - implementation inference = 0,
    - scope cuts = 0.
+
+
+## Pass 3 update — shared turret motion
+
+**APPROVED**
+
+Autonomous turret movement logic is common across Ship, Bike, Nóma and Beacon.
+
+The same authored yaw/pitch/fire/return-to-scan hierarchy and combat state machine should be reused. Host differences are mount/socket/scale/clearance production data, not separate AI or animation families.
+
+Exact host-specific mechanical rotation limits remain VERIFY from real geometry. No non-uniform runtime deformation and no in-world host swap are authorized.
