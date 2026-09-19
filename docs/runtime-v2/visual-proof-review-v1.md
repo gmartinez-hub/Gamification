@@ -61,12 +61,14 @@ Evidence:
 - staggered formation preserves full-size assets while spreading them longitudinally,
 - side-by-side requires a larger semantic aperture (measurement estimate already ~10.478 m before cinematic margin).
 
-Product choice required:
-A. single-file convoy,
-B. staggered convoy,
-C. side-by-side with a larger ring.
+Product choice resolved: **B — STAGGERED CONVOY**.
 
-No option is removed; C simply requires producing a larger ring.
+Next proof:
+- render the full selected-setup family at real scale in staggered formation,
+- verify ring aperture/camera timing without requiring simultaneous side-by-side crossing,
+- freeze exact offsets/timing only after that evidence.
+
+No ship/vehicle rescaling is allowed.
 
 ## BIKE-001 — Back-derived Boosted Bike
 
@@ -84,9 +86,11 @@ What requires production:
 - third-person chase framing needs a closer canonical proof,
 - collision proxy and central PrimaryBoostExhaust still require authored integration.
 
-Product choice required:
-- approve this 0.535× Back-derived silhouette direction for bounded support/camera work,
-- or request a different visual scale/placement before production.
+Product choice resolved: **A — ENCASTRADO / EMBEDDED**.
+
+The Back-derived form should integrate into the Bike rear body through bounded mount/collar/recess/support geometry.
+
+The ~0.535× scale remains a proof candidate only; final scale/placement still requires visual comparison and camera/collider/nozzle verification.
 
 No purchase/unlock semantics change: World 3 mothership reveal + geometry PASS + 1,500 Cells.
 
@@ -99,8 +103,7 @@ No purchase/unlock semantics change: World 3 mothership reveal + geometry PASS +
 - Implementation Contract Freeze: NOT YET
 
 Blocking visual/product choices:
-1. portal formation/aperture direction,
-2. Boosted Bike silhouette direction approval.
+**0** for portal formation and Bike integration direction.
 
 Blocking technical evidence after those choices:
 1. cockpit cutaway + seated camera proof,
