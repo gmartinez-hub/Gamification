@@ -403,8 +403,8 @@ RESOLVED:
 - portal-to-world preserves pending Cells,
 - death/session interruption remain exceptional recovery paths and do not become voluntary extraction shortcuts.
 
-OPEN semantic check:
-- because portal is the only normal extraction route, confirm whether every world instance must guarantee at least one discoverable/reachable portal before Implementation Contract Freeze.
+RESOLVED:
+- every active world must provide recurring discoverable/reachable natural portal opportunities; missing one window cannot permanently strand normal extraction.
 
 
 ---
