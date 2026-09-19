@@ -46,9 +46,9 @@ For every transition assert:
 
 ### Likely semantic questions to expose, not infer
 
-- What happens to intact player-owned vehicles/equipment intentionally left behind when a portal discards the source world?
-- What happens to deployed beacons/turrets left behind on cross-world transit?
-- Does successful companion base recovery also recover that companion's intact remote vehicle/equipment, or only the character and gear physically assigned to them?
+- Left-behind intact player-owned equipment: **RESOLVED** — portal warns; player may recover manually, request Portal Recall, or Travel Anyway and lose it. Recalled equipment arrives diegetically after a short delay and joins the transit cinematic before handoff.
+- Deployed beacons/turrets are subject to the same unresolved eligibility detail only if their recallability differs from other intact owned equipment; do not infer exclusions.
+- Companion base recovery vs companion-owned remote vehicle/equipment remains open unless covered by explicit equipment recall.
 
 ---
 
@@ -71,10 +71,9 @@ Mechanically test and specify:
 
 - One autosave slot or multiple player-visible slots?
 - Energy Cell banking boundary: **RESOLVED — Hangar return**.
-- Still open: pending Cells on player death before Hangar.
-- Still open: pending Cells across world-to-world portal handoff.
-- Automatic repair on Hangar: **RESOLVED direction**.
-- Still open: whether automatic repair is free / has any cost or delay.
+- Pending Cells on player death before Hangar: **RESOLVED — lost**.
+- Pending Cells across world-to-world portal handoff: **RESOLVED — preserved**.
+- Automatic repair on Hangar: **RESOLVED — free and immediate**.
 
 ---
 
