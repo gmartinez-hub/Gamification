@@ -476,7 +476,7 @@ test('V2 contract: Portable Portal unlocks for purchase after two successful nat
   assert.equal(mod.PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED,2);
   assert.equal(mod.PORTABLE_PORTAL_ACQUISITION_MODE,'PURCHASE_AFTER_UNLOCK');
   assert.equal(mod.PORTABLE_PORTAL_PRICE_STATUS,'BALANCE');
-  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_COUNTER_SCOPE,'SEMANTIC_QUESTION');
+  assert.equal(mod.PORTABLE_PORTAL_UNLOCK_COUNTER_SCOPE,'GLOBAL_ACROSS_WORLDS');
   assert.deepEqual(
     mod.portablePortalUnlock({successfulNaturalPortalTransits:1}),
     {unlockedForPurchase:false,progress:1,required:2}
