@@ -936,3 +936,60 @@ On player death:
 - salvage does not remain pending and does not require a later successful Hangar return.
 
 Previously banked Cells remain preserved.
+
+
+---
+
+## 25. Character recovery and player death state
+
+### GZ-CHAR-RECOVERY-001 — Free full character recovery at Hangar
+**APPROVED**
+
+Any surviving player/companion character returning to Hangar is restored to full health automatically:
+- free,
+- immediate,
+- no Energy Cell cost,
+- no healing timer,
+- no separate healing resource.
+
+This applies to:
+- player,
+- ally,
+- Nóma.
+
+It does not resurrect a DEAD ally; ally revival remains governed by the paid revival rule.
+
+### GZ-PLAYER-DEATH-003 — No player DOWNED state
+**APPROVED**
+
+The player does not enter a recoverable DOWNED state.
+
+When player health reaches the terminal threshold, the player transitions directly into death resolution.
+
+The companion DOWNED lifecycle remains unchanged and must not be copied onto the player.
+
+### GZ-BIKE-RECOVERY-OPEN — Permanent Bike semantic clarification
+**SEMANTIC_QUESTION**
+
+The user stated: "la moto la tenes siempre".
+
+Do not infer whether this means:
+A. only the permanent baseline recovery Bike is always available while additional owned Bikes remain destructible/lossy,
+or
+B. every player Bike is non-lossy/permanently available.
+
+This must be explicitly resolved before changing existing Bike destruction/loss semantics.
+
+### GZ-PORTAL-CHECK-OPEN — Party + equipment check UI grouping
+**SEMANTIC_QUESTION**
+
+The semantic logic is already separate:
+- companion unresolved/downed state,
+- intact owned equipment left behind.
+
+The UI/presentation may be:
+A. one unified "Party & Equipment Check",
+B. two sequential checks,
+C. one contextual panel with separate sections.
+
+No grouping is frozen yet.
