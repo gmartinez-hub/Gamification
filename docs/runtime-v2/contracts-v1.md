@@ -886,3 +886,53 @@ Any surviving damaged ship/vehicle that returns to Hangar is repaired automatica
 - no separate repair resource.
 
 Destroyed vehicles/items remain governed by destruction/loss rules and are not resurrected by Hangar repair.
+
+
+---
+
+## 24. Host-level destruction, infinite ammo, companion recovery and death salvage
+
+### GZ-DAMAGE-001 — Host-level equipment loss
+**APPROVED**
+
+Ship modules, mounted turrets and other attached equipment are not independently destroyed as separate gameplay units while the host vehicle remains alive.
+
+They are lost with the vehicle when the vehicle itself is destroyed.
+
+This applies to the host-level destruction model for:
+- player ship modules,
+- ally ship modules,
+- mounted turrets,
+- attached vehicle equipment.
+
+This rule does not prevent temporary VFX/status feedback on attachments; it prevents independent permanent destruction/loss semantics unless a later explicit contract adds them.
+
+### GZ-WEAPON-001 — Infinite ammunition
+**APPROVED**
+
+Baseline ship weapons and turret weapons have unlimited ammunition/energy supply for firing.
+
+Weapon cadence may still be controlled by authored fire rate/cooldown/reload animation timing where relevant, but there is no consumable ammo inventory or finite weapon-energy resource in V1.
+
+### GZ-COMP-008 — Companion recovery includes intact vehicle/setup
+**APPROVED**
+
+When a living/downed companion is left behind and the existing base-recovery rule returns that companion, the companion returns with the intact vehicle/equipment physically associated with their surviving setup.
+
+This follows the same high-level preservation logic as the player:
+- intact surviving setup may be recovered,
+- destroyed units remain lost,
+- no duplicated physical items are created.
+
+If the companion's vehicle/equipment was destroyed before recovery, the destroyed-unit loss rule still applies.
+
+### GZ-DEATH-002 — Salvage banks immediately after death resolution
+**APPROVED**
+
+On player death:
+- pending sortie Energy Cells are lost,
+- salvage is calculated as 50% of the value of the setup actually lost after companion recovery exceptions,
+- that salvage amount is credited directly to persistent banked Energy Cells as part of death recovery,
+- salvage does not remain pending and does not require a later successful Hangar return.
+
+Previously banked Cells remain preserved.
