@@ -7,6 +7,8 @@ on:
     paths:
       - scripts/runtime-v2-measure-assets.mjs
       - scripts/runtime-v2-spatial-evidence.mjs
+      - scripts/runtime-v2-validate-scale-profiles.mjs
+      - docs/runtime-v2/evidence/scale-profiles-draft-v1.json
       - .github/workflows/runtime-v2-measure.yml
       - assets/runtime/**/*.glb
       - assets/runtime/**/manifest.json
@@ -31,6 +33,9 @@ jobs:
       - name: Run spatial evidence harness
         run: node scripts/runtime-v2-spatial-evidence.mjs
 
+      - name: Validate ScaleProfile evidence linkage
+        run: node scripts/runtime-v2-validate-scale-profiles.mjs
+
       - name: Upload measurement evidence
         uses: actions/upload-artifact@v4
         with:
@@ -40,12 +45,14 @@ jobs:
             docs/runtime-v2/evidence/asset-measurements-v1.md
             docs/runtime-v2/evidence/spatial-evidence-v1.json
             docs/runtime-v2/evidence/spatial-evidence-v1.md
+            docs/runtime-v2/evidence/scale-profile-validation-v1.json
+            docs/runtime-v2/evidence/scale-profile-validation-v1.md
 
       - name: Commit evidence to spec branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/runtime-v2/evidence/asset-measurements-v1.json docs/runtime-v2/evidence/asset-measurements-v1.md docs/runtime-v2/evidence/spatial-evidence-v1.json docs/runtime-v2/evidence/spatial-evidence-v1.md
+          git add docs/runtime-v2/evidence/asset-measurements-v1.json docs/runtime-v2/evidence/asset-measurements-v1.md docs/runtime-v2/evidence/spatial-evidence-v1.json docs/runtime-v2/evidence/spatial-evidence-v1.md docs/runtime-v2/evidence/scale-profile-validation-v1.json docs/runtime-v2/evidence/scale-profile-validation-v1.md
           if git diff --cached --quiet; then
             echo "No evidence changes"
           else
