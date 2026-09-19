@@ -170,3 +170,18 @@ test('V2 contract: permanent speed upgrade and Boost stack additively to 140% to
   assert.equal(mod.boostedTopSpeed(100,{globalUpgrade:true}),140);
   assert.equal(mod.boostedTopSpeed(100,{globalUpgrade:false}),125);
 });
+
+
+test('V2 contract: global speed upgrade costs 1000 Cells after second gem / World 3 access',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.GLOBAL_SPEED_UPGRADE_PRICE,1000);
+  assert.equal(mod.globalSpeedUpgradePurchase({secondGemUnlocked:false,cells:5000}).allowed,false);
+  assert.equal(mod.globalSpeedUpgradePurchase({secondGemUnlocked:true,cells:999}).allowed,false);
+  assert.deepEqual(mod.globalSpeedUpgradePurchase({secondGemUnlocked:true,cells:1000}),{allowed:true,cost:1000});
+});
+
+test('V2 contract: permanent acceleration upgrade and Boost stack additively to 160%',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.boostedAcceleration(100,{globalUpgrade:true}),160);
+  assert.equal(mod.boostedAcceleration(100,{globalUpgrade:false}),140);
+});
