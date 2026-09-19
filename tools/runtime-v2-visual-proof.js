@@ -119,21 +119,31 @@ async function hangar(mode){
 }
 
 async function portal(mode){
- grid(70,35);
+ grid(90,45);
+
+ const candidateDiameter = mode==='large-12' ? 12 : mode==='large-14' ? 14 : mode==='large-16' ? 16 : 6.8;
+ const radius=candidateDiameter/2;
  const group=new THREE.Group();scene.add(group);
- const horizon=new THREE.Mesh(new THREE.SphereGeometry(3.4,48,32),new THREE.MeshBasicMaterial({color:0x010108}));
- const ring=new THREE.Mesh(new THREE.TorusGeometry(3.4,.23,20,96),new THREE.MeshBasicMaterial({color:0x8be9ff,transparent:true,opacity:.88,blending:THREE.AdditiveBlending,depthWrite:false}));
- group.add(horizon,ring);
+ const horizon=new THREE.Mesh(new THREE.SphereGeometry(radius,64,40),new THREE.MeshBasicMaterial({color:0x010108}));
+ const ringTube=Math.max(.23,candidateDiameter*.035);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(radius,ringTube,24,128),new THREE.MeshBasicMaterial({color:0x8be9ff,transparent:true,opacity:.88,blending:THREE.AdditiveBlending,depthWrite:false}));
+ const halo=new THREE.Mesh(new THREE.RingGeometry(radius*1.10,radius*1.55,128,2),new THREE.MeshBasicMaterial({color:0xa78cff,transparent:true,opacity:.22,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+ halo.rotation.x=Math.PI/2;
+ group.add(horizon,ring,halo);
+
+ const addFullSetup=async()=>{
+  const playerShip=await addShip({types:['front','middle','final'],center:[-1.2,.7,7]});boxHelper(playerShip,0x69e38a);
+  const allyShip=await addShip({types:['front','final'],center:[1.3,-.7,15]});boxHelper(allyShip,0x57c8ff);
+  await addModel('../assets/runtime/encounter-models/bike.glb',{position:[-1.4,-1.0,22],rotation:[0,Math.PI,0]});
+  await addModel('../assets/runtime/encounter-models/bike.glb',{position:[1.5,.9,27],rotation:[0,Math.PI,0]});
+  await addModel('../assets/runtime/closeout-models/green-ally.glb',{position:[-.7,-.8,32],scale:1.15,rotation:[0,Math.PI,0]});
+  await addModel('../assets/runtime/models/robot.glb',{position:[.8,.6,36],scale:.36,rotation:[0,Math.PI,0]});
+ };
 
  if(mode==='staggered-full'){
-  const playerShip=await addShip({types:['front','middle','final'],center:[-.9,.5,8]});boxHelper(playerShip,0x69e38a);
-  const allyShip=await addShip({types:['front','final'],center:[1.0,-.5,17]});boxHelper(allyShip,0x57c8ff);
-  await addModel('../assets/runtime/encounter-models/bike.glb',{position:[-1.25,-1.05,24],rotation:[0,Math.PI,0]});
-  await addModel('../assets/runtime/encounter-models/bike.glb',{position:[1.3,.9,29],rotation:[0,Math.PI,0]});
-  await addModel('../assets/runtime/closeout-models/green-ally.glb',{position:[-.6,-.8,34],scale:1.15,rotation:[0,Math.PI,0]});
-  await addModel('../assets/runtime/models/robot.glb',{position:[.75,.55,38],scale:.36,rotation:[0,Math.PI,0]});
+  await addFullSetup();
   look([16,10,31],[0,0,7],52);
-  tag('PORTAL-001 · APPROVED STAGGERED CONVOY · FULL-SETUP STRESS PROOF\nFull semantic scales preserved. Positions are proof candidates only.\nOccupancy/rider state is not frozen by this stress composition.');
+  tag('PORTAL-001 · APPROVED STAGGERED CONVOY · FULL-SETUP STRESS PROOF\nLegacy-size portal retained only for comparison.\nFull setup preserved; no asset rescaling.');
   return;
  }
 
@@ -141,7 +151,15 @@ async function portal(mode){
   await addShip({types:['front','middle','final'],center:[-.9,.45,7]});
   await addShip({types:['front','final'],center:[1.0,-.45,16]});
   look([9,6,19],[0,0,2],48);
-  tag('PORTAL-001 · APPROVED STAGGERED CONVOY · APERTURE PROOF\nNo ship rescaling. Longitudinal separation avoids mandatory simultaneous side-by-side crossing.');
+  tag('PORTAL-001 · APPROVED STAGGERED CONVOY · LEGACY APERTURE REFERENCE\nNo ship rescaling. Legacy 6.8 m is not V2 target size.');
+  return;
+ }
+
+ if(mode.startsWith('large-')){
+  await addFullSetup();
+  look([candidateDiameter*.95,candidateDiameter*.55,31],[0,0,7],50);
+  tag('PORTAL-001 · ENLARGED WHOLE-PORTAL MEASUREMENT SWEEP\nCandidate event-horizon diameter: '+candidateDiameter.toFixed(1)+' m\nRing + halo scale with aperture. Full setup remains real scale.\nCandidate only — exact dimension NOT frozen.');
+  return;
  }
 }
 
