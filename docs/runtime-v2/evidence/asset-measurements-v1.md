@@ -28,7 +28,11 @@ Canonical human anchor for V2: **1.90 m**.
 - Legacy player-ship module spacing: **4.125 m**.
 - Legacy alien-ship declared runtime length: **25.734 m**, almost exactly 2× the current measured Front+Middle+Final player-ship envelope. Evidence only.
 - Cockpit depth diagnosis: uncut source shell leaves **1.901 m** behind the standing astronaut, while the current rear clip cuts **0.619 m** into the standing astronaut envelope. Initial classification: **SOURCE_EXISTS_RUNTIME_HIDES**.
-- No portal-ring GLB was found in main.
+- Legacy Hangar staging scale was **18×**, giving an evidence envelope of **34.188 × 15.494 × 32.235 m**.
+- Legacy cockpit display scale was **1.8×**, giving an evidence envelope of **3.672 × 2.340 × 4.624 m**.
+- Legacy Nóma display scale was **0.36×**, giving an evidence envelope of **0.683 × 0.423 × 0.488 m**.
+- Current procedural jump-anomaly reference: event-horizon diameter **6.800 m**, disc outer diameter **15.600 m**.
+- No portal-ring GLB was found in main; the current measured portal-size evidence is procedural code, not an authored ring asset.
 - No mothership GLB was found in main.
 - Closeout/raw assets must not be interpreted as world scale merely from GLB bounds.
 

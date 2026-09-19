@@ -1,6 +1,6 @@
 {
   "schema": "gz-scale-measurement-v1",
-  "generatedAt": "2026-09-19T01:08:56.704Z",
+  "generatedAt": "2026-09-19T01:10:54.471Z",
   "sourceBranch": "docs/gz-runtime-v2-spec",
   "note": "Raw authoring bounds + explicitly labeled legacy evidence. No gameplay code copied into V2.",
   "measured": [
@@ -956,6 +956,84 @@
       "currentClipRearOverflow": 0.619191,
       "classification": "SOURCE_EXISTS_RUNTIME_HIDES",
       "note": "Evidence uses current legacy dashboardScale/stand anchor only to diagnose the existing composition; it is not a V2 implementation prescription."
+    },
+    "legacyCodeEvidence": {
+      "shipScale": 2.5,
+      "cockpitDashboardScale": 1.8,
+      "hangarDisplayScale": 18,
+      "allyDisplayScale": 1.15,
+      "turretDisplayScale": 0.8,
+      "energyCellDisplayScale": 0.55,
+      "nomaDisplayScale": 0.36,
+      "alienShipLength": 25.7335,
+      "jumpEventHorizonRadius": 3.4,
+      "jumpDiscInnerRadius": 3.7,
+      "jumpDiscOuterRadius": 7.8,
+      "jumpHaloRadius": 4.15
+    },
+    "legacySemanticEvidence": {
+      "hangar": {
+        "scale": 18,
+        "dimensions": [
+          34.187598,
+          15.494166,
+          32.234598
+        ],
+        "provenance": "src/lowpoly/main.js hangar.group.scale"
+      },
+      "cockpit": {
+        "scale": 1.8,
+        "dimensions": [
+          3.672,
+          2.34,
+          4.624475
+        ],
+        "wallShellDimensions": [
+          3.672,
+          2.34,
+          4.068
+        ],
+        "provenance": "CABIN_LAYOUT.dashboardScale"
+      },
+      "ally": {
+        "scale": 1.15,
+        "dimensions": [
+          1.759794,
+          2.184156,
+          0.709361
+        ]
+      },
+      "noma": {
+        "scale": 0.36,
+        "dimensions": [
+          0.683395,
+          0.42274,
+          0.487673
+        ]
+      },
+      "turretHangarDisplay": {
+        "scale": 0.8,
+        "dimensions": [
+          1.517673,
+          0.921906,
+          0.695814
+        ]
+      },
+      "energyCellDisplay": {
+        "scale": 0.55,
+        "dimensions": [
+          0.648769,
+          1.044304,
+          0.649025
+        ]
+      },
+      "jumpAnomaly": {
+        "eventHorizonDiameter": 6.8,
+        "discInnerDiameter": 7.4,
+        "discOuterDiameter": 15.6,
+        "haloMajorDiameter": 8.3,
+        "provenance": "src/lowpoly/jump-anomaly.js; procedural legacy reference, not GLB"
+      }
     },
     "authoringNormalizationCheck": {
       "allyLongest": 1.899266,
