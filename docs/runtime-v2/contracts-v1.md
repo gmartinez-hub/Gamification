@@ -795,3 +795,48 @@ Constraints:
 - full selected setup must remain readable,
 - portal must feel materially larger/more monumental than the legacy 6.8 m event-horizon reference,
 - exact diameter is not frozen until visual proof establishes adequate cinematic margin.
+
+
+---
+
+## 23. Banking, repair and friendly-fire semantics
+
+### GZ-ECO-002 — Energy Cell banking boundary
+**APPROVED DIRECTION / one failure case still open**
+
+Energy Cells collected during a sortie are **not permanently banked on pickup**.
+
+The approved banking boundary is **return to Hangar**.
+
+Until Hangar return, newly collected Cells are sortie-pending rather than persistent banked currency.
+
+Still requires explicit confirmation:
+- what happens to pending Cells when the player dies before a successful Hangar return,
+- whether a world-to-world portal handoff preserves pending Cells as part of the same excursion.
+
+Do not infer either case.
+
+### GZ-REPAIR-001 — Automatic Hangar repair
+**APPROVED DIRECTION / cost semantics still open**
+
+A surviving damaged vehicle/ship is automatically repaired when it returns to Hangar.
+
+Still requires explicit confirmation:
+- whether that repair is free,
+- whether any repair delay/resource exists.
+
+Do not infer cost merely from automatic behavior.
+
+### GZ-COMBAT-FF-001 — No friendly fire
+**APPROVED**
+
+Player/friendly attacks do not damage the friendly faction.
+
+Protected friendly targets include:
+- ally character,
+- Nóma,
+- allied/player-owned ships,
+- allied/player-owned Bikes,
+- friendly deployables/equipment such as beacons/turrets when logically friendly.
+
+Enemy attacks may still damage those targets according to normal combat rules.
