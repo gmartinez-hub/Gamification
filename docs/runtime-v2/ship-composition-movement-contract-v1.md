@@ -749,3 +749,98 @@ The exact actor/vehicle coverage list still requires explicit confirmation befor
 - ally Bike,
 - ally Ship,
 - enemy/hostile actors (currently not inferred).
+
+
+---
+
+# Decision Update — Boost Coverage / Whole-Ship Calculation / Friendly AI / Input
+
+### GZ-BOOST-016 — Whole-ship Boost calculation
+**APPROVED**
+
+Boost is calculated from the actor/vehicle's final current movement profile as a whole.
+
+For modular ships:
+- assemble/resolve the ship's current base movement class/profile first,
+- then apply the Boost multiplier to that final ship profile,
+- do NOT apply +25% independently per module,
+- Middle count does not compound Boost.
+
+Approved top-speed formula:
+
+`boostTopSpeed = resolvedBaseTopSpeed × 1.25`
+
+Acceleration also increases during Boost, but its exact multiplier remains OPEN pending explicit selection.
+
+### GZ-BOOST-017 — Friendly-side actor coverage
+**APPROVED**
+
+Boost is available to all player/friendly traversal actors and vehicles:
+- player astronaut EVA,
+- player Bike,
+- player Ship,
+- ally EVA/on-foot traversal where propulsion/movement supports it,
+- ally Bike,
+- ally Ship,
+- Nóma traversal.
+
+Hostile/enemy actors do NOT receive the player/friendly Boost mechanic in V1.
+
+This does not prohibit enemies from having their own authored movement behaviors; they simply do not inherit the friendly Boost contract.
+
+### GZ-BOOST-018 — Boost presentation stack
+**APPROVED direction / TUNE values**
+
+During Boost:
+- active propulsion flames/exhaust length/intensity increases,
+- PrimaryBoostExhaust becomes the dominant propulsion cue where supported,
+- controlled FOV increase,
+- camera acceleration/inertial pull on enter/exit,
+- peripheral star/particle streaks,
+- dedicated activation transient + sustained loop audio,
+- restrained edge distortion/exposure treatment,
+- no heavy gameplay-obscuring blur.
+
+Aim/target readability remains mandatory.
+
+### GZ-BOOST-019 — Friendly AI autonomous Boost
+**APPROVED**
+
+Existing Explore / Defend behavior may use Boost autonomously without creating a new tactical-command family.
+
+Defend:
+- friendly actor/vehicle may Boost to catch up, maintain formation or reposition while defending.
+
+Explore:
+- friendly actor may Boost between traversal targets/POIs when appropriate.
+
+Combat:
+- friendly actor may Boost to reposition or recover distance while still using normal combat logic.
+
+Nóma follows the same high-level principle where its movement implementation supports Boost.
+
+### GZ-BOOST-020 — Shift input semantics
+**APPROVED**
+
+Desktop Shift is an active propulsion command, not only a modifier.
+
+Pressing/holding Shift by itself drives Boost forward according to the controlled actor/vehicle's current facing/orientation, even with no WASD directional input.
+
+Directional input may still steer/modify movement while Boost is active.
+
+Mobile Boost control must preserve the same semantic behavior.
+
+### GZ-SPEED-UPGRADE-002 — Permanent generic speed upgrade scope
+**PARTIAL FREEZE**
+
+The permanent generic speed upgrade is:
+- global across player + friendly traversal actors/vehicles,
+- a single upgrade level, not a multi-tier tree.
+
+Still OPEN:
+- exact permanent speed increase,
+- exact permanent acceleration increase,
+- unlock gate,
+- Energy Cell price.
+
+Do not infer these values from the moment-to-moment +25% Boost.
