@@ -1429,3 +1429,31 @@ Still requires explicit confirmation:
 - what counts toward that requirement (natural portal discoveries, successful uses, completed sorties, or another progression event).
 
 Do not infer a numeric threshold.
+
+
+### GZ-PORTAL-025 — Portable Portal unlock after two successful portal transits
+**APPROVED**
+
+The Portable Portal is not granted automatically.
+
+It becomes available for purchase only after the player has completed **two successful natural-portal transits**.
+
+Semantics:
+- the counter is global campaign progression,
+- each completed natural-portal handoff increments the counter once,
+- discovery without successful transit does not count,
+- after the second successful natural-portal transit, the Portable Portal appears in the Hangar catalog as purchasable,
+- acquisition still requires spending banked Energy Cells,
+- purchase creates/owns one physical Portable Portal unit subject to the normal inventory/no-duplication rules,
+- once purchased, that unit may be equipped in any unlocked world and consumes one turret slot.
+
+The exact Energy Cell purchase price remains **BALANCE** and must not be inferred.
+
+### GZ-PORTAL-UNLOCK-OPEN — Portable Portal acquisition condition
+**RESOLVED / SUPERSEDED**
+
+Resolved by GZ-PORTAL-025:
+- unlock condition = two successful natural-portal transits,
+- scope = global campaign progression,
+- Portable Portal is then purchasable, not granted,
+- exact purchase price remains BALANCE.
