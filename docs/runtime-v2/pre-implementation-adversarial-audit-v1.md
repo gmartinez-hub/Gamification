@@ -441,8 +441,8 @@ RESOLVED:
 - after two successful natural-portal transits, the Portable Portal becomes purchasable,
 - once acquired, it is globally equipable.
 
-OPEN:
-- whether the two qualifying transits can be across any worlds or must be within one map/world.
+RESOLVED:
+- the two qualifying successful natural-portal transits are counted globally across worlds.
 
 BALANCE:
 - exact Energy Cell purchase price for the Portable Portal.
