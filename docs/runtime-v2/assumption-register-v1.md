@@ -171,22 +171,21 @@ Does the player astronaut have a usable personal weapon in EVA/on foot? If yes, 
 Is the ally pistol unlimited-ammo, finite-ammo, or governed by another resource rule?
 
 ### AS-BEACON-001 — Beacon gameplay function
-**PARTIAL / SEMANTIC_QUESTION**
+**RESOLVED**
 
-RESOLVED:
 - player astronaut deploys it manually,
+- multiple owned Beacons may be deployed simultaneously,
+- each Beacon can host max one actually-owned turret,
 - deployed Beacon is always visible on Tactical Map,
-- it detects enemies, hordes and natural portals,
+- detects enemies, hordes and natural portals,
 - no generic POI detection is approved,
-- it is a navigation/parking anchor for player ship or Bike,
-- on portal/world transition an intact Beacon returns directly to inventory and does not fly to the ring/cinematic,
+- serves as navigation/parking anchor for player ship or Bike,
+- no normal-world remote recall: recover physically or via world transition,
+- world transition returns intact Beacon directly to inventory; it does not fly to the ring,
+- Beacon itself gives no passive protection to parked vehicles,
+- protection exists only through a mounted turret's normal defensive fire,
+- Beacon-derived sensor markers disappear when the target leaves coverage/resolves,
 - destroyed Beacon remains LOST.
-
-Still open:
-- can multiple owned Beacons be deployed simultaneously, or max one active?
-- can the player recall/recover a Beacon remotely during normal world play, outside portal transition?
-- are parked ship/Bike still fully vulnerable while left at the Beacon?
-- do Beacon-detected enemies/hordes/portals become persistent map markers while within sensor coverage, and when are they removed?
 
 ### AS-BIKE-001 — Bike turret-capacity upgrade
 **SEMANTIC_QUESTION**
