@@ -348,14 +348,19 @@ Energy Cells are the single gameplay currency/resource for:
 - death salvage accounting.
 
 ### GZ-DEATH-001 — Player death
-**APPROVED**
+**APPROVED — RECONCILED**
 
 On player death:
 
-- Deployed player-owned physical setup is lost **except** equipment explicitly protected by GZ-DEATH-COMP-001 because it is physically assigned to a living/downed companion that recovers to Hangar.
+- **Only destroyed physical units/equipment are lost.**
+- Intact player-owned vehicles/equipment still surviving in the sortie recover automatically to Hangar.
+- Living/downed companions return automatically to Hangar with their intact surviving setup.
+- Destroyed companion/player units remain lost.
+- Pending sortie Energy Cells are lost.
 - Unlocks/recipes/world progression remain.
-- Recovery grants 50% of the value of the setup actually lost in the death resolution, in Energy Cells.
-- New baseline setup is the permanent recovery bike.
+- Recovery grants 50% of the value of the setup actually destroyed/lost in the death resolution, in Energy Cells.
+- That salvage is banked immediately as persistent Energy Cells.
+- The permanent baseline recovery Bike remains available for future sorties.
 
 Exact item prices remain balance configuration.
 
@@ -1079,3 +1084,44 @@ If the ally character becomes DEAD:
 - intact equipment recovery does not revive the ally character.
 
 This recovery is automatic and does not require Portal Recall merely because the ally died.
+
+
+---
+
+## 28. Interruption recovery and death-preservation reconciliation
+
+### GZ-SESSION-002 — Session interruption recovers intact deployed setup
+**APPROVED**
+
+When an active sortie is interrupted by close/refresh/unrecoverable suspend and the next resume returns to Hangar:
+
+- all intact player-owned deployed vehicles/equipment recover automatically to Hangar,
+- all intact companion setup follows its normal recovery rule,
+- destroyed units remain lost,
+- pending sortie Energy Cells are lost,
+- banked/persistent campaign state remains preserved,
+- the exact world instance is discarded and not resumed.
+
+Session interruption is therefore not treated as voluntary abandonment of intact equipment.
+
+### GZ-DEATH-005 — Player death loses only destroyed setup
+**APPROVED**
+
+Player death does not destroy or forfeit intact surviving equipment merely because it was deployed.
+
+Death resolution classifies deployed physical units by final physical state:
+- intact -> recover to Hangar,
+- destroyed -> LOST,
+- companion-carried intact -> recover with companion,
+- companion-carried destroyed -> LOST.
+
+Salvage is calculated only from units actually LOST under that resolution.
+
+### GZ-DEATH-COMP-002 — Surviving companions return automatically on player death
+**APPROVED**
+
+If the player dies and ally/Nóma are still alive or downed:
+- they return automatically to Hangar as part of the same death recovery resolution,
+- no Portal Recall is required,
+- their intact surviving vehicle/equipment returns with them,
+- destroyed units remain lost.
