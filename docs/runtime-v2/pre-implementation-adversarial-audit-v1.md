@@ -329,3 +329,14 @@ RESOLVED:
 - destroyed deployed Bikes can still be lost with their attached upgrades/equipment according to normal loss rules,
 - special/additional/Boosted Bikes do not become permanent merely because the baseline Bike is permanent,
 - portal review uses one contextual **Party & Equipment Check** with separate Party and Equipment sections.
+
+
+---
+
+## Session interruption / death return / dead-ally setup — resolved
+
+RESOLVED:
+- closing/reloading during an active sortie returns the player to Hangar rather than resuming the exact sortie,
+- active world instance and pending sortie Cells are discarded on that interruption,
+- player death resolves directly to Hangar after loss/salvage presentation,
+- a dead ally's intact surviving setup returns automatically to Hangar; destroyed units remain lost; revival remains separately paid.
