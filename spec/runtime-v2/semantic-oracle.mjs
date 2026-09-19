@@ -31,6 +31,9 @@ export const ATTACHMENT_DESTRUCTION_MODE = 'WITH_HOST_ONLY';
 export const WEAPON_AMMO_MODE = 'UNLIMITED';
 export const COMPANION_RECOVERY_INCLUDES_INTACT_SETUP = true;
 export const DEATH_SALVAGE_BANKS_IMMEDIATELY = true;
+export const HANGAR_CHARACTER_HEAL_MODE = 'FULL_AUTOMATIC';
+export const HANGAR_CHARACTER_HEAL_FREE = true;
+export const PLAYER_DOWNED_STATE_ENABLED = false;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
