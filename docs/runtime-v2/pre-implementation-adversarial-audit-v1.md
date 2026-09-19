@@ -351,3 +351,17 @@ RESOLVED:
 - player death -> only destroyed units are lost; intact player setup returns,
 - living/downed companions automatically return to Hangar on player death with intact surviving setup,
 - salvage is based only on actual LOST/destroyed units.
+
+
+---
+
+## Hangar configuration transaction — resolved / open
+
+RESOLVED:
+- configuration and purchases are staged during the Hangar session,
+- user confirms the intended configuration,
+- persistence happens atomically on Hangar/configuration exit,
+- confirmation alone is not the persistence boundary.
+
+OPEN:
+- crash/forced-close after confirm but before exit commit: discard to last persisted state vs recover confirmed session.
