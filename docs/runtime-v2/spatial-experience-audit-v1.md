@@ -1,3 +1,5 @@
+> HISTORICAL AUDIT NOTE: proposal/open wording in this document records the state at the time of the spatial audit. Newer canonical contracts in contracts-v1.md and ship-composition-movement-contract-v1.md supersede any stale proposal or open marker here. Do not implement from a stale proposal when a newer contract exists.
+
 # Gravedad Zero — Spatial Experience Audit V1
 
 Status: **SEMANTICS CLOSED — raw asset/camera evidence pending VERIFY**
@@ -171,7 +173,7 @@ Portal diameter is not eyeballed. It is derived from the largest supported trave
 
 At destination confirmation the runtime may take cinematic camera ownership even if the player approached in first person. This is the loading/memory handoff and must show the selected setup travelling.
 
-After handoff, gameplay camera restores according to the arrival/deployment contract. The exact controlled actor after world-to-world transit remains to freeze.
+After handoff, gameplay camera restores according to the arrival/deployment contract. This is now RESOLVED by GZ-PORTAL-010: control returns to the same actor/vehicle used to enter the portal.
 
 ---
 
