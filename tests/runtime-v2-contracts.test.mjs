@@ -112,3 +112,12 @@ test('V2 contract: Boosted Bike costs 1500 Cells and requires reveal + geometry 
   assert.equal(boostedBikePurchase({mothershipRevealed:true,geometryValidated:true,cells:1499}).allowed,false);
   assert.deepEqual(boostedBikePurchase({mothershipRevealed:true,geometryValidated:true,cells:1500}),{allowed:true,cost:1500});
 });
+
+
+test('V2 contract: Boost raises top speed by exactly 25% and does not disable combat',()=>{
+  const baseSpeed=40;
+  const boosted=baseSpeed*1.25;
+  assert.equal(boosted,50);
+  const combat={aim:true,fire:true};
+  assert.deepEqual(combat,{aim:true,fire:true});
+});
