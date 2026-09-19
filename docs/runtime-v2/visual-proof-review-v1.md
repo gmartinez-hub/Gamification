@@ -63,10 +63,16 @@ Evidence:
 
 Product choice resolved: **B — STAGGERED CONVOY**.
 
+Product direction extended:
+- **full selected setup must be clearly visible in the main transit cinematic**,
+- **the whole portal is enlarged**: aperture + ring + effects + world presence,
+- legacy 6.8 m event horizon is now reference only, not the V2 target size.
+
 Next proof:
 - render the full selected-setup family at real scale in staggered formation,
-- verify ring aperture/camera timing without requiring simultaneous side-by-side crossing,
-- freeze exact offsets/timing only after that evidence.
+- enlarge the full portal presentation until the setup reads cleanly with cinematic margin,
+- compare measured candidate diameters,
+- freeze exact aperture/ring/effect dimensions only after visual evidence.
 
 No ship/vehicle rescaling is allowed.
 
