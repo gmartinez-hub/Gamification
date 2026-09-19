@@ -844,3 +844,70 @@ Still OPEN:
 - Energy Cell price.
 
 Do not infer these values from the moment-to-moment +25% Boost.
+
+
+---
+
+# Decision Update — Boost Acceleration / Permanent Global Speed Upgrade
+
+### GZ-BOOST-021 — Boost acceleration multiplier
+**APPROVED**
+
+Moment-to-moment Boost increases acceleration by **40%** over the actor/vehicle's current non-Boost acceleration.
+
+Approved Boost kinematics:
+- top speed: +25%
+- acceleration: +40%
+
+Boost still remains freely holdable and combat-compatible.
+
+### GZ-SPEED-UPGRADE-003 — Global permanent upgrade stat package
+**APPROVED**
+
+The one-time permanent global friendly movement upgrade uses the P2 package:
+
+- base top speed: **+15%**
+- base acceleration: **+20%**
+- scope: player + friendly traversal actors/vehicles
+- tiers: exactly 1
+
+This permanent upgrade is separate from moment-to-moment Boost.
+
+### GZ-SPEED-UPGRADE-004 — Top-speed stacking with Boost
+**APPROVED — ADDITIVE**
+
+When the permanent global upgrade is owned and Boost is active, top-speed percentages add against the original resolved base top speed.
+
+Example:
+- base = 100
+- permanent upgrade = +15
+- Boost = +25
+- final boosted top speed = **140**
+
+Formula:
+
+`finalTopSpeed = resolvedBaseTopSpeed × (1 + 0.15 + 0.25)`
+
+Do not multiply 1.15 × 1.25 for top speed.
+
+### GZ-SPEED-UPGRADE-005 — Remaining progression values
+**OPEN — EXPLICIT CONFIRMATION REQUIRED**
+
+The permanent upgrade's purchase gate and Energy Cell price are still not frozen.
+
+The latest user response confirmed the P2 stat package and additive 140 top-speed result, but did not uniquely identify one of the previously proposed price/gate pairs.
+
+Do not infer price or unlock milestone.
+
+### GZ-SPEED-UPGRADE-006 — Acceleration stacking with permanent upgrade
+**OPEN — EXPLICIT CONFIRMATION REQUIRED**
+
+Known:
+- permanent acceleration upgrade = +20%
+- momentary Boost acceleration = +40%
+
+Need explicit rule for simultaneous use:
+- additive against original resolved base acceleration -> 160% of base,
+- or multiplicative -> 168% of base.
+
+Top-speed additive rule does not automatically decide acceleration stacking.
