@@ -185,7 +185,24 @@ Is the ally pistol unlimited-ammo, finite-ammo, or governed by another resource 
 ### AS-BEACON-001 — Beacon gameplay function
 **SEMANTIC_QUESTION**
 
-Beyond carrying one turret / map presence / possible horde warning, what is the Beacon's canonical gameplay function?
+Current approved facts:
+- Beacon is a physical owned deployable/inventory item.
+- It may appear on Tactical Map.
+- It can host max 1 turret.
+- It is friendly/no-friendly-fire.
+- It follows normal intact-recovery / destroyed-loss / Portal Recall rules.
+- Asset direction includes radar/light/emissive areas, simple collider and long-distance readability.
+
+Prior product intent also included orientation/map marking, portal signaling and alien alerts, but those functions are not yet fully canonical.
+
+Explicitly define:
+1. deployment action: who plants it and from what inventory/context?
+2. primary sensor function: enemies, hordes, natural portals, POIs, or a subset?
+3. does it reveal/extend map information within a radius?
+4. does it act as a navigation anchor/waypoint for player/companions?
+5. can it signal or help locate the next natural portal?
+6. can multiple owned Beacons be deployed simultaneously, or is there a per-sortie cap?
+7. can the player remotely Recall a Beacon outside Portal Recall, or only recover manually/through portal resolution?
 
 ### AS-BIKE-001 — Bike turret-capacity upgrade
 **SEMANTIC_QUESTION**
