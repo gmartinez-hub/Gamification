@@ -27,6 +27,10 @@ export const PENDING_CELLS_LOST_ON_PLAYER_DEATH = true;
 export const PENDING_CELLS_PERSIST_ACROSS_WORLD_PORTAL = true;
 export const HANGAR_REPAIR_FREE = true;
 export const HANGAR_REPAIR_DELAY = 0;
+export const ATTACHMENT_DESTRUCTION_MODE = 'WITH_HOST_ONLY';
+export const WEAPON_AMMO_MODE = 'UNLIMITED';
+export const COMPANION_RECOVERY_INCLUDES_INTACT_SETUP = true;
+export const DEATH_SALVAGE_BANKS_IMMEDIATELY = true;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
@@ -154,4 +158,24 @@ export function portalEquipmentDecision({leftBehindIntactItemIds=[],choice}){
   if(choice==='TRAVEL_ANYWAY')return {travelAllowed:true,recallIds:[],lostIds:ids,waitForArrival:false};
   if(choice==='RECOVER_MANUALLY')return {travelAllowed:false,recallIds:[],lostIds:[],waitForArrival:false};
   return {travelAllowed:false,recallIds:[],lostIds:[],waitForArrival:false};
+}
+
+
+export function resolveCompanionBaseRecovery({companionState,vehicleState,itemIds=[]}){
+  if(!['alive','downed'].includes(companionState))return {recoverCompanion:false,recoveredItemIds:[],lostItemIds:itemIds};
+  if(vehicleState==='destroyed')return {recoverCompanion:true,recoveredItemIds:[],lostItemIds:itemIds};
+  return {recoverCompanion:true,recoveredItemIds:[...itemIds],lostItemIds:[]};
+}
+
+export function resolveDeathEconomy({bankedCells,pendingCells,lostSetupValue}){
+  if(!Number.isFinite(bankedCells)||bankedCells<0)throw new Error('INVALID_BANKED_CELLS');
+  if(!Number.isFinite(pendingCells)||pendingCells<0)throw new Error('INVALID_PENDING_CELLS');
+  if(!Number.isFinite(lostSetupValue)||lostSetupValue<0)throw new Error('INVALID_LOST_SETUP_VALUE');
+  const salvageCells=lostSetupValue*0.5;
+  return {
+    bankedCells:bankedCells+salvageCells,
+    pendingCells:0,
+    lostPendingCells:pendingCells,
+    salvageCells
+  };
 }
