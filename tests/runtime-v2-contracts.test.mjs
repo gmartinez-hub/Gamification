@@ -354,3 +354,23 @@ test('V2 contract: Hangar confirmation does not persist until exit',async()=>{
   assert.deepEqual(mod.hangarTransaction({confirmed:true,exiting:false}),{persist:false,state:'CONFIRMED_UNCOMMITTED'});
   assert.deepEqual(mod.hangarTransaction({confirmed:true,exiting:true}),{persist:true,state:'EXIT_COMMIT'});
 });
+
+
+test('V2 contract: pre-exit Hangar interruption discards uncommitted session',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(
+    mod.HANGAR_PREEXIT_INTERRUPTION_MODE,
+    'DISCARD_UNCOMMITTED_RESTORE_LAST_PERSISTED'
+  );
+  assert.deepEqual(
+    mod.resolveHangarPreExitInterruption({
+      lastPersistedState:{cells:1000,loadout:'A'},
+      stagedState:{cells:700,loadout:'B'}
+    }),
+    {
+      restoredState:{cells:1000,loadout:'A'},
+      discardedStagedState:{cells:700,loadout:'B'},
+      recoveredConfirmedSession:false
+    }
+  );
+});
