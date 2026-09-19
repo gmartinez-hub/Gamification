@@ -38,8 +38,8 @@ RESOLVED:
 - distance,
 - countdown.
 
-Still open:
-- marker removal/history behavior when the portal window expires.
+RESOLVED:
+- when the portal window expires, its marker/direction/distance/countdown disappear completely; no expired-history trace remains.
 
 ### AS-PORTAL-004 — Simultaneous natural portals
 **RESOLVED**
@@ -110,14 +110,19 @@ When the player earns:
 are these milestones persisted immediately when earned, or only when the player successfully returns to Hangar?
 
 ### AS-CAMPAIGN-001 — First narrative gem source
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-What exact gameplay event grants the first narrative gem / World 2 unlock?
+World 1: after Nóma rescue and early ship progression, Nóma Explore discovers an anomalous signal / protected gem POI. Completing the hostile guardian/elite encounter grants Gem 1 and unlocks World 2.
 
 ### AS-CAMPAIGN-002 — Second narrative gem source
-**SEMANTIC_QUESTION**
+**PARTIAL / SEMANTIC_QUESTION**
 
-What exact gameplay event grants the second narrative gem / World 3 unlock?
+User selected a combination for World 2. Exact combined sequence still requires explicit wording before freeze.
+
+Candidate to confirm:
+- rescued ally contributes intel/location knowledge,
+- that intel leads to a dangerous carrier/elite/fortified encounter,
+- completing that encounter grants Gem 2 and unlocks World 3.
 
 ## D. Companion semantics
 
