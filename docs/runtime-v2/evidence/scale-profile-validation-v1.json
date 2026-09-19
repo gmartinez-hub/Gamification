@@ -1,0 +1,328 @@
+{
+  "schema": "gz-scale-profile-validation-v1",
+  "generatedAt": "2026-09-19T01:30:01.999Z",
+  "pass": true,
+  "checks": [
+    {
+      "id": "RAW_EXISTS:character.player",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:character.player",
+      "pass": true,
+      "details": {
+        "expected": [
+          0.972569,
+          1.89899,
+          0.988409
+        ],
+        "actual": [
+          0.972569,
+          1.89899,
+          0.988409
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:cockpit.integrated",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:cockpit.integrated",
+      "pass": true,
+      "details": {
+        "expected": [
+          2.04,
+          1.3,
+          2.569153
+        ],
+        "actual": [
+          2.04,
+          1.3,
+          2.569153
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:ship.front",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:ship.front",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.895572,
+          1.796526,
+          1.814597
+        ],
+        "actual": [
+          1.895572,
+          1.796526,
+          1.814597
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:ship.middle",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:ship.middle",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.588412,
+          1.899496,
+          1.288278
+        ],
+        "actual": [
+          1.588412,
+          1.899496,
+          1.288278
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:ship.final",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:ship.final",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.824724,
+          1.89893,
+          1.845239
+        ],
+        "actual": [
+          1.824724,
+          1.89893,
+          1.845239
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:vehicle.bike",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:vehicle.bike",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.395172,
+          1.298996,
+          2.999908
+        ],
+        "actual": [
+          1.395172,
+          1.298996,
+          2.999908
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:enemy.alienShip",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:enemy.alienShip",
+      "pass": true,
+      "details": {
+        "expected": [
+          0.548798,
+          0.290573,
+          1
+        ],
+        "actual": [
+          0.548798,
+          0.290573,
+          1
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:hangar.serviceBay",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:hangar.serviceBay",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.899311,
+          0.860787,
+          1.790811
+        ],
+        "actual": [
+          1.899311,
+          0.860787,
+          1.790811
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:weapon.turret",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:weapon.turret",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.897091,
+          1.152382,
+          0.869767
+        ],
+        "actual": [
+          1.897091,
+          1.152382,
+          0.869767
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:character.ally",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:character.ally",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.53026,
+          1.89927,
+          0.61684
+        ],
+        "actual": [
+          1.530256,
+          1.899266,
+          0.616836
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "RAW_EXISTS:companion.noma",
+      "pass": true,
+      "details": "measured"
+    },
+    {
+      "id": "RAW_MATCH:companion.noma",
+      "pass": true,
+      "details": {
+        "expected": [
+          1.898,
+          1.174,
+          1.355
+        ],
+        "actual": [
+          1.898319,
+          1.174277,
+          1.354647
+        ],
+        "tolerance": 0.006
+      }
+    },
+    {
+      "id": "HUMAN_ANCHOR_1_90",
+      "pass": true,
+      "details": {
+        "rawHeight": 1.89899,
+        "semanticHeight": 1.9
+      }
+    },
+    {
+      "id": "RING_EXPLICITLY_UNMEASURED",
+      "pass": true,
+      "details": {
+        "status": "VERIFY",
+        "assetStatus": "NO_GLB_IN_MAIN",
+        "measuredReference": {
+          "legacyProceduralEventHorizonDiameter": 6.8,
+          "legacyVisualDiscOuterDiameter": 15.6
+        },
+        "semanticConstraint": "aperture must fit selected travelling setup without hidden per-shot ship scaling",
+        "provenance": [
+          "jump-anomaly legacy procedural evidence"
+        ]
+      }
+    },
+    {
+      "id": "MOTHERSHIP_EXPLICITLY_UNMEASURED",
+      "pass": true,
+      "details": {
+        "status": "PRODUCE_MEASURE",
+        "assetStatus": "NO_GLB_IN_MAIN",
+        "semanticConstraint": "must read dramatically larger than alien ship in boss establishing and combat cameras",
+        "provenance": [
+          "approved boss visual canon"
+        ]
+      }
+    },
+    {
+      "id": "NO_FALSE_APPROVAL:ship.front",
+      "pass": true,
+      "details": {
+        "status": "MEASURED_REFERENCE"
+      }
+    },
+    {
+      "id": "NO_FALSE_APPROVAL:ship.middle",
+      "pass": true,
+      "details": {
+        "status": "MEASURED_REFERENCE"
+      }
+    },
+    {
+      "id": "NO_FALSE_APPROVAL:ship.final",
+      "pass": true,
+      "details": {
+        "status": "MEASURED_REFERENCE"
+      }
+    },
+    {
+      "id": "NO_FALSE_APPROVAL:enemy.alienShip",
+      "pass": true,
+      "details": {
+        "status": "MEASURED_REFERENCE"
+      }
+    },
+    {
+      "id": "NO_FALSE_APPROVAL:hangar.serviceBay",
+      "pass": true,
+      "details": {
+        "status": "VERIFY"
+      }
+    },
+    {
+      "id": "NO_FALSE_APPROVAL:cockpit.integrated",
+      "pass": true,
+      "details": {
+        "status": "VERIFY"
+      }
+    }
+  ],
+  "failedCount": 0
+}
