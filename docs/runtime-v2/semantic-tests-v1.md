@@ -199,3 +199,12 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 |---|---|---|
 | SEM-COMP-CMD-001 | Issue Explore to unlocked ally | Ally uses the shared Explore high-level command; no separate ally role menu appears. |
 | SEM-COMP-CMD-002 | Issue Defend to ally with heavy turret loadout | Ally defends using actual equipped weapons/turrets; no hidden tank-role multiplier is added. |
+
+
+## Boosted Bike progression
+
+| ID | Scenario | Expected |
+|---|---|---|
+| SEM-BIKE-PROG-001 | Before World 3 mothership reveal | Boosted Bike purchase remains locked even if player has 1,500+ Energy Cells. |
+| SEM-BIKE-PROG-002 | World 3 mothership reveal unlocked + geometry validation PASS + 1,500 Cells | Boosted Bike purchase is allowed and costs exactly 1,500 Energy Cells at initial balance. |
+| SEM-BIKE-PROG-003 | Geometry validation fails | Boosted Bike cannot be purchased merely by having the progression unlock/Cells; feature stays blocked for production correction/review. |
