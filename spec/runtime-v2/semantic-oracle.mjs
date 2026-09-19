@@ -36,6 +36,10 @@ export const HANGAR_CHARACTER_HEAL_FREE = true;
 export const PLAYER_DOWNED_STATE_ENABLED = false;
 export const BASELINE_RECOVERY_BIKE_PERMANENT = true;
 export const PORTAL_REVIEW_UI = 'UNIFIED_PARTY_EQUIPMENT_SECTIONS';
+export const SESSION_RESUME_MODE = 'RETURN_TO_HANGAR';
+export const SESSION_INTERRUPTION_LOSES_PENDING_CELLS = true;
+export const PLAYER_DEATH_DESTINATION = 'HANGAR';
+export const DEAD_ALLY_INTACT_SETUP_RECOVERY = 'AUTO_HANGAR';
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
@@ -183,4 +187,24 @@ export function resolveDeathEconomy({bankedCells,pendingCells,lostSetupValue}){
     lostPendingCells:pendingCells,
     salvageCells
   };
+}
+
+
+export function resolveSessionInterruption({bankedCells,pendingCells}){
+  if(!Number.isFinite(bankedCells)||bankedCells<0)throw new Error('INVALID_BANKED_CELLS');
+  if(!Number.isFinite(pendingCells)||pendingCells<0)throw new Error('INVALID_PENDING_CELLS');
+  return {
+    destination:'HANGAR',
+    bankedCells,
+    pendingCells:0,
+    lostPendingCells:pendingCells,
+    resumeWorld:false
+  };
+}
+
+export function resolveDeadAllySetup({itemIds=[],destroyedItemIds=[]}){
+  const destroyed=new Set(destroyedItemIds);
+  const recovered=itemIds.filter(id=>!destroyed.has(id));
+  const lost=itemIds.filter(id=>destroyed.has(id));
+  return {allyRevivalRequired:true,recoveredItemIds:recovered,lostItemIds:lost};
 }
