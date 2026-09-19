@@ -70,9 +70,11 @@ Mechanically test and specify:
 ### Semantic questions to surface
 
 - One autosave slot or multiple player-visible slots?
-- When exactly do newly collected Energy Cells become persistent?
-- Does player death ever remove already-banked Energy Cells?
-- Is damage/repair state persisted across Hangar/portal/reload or restored by a defined rule?
+- Energy Cell banking boundary: **RESOLVED — Hangar return**.
+- Still open: pending Cells on player death before Hangar.
+- Still open: pending Cells across world-to-world portal handoff.
+- Automatic repair on Hangar: **RESOLVED direction**.
+- Still open: whether automatic repair is free / has any cost or delay.
 
 ---
 
@@ -118,7 +120,7 @@ Verify:
 
 ### Semantic questions to expose
 
-- friendly fire: player <-> ally/Nóma/player-owned vehicles?
+- friendly fire: **RESOLVED — disabled for the friendly faction**.
 - can individual modules/turrets be destroyed independently, or only host-level destruction?
 - ammo/energy limits: infinite baseline fire or an authored resource/cooldown system?
 - repair/heal behavior during and between sorties.
