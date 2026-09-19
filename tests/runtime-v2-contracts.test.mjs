@@ -595,3 +595,26 @@ test('V2 contract: intact Beacon returns directly to inventory on world transiti
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.BEACON_WORLD_TRANSITION_RECOVERY,'DIRECT_TO_INVENTORY_NO_RING_TRAVEL');
 });
+
+
+test('V2 contract: multiple Beacons may be deployed but turrets remain separate physical units',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BEACON_MULTIPLE_DEPLOYMENT_ALLOWED,true);
+});
+
+test('V2 contract: Beacon has no normal-world remote recall',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BEACON_REMOTE_RECALL_DURING_WORLD,false);
+  assert.equal(mod.BEACON_WORLD_TRANSITION_RECOVERY,'DIRECT_TO_INVENTORY_NO_RING_TRAVEL');
+});
+
+test('V2 contract: Beacon protects parked vehicles only through mounted turret fire',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BEACON_PASSIVE_VEHICLE_PROTECTION,false);
+  assert.equal(mod.BEACON_PROTECTION_SOURCE,'MOUNTED_TURRET_ONLY');
+});
+
+test('V2 contract: Beacon sensor markers disappear when detection ends',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BEACON_SENSOR_MARKER_PERSISTENCE,'LIVE_ONLY_REMOVE_WHEN_NOT_DETECTED');
+});
