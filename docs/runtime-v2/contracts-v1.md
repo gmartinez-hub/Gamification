@@ -1201,3 +1201,64 @@ For each of those intentional exits:
 If the commit fails, remain in Hangar and do not partially apply the staged state.
 
 This is intentionally different from an unexpected close/crash/forced interruption before exit, which discards the uncommitted session and restores the last persisted state on next launch.
+
+
+---
+
+## 30. Launch / world-entry consistency
+
+### GZ-LAUNCH-001 — Confirmed setup is locked during a sortie
+**APPROVED**
+
+Once the Hangar exit commit succeeds and a sortie launches, the confirmed physical loadout is locked for that sortie.
+
+During an active world sortie:
+- ship modules cannot be remotely swapped,
+- mounted turrets cannot be remotely reassigned,
+- vehicle/equipment loadout cannot be reconfigured from a menu,
+- physical inventory assignments remain those committed at launch unless changed by in-world destruction/loss/recovery rules.
+
+To change configuration, return to Hangar and start a new staged Hangar configuration session.
+
+This does not block non-loadout runtime commands such as companion Explore/Defend, camera changes, Boost, weapon use or portal actions.
+
+### GZ-LAUNCH-002 — Unselected ship remains in Hangar
+**APPROVED**
+
+A Bike-only sortie is valid.
+
+If the player's ship is not selected in the confirmed launch setup:
+- the ship remains stored in Hangar,
+- it is not instantiated in the active world,
+- it is not remotely simulated in that world,
+- it is not implicitly available for recovery during that sortie.
+
+No hidden mandatory ship deployment exists.
+
+### GZ-LAUNCH-003 — Ally may deploy without a ship
+**APPROVED**
+
+The ally does not require an ally ship in order to deploy.
+
+Depending on the confirmed setup, the ally may launch:
+- on foot / EVA,
+- with a Bike,
+- with a ship,
+- with another explicitly compatible selected traversal setup.
+
+The ally ship remains optional even after it has been unlocked/built.
+
+### GZ-LAUNCH-004 — Required launch asset failure aborts world entry
+**APPROVED**
+
+After the Hangar exit commit succeeds, the runtime may preload/instantiate the selected world and setup.
+
+If a required asset for the confirmed setup fails to load/decode/instantiate:
+- abort the world launch,
+- do not enter a partially degraded sortie,
+- return/remain in Hangar,
+- preserve the already committed Hangar configuration and ownership/currency state,
+- do not silently remove the failed actor/module/item from the setup,
+- do not substitute a different asset without an explicit later contract.
+
+A launch asset failure is a technical error/retry state, not permission to alter the player's confirmed setup.
