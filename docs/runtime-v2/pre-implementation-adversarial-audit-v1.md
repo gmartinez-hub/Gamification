@@ -318,3 +318,14 @@ RESOLVED:
 OPEN:
 - "la moto la tenes siempre" requires explicit scope clarification before altering Bike loss semantics,
 - Party Check + Equipment Check presentation grouping remains a product/UI choice.
+
+
+---
+
+## Bike permanence / portal review UI — resolved
+
+RESOLVED:
+- permanent baseline recovery Bike remains available for future sorties,
+- destroyed deployed Bikes can still be lost with their attached upgrades/equipment according to normal loss rules,
+- special/additional/Boosted Bikes do not become permanent merely because the baseline Bike is permanent,
+- portal review uses one contextual **Party & Equipment Check** with separate Party and Equipment sections.
