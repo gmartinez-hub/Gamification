@@ -27,19 +27,18 @@ If Nóma is absent/unavailable/DOWNED:
 Natural extraction may not become impossible solely because Nóma is unavailable.
 
 ### AS-PORTAL-003 — Portal notification / map marker
-**PARTIAL / SEMANTIC_QUESTION**
+**RESOLVED**
 
-RESOLVED:
-- after detection, the remaining portal availability window is shown as a countdown.
-
-RESOLVED:
+After detection:
 - Tactical Map marker,
 - direction guidance,
 - distance,
-- countdown.
+- remaining-window countdown.
 
-RESOLVED:
-- when the portal window expires, its marker/direction/distance/countdown disappear completely; no expired-history trace remains.
+When the window expires:
+- portal closes,
+- marker/direction/distance/countdown disappear completely,
+- no expired/history trace remains.
 
 ### AS-PORTAL-004 — Simultaneous natural portals
 **RESOLVED**
