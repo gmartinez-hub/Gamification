@@ -41,6 +41,7 @@ A performance failure does **not** authorize deleting a capability. First adjust
 - [campaign-progression-contract-v1.md](./campaign-progression-contract-v1.md) — prologue, World 1/2/3 progression, ally rescue, incursions and final boss canon.
 - [semantic-audit-pass-1.md](./semantic-audit-pass-1.md) — contradiction log and resolved pass-1 blockers.
 - [semantic-audit-pass-2.md](./semantic-audit-pass-2.md) — core semantic freeze result and evidence gates before implementation freeze.
+- [evidence/asset-measurements-v1.md](./evidence/asset-measurements-v1.md) — generated raw bounds, legacy semantic-scale evidence and first cockpit/Hangar/ring findings.
 
 ## Repository strategy
 
