@@ -50,5 +50,7 @@ jobs:
             echo "No evidence changes"
           else
             git commit -m "docs(runtime-v2): record asset measurement evidence [skip ci]"
+            git fetch origin docs/gz-runtime-v2-spec
+            git rebase origin/docs/gz-runtime-v2-spec
             git push origin HEAD:docs/gz-runtime-v2-spec
           fi
