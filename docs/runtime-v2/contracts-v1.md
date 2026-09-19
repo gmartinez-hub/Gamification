@@ -1539,3 +1539,82 @@ Once the player explicitly requests Portal Recall for eligible intact owned equi
 - transit waits until that guaranteed recall presentation resolves.
 
 Exact arrival path, VFX, timing and camera treatment remain **TUNE/PRODUCE/VERIFY**.
+
+
+---
+
+## 34. Portable Portal astronaut inventory / activation / manifestation
+
+### GZ-PPORTAL-001 — Portable Portal lives in astronaut inventory
+**APPROVED**
+
+The Portable Portal is carried only in the **player astronaut inventory**.
+
+It is not mounted on:
+- player ship,
+- player Bike,
+- ally ship,
+- ally Bike,
+- Nóma,
+- Beacon.
+
+The player astronaut is the only inventory host for this item.
+
+### GZ-PPORTAL-002 — Player-only activation
+**APPROVED**
+
+Only the player may activate the Portable Portal.
+
+The ally and Nóma do not autonomously activate it.
+
+Remote activation from Tactical Map is not part of the approved behavior.
+
+### GZ-PPORTAL-003 — Portal manifests at setup-appropriate size
+**APPROVED DIRECTION / MEASURE exact envelope**
+
+On activation, the Portable Portal manifests a full portal sized to accommodate the **actual traveling setup for that handoff**.
+
+Requirements:
+- no hidden ship/vehicle/character rescaling,
+- the portal presentation grows to the required semantic aperture,
+- the current traveling setup must be able to pass through cleanly,
+- full setup visibility and staggered transit language remain applicable,
+- exact safety margin / ring / halo dimensions are MEASURE/VERIFY from the setup envelope.
+
+The Portable Portal is therefore not a tiny fixed-size emitter whose opening stays physically undersized relative to the setup.
+
+### GZ-PPORTAL-004 — Once-per-sortie boundary
+**APPROVED**
+
+One Portable Portal use is available per **continuous sortie**:
+
+`Hangar departure -> one or more worlds -> Hangar | player death | session interruption`
+
+Crossing from one world to another does not reset the Portable Portal use.
+
+### GZ-PPORTAL-005 — Same Party & Equipment Check
+**APPROVED**
+
+Portable Portal travel uses the same:
+- Party & Equipment Check,
+- Rescue First / Travel Anyway semantics,
+- Portal Recall semantics,
+- safe handoff / failed-load rollback,
+
+as natural portal travel unless a later contract explicitly distinguishes a presentation-only detail.
+
+### GZ-PPORTAL-SLOT-OPEN — Inventory slot accounting conflict
+**SEMANTIC_QUESTION**
+
+There is now a direct conflict between two approved statements:
+- earlier: Portable Portal consumes one normal turret slot,
+- current: Portable Portal lives only in astronaut inventory.
+
+Do not infer a silent reconciliation.
+
+Explicit confirmation is required:
+A. astronaut inventory item **and no turret slot cost**, superseding GZ-PORTAL-023,
+or
+B. astronaut inventory item **but still consumes one turret-capacity slot globally**, even though it is not physically mounted to a turret host,
+or
+C. another slot/accounting rule.
