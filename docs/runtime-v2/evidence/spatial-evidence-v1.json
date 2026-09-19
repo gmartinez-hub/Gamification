@@ -1,0 +1,399 @@
+{
+  "schema": "gz-spatial-evidence-v1",
+  "generatedAt": "2026-09-19T01:29:11.144Z",
+  "hangar": {
+    "semanticEvidenceScale": 18,
+    "bounds": {
+      "min": [
+        -17.131,
+        -9.014,
+        -16.102
+      ],
+      "max": [
+        17.057,
+        6.481,
+        16.133
+      ],
+      "dimensions": [
+        34.188,
+        15.494,
+        32.235
+      ]
+    },
+    "anchorRays": {
+      "bike": {
+        "position": [
+          -12.24,
+          -0.12,
+          -3.24
+        ],
+        "up": 5.896,
+        "down": 5.755,
+        "left": 2.508,
+        "right": 26.916,
+        "forward": null,
+        "rear": 7.618
+      },
+      "crew": {
+        "position": [
+          12.24,
+          -0.12,
+          -3.24
+        ],
+        "up": 5.817,
+        "down": 7.657,
+        "left": 26.988,
+        "right": 2.436,
+        "forward": null,
+        "rear": 5.659
+      },
+      "longShip": {
+        "position": [
+          0,
+          1.68,
+          0
+        ],
+        "up": null,
+        "down": 9.46,
+        "left": null,
+        "right": null,
+        "forward": null,
+        "rear": null
+      }
+    },
+    "firstPersonGrid": [
+      {
+        "x": -12,
+        "z": -8,
+        "floorDistance": 3.084,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": -12,
+        "z": -4,
+        "floorDistance": 7.585,
+        "ceilingDistance": 4.145,
+        "verticalClearance": 11.729
+      },
+      {
+        "x": -12,
+        "z": 0,
+        "floorDistance": 9.479,
+        "ceilingDistance": 4.132,
+        "verticalClearance": 13.611
+      },
+      {
+        "x": -12,
+        "z": 4,
+        "floorDistance": 9.478,
+        "ceilingDistance": 2.871,
+        "verticalClearance": 12.35
+      },
+      {
+        "x": -12,
+        "z": 8,
+        "floorDistance": 9.476,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": -8,
+        "z": -8,
+        "floorDistance": 7.603,
+        "ceilingDistance": 3.137,
+        "verticalClearance": 10.74
+      },
+      {
+        "x": -8,
+        "z": -4,
+        "floorDistance": 9.268,
+        "ceilingDistance": 3.171,
+        "verticalClearance": 12.439
+      },
+      {
+        "x": -8,
+        "z": 0,
+        "floorDistance": 9.26,
+        "ceilingDistance": 3.177,
+        "verticalClearance": 12.438
+      },
+      {
+        "x": -8,
+        "z": 4,
+        "floorDistance": 9.251,
+        "ceilingDistance": 2.554,
+        "verticalClearance": 11.805
+      },
+      {
+        "x": -8,
+        "z": 8,
+        "floorDistance": 9.243,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": -4,
+        "z": -8,
+        "floorDistance": 9.337,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": -4,
+        "z": -4,
+        "floorDistance": 9.257,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": -4,
+        "z": 0,
+        "floorDistance": 9.207,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": -4,
+        "z": 4,
+        "floorDistance": 9.247,
+        "ceilingDistance": 4.141,
+        "verticalClearance": 13.388
+      },
+      {
+        "x": -4,
+        "z": 8,
+        "floorDistance": 8.726,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 0,
+        "z": -8,
+        "floorDistance": 9.477,
+        "ceilingDistance": 2.05,
+        "verticalClearance": 11.527
+      },
+      {
+        "x": 0,
+        "z": -4,
+        "floorDistance": 9.478,
+        "ceilingDistance": 0.981,
+        "verticalClearance": 10.459
+      },
+      {
+        "x": 0,
+        "z": 0,
+        "floorDistance": 9.48,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 0,
+        "z": 4,
+        "floorDistance": 9.478,
+        "ceilingDistance": 4.145,
+        "verticalClearance": 13.623
+      },
+      {
+        "x": 0,
+        "z": 8,
+        "floorDistance": 9.478,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 4,
+        "z": -8,
+        "floorDistance": 9.247,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 4,
+        "z": -4,
+        "floorDistance": 9.213,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 4,
+        "z": 0,
+        "floorDistance": 9.146,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 4,
+        "z": 4,
+        "floorDistance": 9.205,
+        "ceilingDistance": 4.146,
+        "verticalClearance": 13.35
+      },
+      {
+        "x": 4,
+        "z": 8,
+        "floorDistance": 8.725,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 8,
+        "z": -8,
+        "floorDistance": 9.383,
+        "ceilingDistance": 3.065,
+        "verticalClearance": 12.448
+      },
+      {
+        "x": 8,
+        "z": -4,
+        "floorDistance": 9.274,
+        "ceilingDistance": 3.108,
+        "verticalClearance": 12.382
+      },
+      {
+        "x": 8,
+        "z": 0,
+        "floorDistance": 9.266,
+        "ceilingDistance": 3.1,
+        "verticalClearance": 12.366
+      },
+      {
+        "x": 8,
+        "z": 4,
+        "floorDistance": 7.234,
+        "ceilingDistance": 4.088,
+        "verticalClearance": 11.322
+      },
+      {
+        "x": 8,
+        "z": 8,
+        "floorDistance": 9.202,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      },
+      {
+        "x": 12,
+        "z": -8,
+        "floorDistance": 3.084,
+        "ceilingDistance": 2.611,
+        "verticalClearance": 5.695
+      },
+      {
+        "x": 12,
+        "z": -4,
+        "floorDistance": 9.475,
+        "ceilingDistance": 4.134,
+        "verticalClearance": 13.609
+      },
+      {
+        "x": 12,
+        "z": 0,
+        "floorDistance": 9.478,
+        "ceilingDistance": 4.103,
+        "verticalClearance": 13.582
+      },
+      {
+        "x": 12,
+        "z": 4,
+        "floorDistance": 9.315,
+        "ceilingDistance": 2.792,
+        "verticalClearance": 12.107
+      },
+      {
+        "x": 12,
+        "z": 8,
+        "floorDistance": 9.042,
+        "ceilingDistance": null,
+        "verticalClearance": null
+      }
+    ],
+    "enclosedVerticalClearance": {
+      "samples": 20,
+      "min": 5.695,
+      "max": 13.623
+    },
+    "note": "Raycasts are legacy staging evidence only. Null means no surface intersected in that direction within 500 m."
+  },
+  "cockpit": {
+    "astronautHeight": 1.89899,
+    "pilotEnvelope": {
+      "min": [
+        0.252,
+        0,
+        0.855
+      ],
+      "max": [
+        1.224,
+        1.899,
+        1.843
+      ]
+    },
+    "sourceShellEnvelope": {
+      "min": [
+        -1.836,
+        -0.12,
+        -0.324
+      ],
+      "max": [
+        1.836,
+        2.22,
+        3.744
+      ]
+    },
+    "sourceClearance": {
+      "positiveX": 0.612,
+      "negativeX": 2.088,
+      "head": 0.321,
+      "rear": 1.901
+    },
+    "currentLegacyClip": {
+      "rearZ": 1.224,
+      "pilotOverflowBeyondClip": 0.619
+    },
+    "classification": "SOURCE_EXISTS_RUNTIME_HIDES"
+  },
+  "ring": {
+    "shipCrossSectionEvidenceMetres": {
+      "width": 4.739,
+      "height": 4.613
+    },
+    "legacyEventHorizonDiameter": 6.8,
+    "perSideClearance": {
+      "horizontal": 1.031,
+      "vertical": 1.093
+    },
+    "singleFileFit": true,
+    "sideBySideFormationRequiredDiameterEvidence": 10.478,
+    "note": "Single-file fit is geometric evidence only. Transit formation remains a camera/storyboard decision."
+  },
+  "boostedBike": {
+    "bike": {
+      "width": 1.395,
+      "height": 1.299,
+      "length": 3,
+      "rearZ": 1.5
+    },
+    "candidate": {
+      "scaleFromRawFinal": 0.535,
+      "addonDimensions": [
+        0.976,
+        0.987,
+        1.016
+      ],
+      "resultingApproxLength": 3.864,
+      "widthRatioToBike": 0.7,
+      "heightRatioToBike": 0.76
+    },
+    "classification": "BOUNDS_PLAUSIBLE_VISUAL_VERIFY_REQUIRED",
+    "blockersStillToCheck": [
+      "rider leg/back clearance",
+      "actual contact silhouette",
+      "first-person rear visibility",
+      "third-person camera",
+      "collision proxy",
+      "central boost nozzle integration"
+    ],
+    "note": "This is an envelope fit test only; it does not approve the Back-derived Bike geometry."
+  }
+}

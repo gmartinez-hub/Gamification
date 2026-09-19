@@ -1,6 +1,6 @@
 {
   "schema": "gz-scale-measurement-v1",
-  "generatedAt": "2026-09-19T01:10:54.471Z",
+  "generatedAt": "2026-09-19T01:29:07.016Z",
   "sourceBranch": "docs/gz-runtime-v2-spec",
   "note": "Raw authoring bounds + explicitly labeled legacy evidence. No gameplay code copied into V2.",
   "measured": [
