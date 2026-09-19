@@ -840,3 +840,49 @@ Protected friendly targets include:
 - friendly deployables/equipment such as beacons/turrets when logically friendly.
 
 Enemy attacks may still damage those targets according to normal combat rules.
+
+
+### GZ-PORTAL-014 — Left-behind equipment recall
+**APPROVED**
+
+If intact player-owned deployed equipment would otherwise be left behind when crossing a portal, the portal must surface that fact before handoff.
+
+The player may:
+- return/recover it manually,
+- request **Portal Recall** for the intact owned equipment,
+- or choose **Travel Anyway** and abandon it.
+
+Portal Recall behavior:
+- the player explicitly asks the portal to bring the equipment to the transit point,
+- the equipment is not treated as instantly present at button press,
+- after a short diegetic wait/arrival presentation, the recalled equipment appears at/near the portal,
+- recalled equipment joins the surviving/present setup shown in the transit cinematic,
+- only after that arrival may the portal complete the cross-world/hangar handoff with that equipment preserved.
+
+Exact recall delay, arrival VFX, pathing/teleport presentation and ordering are **TUNE/VERIFY**, not semantic assumptions.
+
+If the player chooses Travel Anyway, the left-behind equipment is lost when the source world is discarded.
+
+### GZ-ECO-003 — Pending Energy Cells on death and world-to-world travel
+**APPROVED**
+
+Energy Cells collected during a sortie remain **pending** until Hangar return.
+
+- Player death before Hangar return loses all pending Cells from that excursion.
+- World-to-world portal travel preserves the pending Cell balance.
+- Pending Cells continue across successive worlds.
+- Returning to Hangar banks the full surviving pending balance into persistent currency.
+
+Previously banked Cells are not part of this pending-loss rule.
+
+### GZ-REPAIR-002 — Free instant Hangar repair
+**APPROVED**
+
+Any surviving damaged ship/vehicle that returns to Hangar is repaired automatically:
+- free,
+- immediate,
+- no Energy Cell cost,
+- no repair timer,
+- no separate repair resource.
+
+Destroyed vehicles/items remain governed by destruction/loss rules and are not resurrected by Hangar repair.
