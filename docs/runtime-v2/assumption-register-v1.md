@@ -114,21 +114,14 @@ World 2: rescued ally contributes intel about the second gem; that opens a highe
 ## D. Companion semantics
 
 ### AS-COMP-001 — Can Nóma become DEAD?
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Current generic companion state machine includes DEAD, while Nóma has no character-revival fee. Clarify whether:
-- Nóma can only become DOWNED/DISABLED and never permanently DEAD,
-- Nóma can become DEAD but auto-recovers,
-- another rule.
+Nóma never enters a permanent DEAD state. At terminal health he becomes DOWNED/DISABLED and remains recoverable without a character-revival purchase.
 
 ### AS-COMP-002 — DOWNED -> DEAD transition
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-For ally (and Nóma if applicable), what causes a downed companion to become DEAD:
-- bleedout timer,
-- additional enemy damage,
-- both,
-- never without a specific event?
+Ally DOWNED -> DEAD only through additional hostile damage while DOWNED. There is no automatic bleedout timer.
 
 ### AS-COMP-003 — Order/Recall range
 **SEMANTIC_QUESTION**
@@ -139,9 +132,18 @@ Are Explore / Defend / Recall commands:
 - mixed (e.g. Explore/Defend proximity, Recall remote)?
 
 ### AS-COMP-004 — Portal discovery ownership
-**SEMANTIC_QUESTION**
+**PARTIAL / SEMANTIC_QUESTION**
 
-If both Nóma and ally have Explore, does portal discovery belong specifically to Nóma or can the ally discover natural portals too?
+Nóma remains the primary portal finder.
+
+User direction:
+- ally can act as fallback when Nóma is absent/downed,
+- ally portal detection may also depend on the currently assigned order.
+
+Still requires explicit rule:
+- does ally detect natural portals whenever ordered Explore,
+- or only when Nóma is unavailable,
+- or both (Explore normally + unconditional fallback when Nóma is unavailable)?
 
 ## E. Combat / equipment
 
