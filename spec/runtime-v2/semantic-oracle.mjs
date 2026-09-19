@@ -47,6 +47,7 @@ export const HANGAR_PERSISTENCE_BOUNDARY = 'EXIT_COMMIT';
 export const HANGAR_CONFIRM_PERSISTS = false;
 export const HANGAR_EXIT_COMMIT_ATOMIC = true;
 export const HANGAR_PREEXIT_INTERRUPTION_MODE = 'DISCARD_UNCOMMITTED_RESTORE_LAST_PERSISTED';
+export const HANGAR_INTENTIONAL_EXIT_MODES = Object.freeze(['LAUNCH_WORLD','MAIN_MENU','EXIT_QUIT']);
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
@@ -231,4 +232,11 @@ export function resolveHangarPreExitInterruption({lastPersistedState,stagedState
     discardedStagedState:stagedState,
     recoveredConfirmedSession:false
   };
+}
+
+
+export function hangarExitDecision({mode,commitSucceeded}){
+  if(!HANGAR_INTENTIONAL_EXIT_MODES.includes(mode))return {leave:false,reason:'NOT_INTENTIONAL_EXIT'};
+  if(!commitSucceeded)return {leave:false,reason:'COMMIT_FAILED'};
+  return {leave:true,reason:null};
 }
