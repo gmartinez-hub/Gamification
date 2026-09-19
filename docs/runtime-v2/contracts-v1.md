@@ -735,3 +735,24 @@ Destroyed ship/equipment is lost. Surviving pilot remains in EVA and must manual
 **APPROVED**
 
 Destroyed ally ship/equipment is lost. The surviving ally remains a character entity and may continue/become downed/be rescued/recovered under normal companion rules. No replacement ship appears automatically.
+
+
+---
+
+## 22. Portal convoy presentation
+
+### GZ-PORTAL-011 — Staggered convoy formation
+**APPROVED**
+
+Portal transit uses a **staggered convoy** presentation rather than mandatory single-file or side-by-side formation.
+
+Requirements:
+- all surviving/present selected setup elements keep their real semantic scale,
+- actors/vehicles may be separated longitudinally and laterally for cinematic readability,
+- no hidden per-shot rescaling,
+- the controlled actor/vehicle entering the portal remains semantically the controlled actor and is restored after handoff,
+- shot angle may vary while convoy language remains staggered.
+
+Exact offsets, timing, camera path and ring aperture margin remain PRODUCE/VERIFY from the visual proof.
+
+The staggered formation does not require every element to cross the aperture at the exact same instant.
