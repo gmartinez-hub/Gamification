@@ -205,3 +205,19 @@ test('V2 contract: portal full setup is visible and whole portal is enlarged',as
   assert.equal(mod.PORTAL_SCALE_DIRECTION,'ENLARGE_WHOLE_PORTAL');
   assert.equal(mod.PORTAL_EXACT_DIMENSIONS_STATUS,'MEASURE_VERIFY');
 });
+
+
+test('V2 contract: Energy Cells bank only on Hangar return',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.ENERGY_CELL_BANKING_BOUNDARY,'HANGAR_RETURN');
+});
+
+test('V2 contract: surviving damaged vehicles auto-repair on Hangar return',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.HANGAR_REPAIR_MODE,'AUTOMATIC');
+});
+
+test('V2 contract: friendly fire is disabled',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.FRIENDLY_FIRE_ENABLED,false);
+});
