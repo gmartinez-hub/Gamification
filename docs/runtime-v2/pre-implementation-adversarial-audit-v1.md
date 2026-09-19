@@ -69,7 +69,7 @@ Mechanically test and specify:
 
 ### Semantic questions to surface
 
-- One autosave slot or multiple player-visible slots?
+- Save slots: **RESOLVED — one local campaign/autosave; no player-visible multiple slots in V1**.
 - Energy Cell banking boundary: **RESOLVED — Hangar return**.
 - Pending Cells on player death before Hangar: **RESOLVED — lost**.
 - Pending Cells across world-to-world portal handoff: **RESOLVED — preserved**.
@@ -390,3 +390,18 @@ RESOLVED:
 - ally can launch without a ship, including foot/EVA or Bike according to the confirmed setup,
 - failure of any required confirmed-setup asset aborts launch and returns/remains in Hangar with the committed configuration preserved,
 - no degraded partial loadout or silent substitution is allowed on required asset failure.
+
+
+---
+
+## Normal sortie exit — resolved
+
+RESOLVED:
+- portal is the only normal voluntary route from an active world to Hangar,
+- no free Return-to-Hangar menu action exists during a sortie,
+- portal-to-Hangar banks pending Cells,
+- portal-to-world preserves pending Cells,
+- death/session interruption remain exceptional recovery paths and do not become voluntary extraction shortcuts.
+
+OPEN semantic check:
+- because portal is the only normal extraction route, confirm whether every world instance must guarantee at least one discoverable/reachable portal before Implementation Contract Freeze.
