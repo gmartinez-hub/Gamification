@@ -40,5 +40,5 @@ jobs:
       - name: Upload visual proof artifact
         uses: actions/upload-artifact@v4
         with:
-          name: runtime-v2-visual-proof-v1
-          path: docs/runtime-v2/evidence/visual-proof-v1
+          name: runtime-v2-visual-proof-v2
+          path: docs/runtime-v2/evidence/visual-proof-v2
