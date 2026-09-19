@@ -148,3 +148,63 @@ Any failed VERIFY/MEASURE gate must result in:
 - or an explicitly reopened product contract.
 
 It must never silently remove a capability or shrink scope.
+
+
+---
+
+## Evidence Gate Progress — Measurement Pass 1
+
+### G1 — Scale & Asset Measurement Harness
+**PASS**
+
+Automated clean-room harness now:
+- measures raw GLB bounds/triangles/named anchors,
+- extracts explicitly labeled legacy semantic-scale evidence,
+- generates spatial evidence for cockpit/Hangar/ring/Boosted Bike,
+- validates the ScaleProfile draft against measured raw evidence,
+- commits generated reports through CI.
+
+Generated:
+- `evidence/asset-measurements-v1.{json,md}`
+- `evidence/spatial-evidence-v1.{json,md}`
+- `evidence/scale-profile-validation-v1.{json,md}`
+- `evidence/scale-profiles-draft-v1.json`
+
+ScaleProfile evidence linkage: **PASS / 0 failed checks**.
+
+### G2 — Cockpit / Hangar / Ring proof
+**PARTIAL PASS — geometry evidence complete; visual camera proof remains**
+
+Cockpit:
+- `SOURCE_EXISTS_RUNTIME_HIDES` supported numerically,
+- 1.901 m rear source-shell clearance,
+- 0.321 m head clearance,
+- current clip overlaps standing astronaut envelope by 0.619 m.
+
+Hangar:
+- measured reference envelope ≈ 34.188 × 15.494 × 32.235 m,
+- bike/crew anchors have floor/ceiling/side enclosure and open-forward rays,
+- long-ship service anchor is intentionally open laterally/above,
+- first-person grid yielded 20 enclosed samples with 5.695–13.623 m vertical clearance.
+
+Ring:
+- 6.8 m legacy event-horizon aperture fits a ~4.739 × 4.613 m player-ship cross-section in single-file formation,
+- ~1.031 / 1.093 m per-side clearance,
+- naive two-ship side-by-side needs ~10.478 m before cinematic margin.
+
+Boosted Bike:
+- preliminary Back envelope fit is geometrically plausible,
+- candidate raw scale ≈ 0.535×,
+- add-on envelope ≈ 0.976 × 0.987 × 1.016 m,
+- visual/rider/camera/collider/nozzle proof still mandatory.
+
+### Remaining before Implementation Contract Freeze
+
+1. Actual visual projection/render proof for cockpit shell without legacy clip.
+2. Hangar first-person camera storyboard against measured geometry.
+3. Portal transit formation visual decision + aperture verification.
+4. Back/Bike visual fit with rider/cameras.
+5. Mothership asset production/measurement.
+6. Convert failures, if any, into exact Blender/Three tickets.
+
+No scope is reduced by these gates.
