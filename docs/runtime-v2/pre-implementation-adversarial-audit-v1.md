@@ -405,3 +405,21 @@ RESOLVED:
 
 OPEN semantic check:
 - because portal is the only normal extraction route, confirm whether every world instance must guarantee at least one discoverable/reachable portal before Implementation Contract Freeze.
+
+
+---
+
+## Natural / Portable Portal — resolved / open
+
+RESOLVED:
+- natural portal opportunities recur periodically so the player can continue farming and still reach extraction later,
+- exact recurrence timing remains BALANCE,
+- Portable Portal is a real 3D physical setup item with turret-like ownership semantics,
+- Portable Portal supports Hangar + unlocked-world travel,
+- Portable Portal is usable once per sortie,
+- natural portals continue to exist even when the Portable Portal is equipped.
+
+OPEN:
+- exact per-map unlock threshold / what counts as an access,
+- global vs per-world unlock scope,
+- exact setup slot/mount category for the Portable Portal.
