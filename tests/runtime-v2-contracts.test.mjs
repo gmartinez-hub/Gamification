@@ -570,3 +570,28 @@ test('V2 contract: World 1 Gem source is Noma discovery plus protected encounter
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.WORLD1_GEM_SOURCE,'NOMA_DISCOVERY_PROTECTED_GUARDIAN_ENCOUNTER');
 });
+
+
+test('V2 contract: narrative milestones persist immediately',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NARRATIVE_MILESTONES_PERSIST_IMMEDIATELY,true);
+});
+
+test('V2 contract: World 2 Gem source is ally intel plus high-threat carrier/elite encounter',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.WORLD2_GEM_SOURCE,'ALLY_INTEL_TO_HIGH_THREAT_CARRIER_ELITE_ENCOUNTER');
+});
+
+test('V2 contract: Beacon manual deployment map visibility sensors and parking anchor',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BEACON_DEPLOY_AUTHORITY,'PLAYER_ASTRONAUT_MANUAL');
+  assert.equal(mod.BEACON_ALWAYS_VISIBLE_ON_MAP_WHILE_DEPLOYED,true);
+  assert.deepEqual(mod.BEACON_DETECTS,['ENEMIES','HORDES','NATURAL_PORTALS']);
+  assert.equal(mod.BEACON_GENERIC_POI_DETECTION,false);
+  assert.deepEqual(mod.BEACON_PARKING_ANCHOR_FOR,['PLAYER_SHIP','BIKE']);
+});
+
+test('V2 contract: intact Beacon returns directly to inventory on world transition',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BEACON_WORLD_TRANSITION_RECOVERY,'DIRECT_TO_INVENTORY_NO_RING_TRAVEL');
+});
