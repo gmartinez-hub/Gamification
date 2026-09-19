@@ -1806,3 +1806,39 @@ its Beacon-derived marker disappears.
 The Beacon does not retain a permanent historical trail of prior sensor detections.
 
 A newly detected valid target creates a new/current marker.
+
+
+---
+
+## 37. Companion terminal-state semantics
+
+### GZ-COMP-010 — Nóma never enters permanent DEAD
+**APPROVED**
+
+At terminal health, Nóma transitions to a recoverable incapacitated state:
+
+`ACTIVE -> DOWNED/DISABLED -> RESCUED/RECOVERED`
+
+Nóma does not enter a persistent/permanent DEAD state.
+
+Consequences:
+- no Nóma character-revival purchase exists,
+- Nóma remains recoverable under the established companion recovery rules,
+- physical equipment assigned to Nóma still follows normal intact-recovery / destroyed-loss semantics.
+
+### GZ-COMP-011 — Ally DOWNED dies only from additional damage
+**APPROVED**
+
+The ally does not die from an automatic bleedout timer.
+
+State transition:
+
+`ACTIVE -> DOWNED -> (RESCUED | DEAD)`
+
+While DOWNED:
+- the ally remains at the logical world position,
+- the ally can be rescued,
+- additional hostile damage can transition the ally to DEAD,
+- passage of time alone does not kill the ally.
+
+Exact DOWNED hitpoints/damage threshold, protection window if any, AI targeting behavior and feedback are BALANCE/TUNE/VERIFY unless separately promoted to semantics.
