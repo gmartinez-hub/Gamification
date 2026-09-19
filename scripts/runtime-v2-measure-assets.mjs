@@ -117,6 +117,51 @@ function dimsAfterLegacyShipRotationScale(raw,scale=2.5){
  const [x,y,z]=raw.dimensions;
  return {dimensions:[x*scale,z*scale,y*scale],note:'Evidence only: legacy ship module rotation X=-90deg and scale=2.5'};
 }
+function legacyShipWorldDims(raw){
+ if(!raw) return null;
+ const [x,y,z]=raw.dimensions;
+ return [x*2.5,z*2.5,y*2.5];
+}
+function compositionEnvelope(types){
+ const spacing=4.125, count=types.length, center=(count-1)/2;
+ const dims={front:legacyShipWorldDims(byKey['ship.front']?.rawBounds),middle:legacyShipWorldDims(byKey['ship.middle']?.rawBounds),final:legacyShipWorldDims(byKey['ship.final']?.rawBounds)};
+ let minZ=Infinity,maxZ=-Infinity,maxX=0,maxY=0;
+ types.forEach((type,index)=>{
+   const d=dims[type],z=(index-center)*spacing;
+   maxX=Math.max(maxX,d[0]);maxY=Math.max(maxY,d[1]);
+   minZ=Math.min(minZ,z-d[2]/2);maxZ=Math.max(maxZ,z+d[2]/2);
+ });
+ return {types,width:maxX,height:maxY,length:maxZ-minZ,minZ,maxZ,spacing};
+}
+function namedBounds(key,re){
+ const n=byKey[key]?.namedNodes?.find(x=>re.test(x.name||''));
+ return n?.directMeshBounds||null;
+}
+const astronautBounds=byKey['character.player']?.rawBounds;
+const cabinWalls=namedBounds('cockpit.integrated',/walls and ceiling/i);
+const stand={x:.74,y:0,z:1.26}, dashboardScale=1.8, dashboardY=1.05, clipRearRaw=.68;
+const cockpitStandingEvidence=(()=>{
+ if(!astronautBounds||!cabinWalls)return null;
+ const pilot={
+   min:astronautBounds.min.map((v,i)=>v+[stand.x,stand.y,stand.z][i]),
+   max:astronautBounds.max.map((v,i)=>v+[stand.x,stand.y,stand.z][i])
+ };
+ const shell={
+   min:[cabinWalls.min[0]*dashboardScale,dashboardY+cabinWalls.min[1]*dashboardScale,cabinWalls.min[2]*dashboardScale],
+   max:[cabinWalls.max[0]*dashboardScale,dashboardY+cabinWalls.max[1]*dashboardScale,cabinWalls.max[2]*dashboardScale]
+ };
+ return {
+   pilot,shell,
+   sideClearancePositiveX:shell.max[0]-pilot.max[0],
+   headClearance:shell.max[1]-pilot.max[1],
+   sourceRearClearance:shell.max[2]-pilot.max[2],
+   currentClipRearZ:clipRearRaw*dashboardScale,
+   currentClipRearOverflow:pilot.max[2]-clipRearRaw*dashboardScale,
+   classification:'SOURCE_EXISTS_RUNTIME_HIDES',
+   note:'Evidence uses current legacy dashboardScale/stand anchor only to diagnose the existing composition; it is not a V2 implementation prescription.'
+ };
+})();
+
 const derived={
  humanAnchorMetres:HUMAN_HEIGHT,
  astronaut:{
@@ -128,7 +173,13 @@ const derived={
    middle:dimsAfterLegacyShipRotationScale(byKey['ship.middle']?.rawBounds),
    final:dimsAfterLegacyShipRotationScale(byKey['ship.final']?.rawBounds),
    legacyCompositionSpacingMetres:4.125,
-   nominalThreeModuleLengthMetres:12.375,
+   envelopes:{
+     frontOnly:compositionEnvelope(['front']),
+     frontFinal:compositionEnvelope(['front','final']),
+     frontMiddle:compositionEnvelope(['front','middle']),
+     frontMiddleFinal:compositionEnvelope(['front','middle','final']),
+     front5MiddleFinal:compositionEnvelope(['front','middle','middle','middle','middle','middle','final'])
+   },
    warning:'These are legacy measured references, NOT V2 semantic dimensions.'
  },
  alienShipLegacyEvidence:{
@@ -136,6 +187,7 @@ const derived={
    sourceCommentLengthMetres:12.866750,
    warning:'Declared legacy runtime length is evidence only.'
  },
+ cockpitStandingEvidence,
  authoringNormalizationCheck:{
    allyLongest:byKey['character.ally']?.rawBounds?.longestDimension??null,
    turretLongest:byKey['weapon.turret']?.rawBounds?.longestDimension??null,
@@ -182,8 +234,10 @@ ${rows}
 ## Key evidence
 
 - Astronaut raw Y height: **${fmt(derived.astronaut.rawHeight)}**; scale-to-1.90 factor: **${fmt(derived.astronaut.scaleToCanonicalHeight)}**.
-- Legacy player-ship composition spacing: **4.125 m/module**; three-module nominal length: **12.375 m**. Evidence only.
-- Legacy alien-ship declared runtime length: **25.734 m**. Evidence only.
+- Legacy player-ship measured envelope: Front-only **${fmt(derived.playerShipLegacyEvidence.envelopes.frontOnly.length)} m** long; Front+Final **${fmt(derived.playerShipLegacyEvidence.envelopes.frontFinal.length)} m**; Front+Middle+Final **${fmt(derived.playerShipLegacyEvidence.envelopes.frontMiddleFinal.length)} m**; Front+5 Middle+Final **${fmt(derived.playerShipLegacyEvidence.envelopes.front5MiddleFinal.length)} m**. Evidence only.
+- Legacy player-ship module spacing: **4.125 m**.
+- Legacy alien-ship declared runtime length: **25.734 m**, almost exactly 2× the current measured Front+Middle+Final player-ship envelope. Evidence only.
+- Cockpit depth diagnosis: uncut source shell leaves **${fmt(derived.cockpitStandingEvidence?.sourceRearClearance)} m** behind the standing astronaut, while the current rear clip cuts **${fmt(derived.cockpitStandingEvidence?.currentClipRearOverflow)} m** into the standing astronaut envelope. Initial classification: **SOURCE_EXISTS_RUNTIME_HIDES**.
 - No portal-ring GLB was found in main.
 - No mothership GLB was found in main.
 - Closeout/raw assets must not be interpreted as world scale merely from GLB bounds.
