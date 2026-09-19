@@ -618,3 +618,16 @@ test('V2 contract: Beacon sensor markers disappear when detection ends',async()=
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.BEACON_SENSOR_MARKER_PERSISTENCE,'LIVE_ONLY_REMOVE_WHEN_NOT_DETECTED');
 });
+
+
+test('V2 contract: Noma never enters permanent DEAD',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NOMA_PERMANENT_DEATH_ALLOWED,false);
+});
+
+test('V2 contract: ally DOWNED dies only from additional hostile damage',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.ALLY_DOWNED_BLEEDOUT_TIMER,false);
+  assert.equal(mod.ALLY_DOWNED_DEATH_TRIGGER,'ADDITIONAL_HOSTILE_DAMAGE');
+  assert.equal(mod.ALLY_PORTAL_DISCOVERY_RULE_STATUS,'SEMANTIC_QUESTION');
+});
