@@ -911,3 +911,65 @@ Need explicit rule for simultaneous use:
 - or multiplicative -> 168% of base.
 
 Top-speed additive rule does not automatically decide acceleration stacking.
+
+
+---
+
+# Decision Update — Permanent Global Speed Upgrade Finalization
+
+### GZ-SPEED-UPGRADE-007 — Unlock gate and price
+**APPROVED**
+
+The one-time permanent global friendly movement upgrade:
+
+- unlocks after the **second narrative gem / access to World 3**,
+- costs **1,000 Energy Cells**,
+- applies globally to player + friendly traversal actors/vehicles,
+- remains a single upgrade level.
+
+Narrative gems are progression keys and are not spent.
+
+### GZ-SPEED-UPGRADE-008 — Acceleration stacking with Boost
+**APPROVED — ADDITIVE**
+
+Permanent acceleration upgrade:
+- +20% base acceleration
+
+Moment-to-moment Boost:
+- +40% acceleration
+
+When both are active, percentages add against the original resolved base acceleration.
+
+Formula:
+
+`finalAcceleration = resolvedBaseAcceleration × (1 + 0.20 + 0.40)`
+
+Therefore:
+- base acceleration 100%
+- permanent upgrade -> 120%
+- permanent upgrade + Boost -> **160%**
+
+Do not multiply 1.20 × 1.40.
+
+### GZ-SPEED-UPGRADE-009 — Final combined movement package
+**APPROVED**
+
+Permanent global upgrade:
+- +15% top speed
+- +20% acceleration
+- one level
+- 1,000 Energy Cells
+- unlock after second gem / World 3 access
+
+Moment-to-moment Boost:
+- +25% top speed
+- +40% acceleration
+- freely holdable
+- no heat/cooldown/fuel/Cell drain
+- aim/fire remain available
+
+Combined permanent + Boost:
+- top speed = **140% of resolved base**
+- acceleration = **160% of resolved base**
+
+For modular ships, both calculations apply once to the resolved whole-ship movement profile; they do not compound per module.
