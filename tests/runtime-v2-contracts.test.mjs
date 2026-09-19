@@ -221,3 +221,40 @@ test('V2 contract: friendly fire is disabled',async()=>{
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.FRIENDLY_FIRE_ENABLED,false);
 });
+
+
+test('V2 contract: Portal Recall preserves left-behind intact equipment only after arrival',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTAL_EQUIPMENT_RECALL_ENABLED,true);
+  assert.deepEqual(
+    mod.portalEquipmentDecision({leftBehindIntactItemIds:['bike-1','beacon-1'],choice:'RECALL'}),
+    {travelAllowed:false,recallIds:['bike-1','beacon-1'],lostIds:[],waitForArrival:true}
+  );
+  assert.deepEqual(
+    mod.portalEquipmentDecision({leftBehindIntactItemIds:['bike-1'],choice:'TRAVEL_ANYWAY'}),
+    {travelAllowed:true,recallIds:[],lostIds:['bike-1'],waitForArrival:false}
+  );
+});
+
+test('V2 contract: pending Cells survive world portals, bank at Hangar, and are lost on death',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.deepEqual(
+    mod.resolvePendingCells({bankedCells:1000,pendingCells:500,event:'WORLD_PORTAL'}),
+    {bankedCells:1000,pendingCells:500,lostPendingCells:0}
+  );
+  assert.deepEqual(
+    mod.resolvePendingCells({bankedCells:1000,pendingCells:500,event:'HANGAR_RETURN'}),
+    {bankedCells:1500,pendingCells:0,lostPendingCells:0}
+  );
+  assert.deepEqual(
+    mod.resolvePendingCells({bankedCells:1000,pendingCells:500,event:'PLAYER_DEATH'}),
+    {bankedCells:1000,pendingCells:0,lostPendingCells:500}
+  );
+});
+
+test('V2 contract: Hangar repair is automatic free and immediate',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.HANGAR_REPAIR_MODE,'AUTOMATIC');
+  assert.equal(mod.HANGAR_REPAIR_FREE,true);
+  assert.equal(mod.HANGAR_REPAIR_DELAY,0);
+});
