@@ -24,11 +24,15 @@ Pass 2 rechecked the current canonical pack after resolving:
 **0** for the currently defined core game loop and vertical-slice systems.
 
 ### Deferred feature-level product decisions
-**2**, both explicitly outside the first implementation tickets until resolved:
-1. exact speed-upgrade unlock/purchase progression,
-2. exact Boosted Bike unlock economy.
+**1**, explicitly outside the first implementation tickets until resolved:
+1. exact generic speed-upgrade unlock/purchase progression.
 
-These are not permission to infer. Their implementation tickets remain blocked until those progression rules are explicitly approved.
+Boosted Bike progression is now closed conditionally on geometry validation:
+- unlock after the World 3 mothership reveal,
+- purchase price **1,500 Energy Cells**,
+- cannot be purchased if the Back-derived Bike geometry/camera/rider/collider validation fails.
+
+The remaining generic speed-upgrade rule is not permission to infer; its implementation ticket stays blocked until explicitly approved.
 
 ## Reconciliations completed in Pass 2
 
