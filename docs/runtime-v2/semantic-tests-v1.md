@@ -15,7 +15,7 @@ These tests validate meaning before implementation detail. A runtime may be tech
 
 | ID | Scenario | Expected |
 |---|---|---|
-| SEM-PORTAL-001 | Discover portal | It remains available for the current world instance and appears on Tactical Map. |
+| SEM-PORTAL-001 | Natural portal opportunity appears | It is reachable and time-bounded; if missed/ignored it closes and a later procedural opportunity can recur elsewhere. Discovery/notification follows the explicit portal-detection contract. |
 | SEM-PORTAL-002 | Choose unlocked world | Party Check resolves first; then destination preloads while surviving/present selected setup enters ring cinematic. |
 | SEM-PORTAL-003 | Successful handoff | Destination is a fresh procedural instance; old world instance is released; control returns to the same actor/vehicle used to enter the portal. |
 | SEM-PORTAL-004 | Destination load fails | Player returns safely to source portal; inventory/save remains valid. |
@@ -72,8 +72,8 @@ These tests validate meaning before implementation detail. A runtime may be tech
 
 | ID | Scenario | Expected |
 |---|---|---|
-| SEM-DEATH-001 | Deployed setup total value = 300 Cells, player dies | Physical setup lost; recovery grants 150 Cells; unlocks persist; recovery bike remains available. |
-| SEM-DEATH-002 | Player dies with unlocked expensive gear | Gear can be repurchased/rebuilt because unlock remains. |
+| SEM-DEATH-001 | Player dies with 300 Cells of setup actually destroyed and other deployed setup intact | Only destroyed/lost units contribute to salvage; 150 Cells are banked as salvage; intact surviving setup returns; unlocks persist; baseline recovery Bike remains available. |
+| SEM-DEATH-002 | Player dies with intact expensive deployed gear and some destroyed gear | Intact gear returns to Hangar; only destroyed gear is LOST and salvage-valued; unlocks remain. |
 | SEM-DEATH-003 | Successful extraction with living beacon/turret | Unit returns to Hangar. |
 | SEM-DEATH-004 | Unit destroyed before extraction | Unit remains lost; unlock persists. |
 
@@ -187,7 +187,7 @@ A failed semantic test is not a request to simplify the feature. Fix implementat
 | SEM-EVA-BOOST-001 | Astronaut presses Shift/Boost in EVA | EVA Boost state activates; exact speed/FX values come from balance/tuning, not legacy constants. |
 | SEM-DEATH-COMP-001 | Player dies while living/downed ally carries owned equipment | Ally + carried equipment return to Hangar; that equipment is excluded from lost-setup salvage value. |
 | SEM-DEATH-COMP-002 | Player dies while living/downed Nóma carries owned equipment | Nóma + carried equipment return to Hangar; that equipment is excluded from lost-setup salvage value. |
-| SEM-DEATH-COMP-003 | Player dies with other deployed setup present | All deployed setup not protected by living/downed companion recovery is lost and contributes to the 50% salvage calculation. |
+| SEM-DEATH-COMP-003 | Player dies with other deployed setup present | Intact surviving setup returns to Hangar; only actually destroyed/LOST units contribute to the 50% salvage calculation. |
 | SEM-SHIP-FAIL-001 | Player ship destroyed, player survives | Ship + attached equipment are lost; player remains EVA and must manually recover. |
 | SEM-SHIP-FAIL-002 | Player ship destroyed, no viable recovery route | Sortie is lost; normal death/recovery resolution applies. |
 | SEM-SHIP-FAIL-003 | Ally ship destroyed, ally survives | Ship + attached equipment are lost; ally remains a character and can continue/down/be rescued/recovered. |
