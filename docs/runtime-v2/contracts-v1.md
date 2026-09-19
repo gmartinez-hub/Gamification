@@ -1168,3 +1168,16 @@ Still requires explicit decision:
 - if the app/browser closes or crashes after configuration was confirmed but before the Hangar exit commit, does the next launch restore the last persisted Hangar state and discard the confirmed-but-uncommitted session, or should that confirmed session be recovered?
 
 Do not infer this behavior.
+
+
+### GZ-HANGAR-TXN-003 — Pre-exit interruption discards uncommitted Hangar session
+**APPROVED**
+
+If the browser/app closes, crashes or the session is otherwise interrupted after configuration was confirmed but before the Hangar exit commit:
+
+- the confirmed-but-uncommitted Hangar session is discarded,
+- on next launch, the game restores the last successfully persisted Hangar/campaign state,
+- staged purchases, staged Cell deductions, staged assignments and staged upgrades are not recovered,
+- no temporary Hangar journal is required for product semantics.
+
+This preserves the rule that **Hangar exit is the only persistence boundary for staged configuration changes**.
