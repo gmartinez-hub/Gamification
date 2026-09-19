@@ -290,3 +290,15 @@ test('V2 contract: death loses pending Cells but banks salvage immediately',asyn
     {bankedCells:1400,pendingCells:0,lostPendingCells:500,salvageCells:400}
   );
 });
+
+
+test('V2 contract: surviving characters heal fully for free at Hangar',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.HANGAR_CHARACTER_HEAL_MODE,'FULL_AUTOMATIC');
+  assert.equal(mod.HANGAR_CHARACTER_HEAL_FREE,true);
+});
+
+test('V2 contract: player has no recoverable DOWNED state',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PLAYER_DOWNED_STATE_ENABLED,false);
+});
