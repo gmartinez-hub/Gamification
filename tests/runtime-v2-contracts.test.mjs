@@ -50,7 +50,7 @@ test('V2 contract: physical items cannot be assigned twice',()=>{
   assert.equal(assertUniquePhysicalAssignments([{itemId:'t1'},{itemId:'t1'}]),false);
 });
 
-test('V2 contract: player death recovers equipment on living/downed companions first',()=>{
+test('V2 contract: player death loses only actually destroyed units and recovers surviving companions',()=>{
   const result=resolvePlayerDeath({
     items:[
       {itemId:'ally-turret',value:100},
@@ -60,21 +60,13 @@ test('V2 contract: player death recovers equipment on living/downed companions f
     companions:[
       {id:'ally',state:'alive',itemIds:['ally-turret']},
       {id:'noma',state:'downed',itemIds:['noma-tool']}
-    ]
+    ],
+    destroyedItemIds:['player-ship']
   });
   assert.deepEqual(result.recovered.map(x=>x.itemId).sort(),['ally-turret','noma-tool']);
   assert.deepEqual(result.lost.map(x=>x.itemId),['player-ship']);
+  assert.deepEqual(result.recoveredCompanions,['ally','noma']);
   assert.equal(result.salvageCells,150);
-});
-
-test('V2 contract: dead companion does not protect carried equipment via living/downed exception',()=>{
-  const result=resolvePlayerDeath({
-    items:[{itemId:'ally-turret',value:100}],
-    companions:[{id:'ally',state:'dead',itemIds:['ally-turret']}]
-  });
-  assert.equal(result.recovered.length,0);
-  assert.equal(result.lost.length,1);
-  assert.equal(result.salvageCells,50);
 });
 
 test('V2 contract: destroyed ship with surviving pilot continues EVA if recovery route exists',()=>{
@@ -315,12 +307,20 @@ test('V2 contract: portal review is one panel with separate Party and Equipment 
 });
 
 
-test('V2 contract: session interruption returns to Hangar and loses pending Cells',async()=>{
+test('V2 contract: session interruption returns to Hangar, recovers intact setup and loses pending Cells',async()=>{
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.SESSION_RESUME_MODE,'RETURN_TO_HANGAR');
+  assert.equal(mod.SESSION_INTERRUPTION_RECOVERS_INTACT_SETUP,true);
   assert.deepEqual(
-    mod.resolveSessionInterruption({bankedCells:1000,pendingCells:250}),
-    {destination:'HANGAR',bankedCells:1000,pendingCells:0,lostPendingCells:250,resumeWorld:false}
+    mod.resolveSessionInterruption({
+      bankedCells:1000,pendingCells:250,
+      intactItemIds:['ship-1','bike-1'],
+      destroyedItemIds:['beacon-1']
+    }),
+    {
+      destination:'HANGAR',bankedCells:1000,pendingCells:0,lostPendingCells:250,
+      recoveredItemIds:['ship-1','bike-1'],lostItemIds:['beacon-1'],resumeWorld:false
+    }
   );
 });
 
@@ -335,4 +335,11 @@ test('V2 contract: dead ally returns intact surviving setup but still requires r
     mod.resolveDeadAllySetup({itemIds:['ally-bike','ally-pistol','turret-1'],destroyedItemIds:['ally-bike']}),
     {allyRevivalRequired:true,recoveredItemIds:['ally-pistol','turret-1'],lostItemIds:['ally-bike']}
   );
+});
+
+
+test('V2 contract: player death loss mode is destroyed-only',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PLAYER_DEATH_LOSS_MODE,'DESTROYED_ONLY');
+  assert.equal(mod.PLAYER_DEATH_AUTO_RECOVERS_SURVIVING_COMPANIONS,true);
 });
