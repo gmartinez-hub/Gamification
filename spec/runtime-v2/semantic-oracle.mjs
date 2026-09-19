@@ -55,6 +55,13 @@ export const REQUIRED_ASSET_FAILURE_MODE = 'ABORT_TO_HANGAR_PRESERVE_COMMIT';
 export const SAVE_SLOT_MODE = 'SINGLE_LOCAL_AUTOSAVE';
 export const NORMAL_WORLD_EXIT_MODE = 'PORTAL_ONLY';
 export const FREE_MENU_RETURN_TO_HANGAR = false;
+export const NATURAL_PORTAL_RECURS = true;
+export const NATURAL_PORTAL_RECURRENCE_STATUS = 'BALANCE';
+export const PORTABLE_PORTAL_PHYSICAL_ITEM = true;
+export const PORTABLE_PORTAL_DESTINATIONS = Object.freeze(['HANGAR','UNLOCKED_WORLDS']);
+export const PORTABLE_PORTAL_USES_PER_SORTIE = 1;
+export const NATURAL_PORTAL_REMAINS_WITH_PORTABLE = true;
+export const PORTABLE_PORTAL_UNLOCK_STATUS = 'SEMANTIC_QUESTION';
 export const HANGAR_INTENTIONAL_EXIT_MODES = Object.freeze(['LAUNCH_WORLD','MAIN_MENU','EXIT_QUIT']);
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
