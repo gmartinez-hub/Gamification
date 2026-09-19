@@ -8,7 +8,7 @@ This folder translates the approved product and technical decisions from the Gra
 ## Source of truth order
 
 1. **Factual asset atlas**: what assets actually exist.
-2. **FigJam canonical sections 20–34**: approved product/experience decisions and production intent.
+2. **FigJam canonical sections 20–40+**: approved product/experience decisions, evidence reviews and adversarial-audit intent.
 3. **This contract pack**: executable wording, IDs, semantic tests, verification gates.
 4. **Runtime code**: must implement the contracts; code does not redefine them.
 
@@ -41,6 +41,7 @@ A performance failure does **not** authorize deleting a capability. First adjust
 - [campaign-progression-contract-v1.md](./campaign-progression-contract-v1.md) — prologue, World 1/2/3 progression, ally rescue, incursions and final boss canon.
 - [semantic-audit-pass-1.md](./semantic-audit-pass-1.md) — contradiction log and resolved pass-1 blockers.
 - [semantic-audit-pass-2.md](./semantic-audit-pass-2.md) — core semantic freeze result and evidence gates before implementation freeze.
+- [pre-implementation-adversarial-audit-v1.md](./pre-implementation-adversarial-audit-v1.md) — current no-inference adversarial audit and unresolved semantic-question register.
 - [evidence/asset-measurements-v1.md](./evidence/asset-measurements-v1.md) — generated raw bounds, legacy semantic-scale evidence and first cockpit/Hangar/ring findings.
 - [visual-proof-pack-v1.md](./visual-proof-pack-v1.md) — exact cockpit/Hangar/portal/Boosted-Bike visual evidence gate; no formation or geometry outcome is inferred.
 - [../spec/runtime-v2/README.md](../../spec/runtime-v2/README.md) — executable semantic oracle boundary and coverage.
