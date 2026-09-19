@@ -973,3 +973,40 @@ Combined permanent + Boost:
 - acceleration = **160% of resolved base**
 
 For modular ships, both calculations apply once to the resolved whole-ship movement profile; they do not compound per module.
+
+
+---
+
+# Decision Update — Boosted Bike Integration Direction
+
+### GZ-BIKE-PROD-001 — Back integration style
+**APPROVED DIRECTION**
+
+The Back-derived Boosted Bike uses an **embedded / encastrado** integration direction.
+
+The Back-derived propulsion form should visually enter and belong to the Bike's rear body rather than read as a remote/separate towed module.
+
+Production may add the smallest necessary:
+- collar,
+- mount,
+- recess,
+- structural support,
+- fairing/transition geometry,
+
+to make the connection physically credible.
+
+Do not broadly remodel the Bike or distort the Back silhouette beyond what is required for a convincing embedded connection.
+
+### GZ-BIKE-PROD-002 — Scale remains visual VERIFY
+**VERIFY**
+
+The current ~0.535× Back candidate remains an evidence seed, not a frozen semantic scale.
+
+Before production freeze, compare bounded candidate scales/placements around the approved embedded direction and verify:
+- rider clearance,
+- silhouette,
+- FP/TP cameras,
+- collision envelope,
+- PrimaryBoostExhaust placement.
+
+Do not infer that 0.535× is final merely because the integration direction is approved.
