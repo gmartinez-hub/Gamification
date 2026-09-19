@@ -656,3 +656,28 @@ If the ally ship is destroyed while the ally survives:
 **APPROVED**
 
 A destroyed ship is a lost physical setup, even when the pilot survives. Unlocks/recipes remain and the ship can later be rebuilt/reconfigured from owned/reacquired components according to inventory/economy rules.
+
+
+---
+
+# Balance Decision — Boosted Bike Unlock & Price
+
+### GZ-BIKE-PROG-001 — Boosted Bike unlock gate
+**APPROVED INITIAL BALANCE**
+
+The Back-derived Boosted Bike, if it passes geometry/camera/rider/collider validation, unlocks as a late-game purchase after the World 3 mothership reveal/endgame layer is unlocked.
+
+Narrative gems remain progression keys, not spendable currency.
+
+### GZ-BIKE-PROG-002 — Boosted Bike purchase price
+**APPROVED INITIAL BALANCE / TUNE LATER**
+
+Purchase price: **1,500 Energy Cells**.
+
+Rationale:
+- it is intended to be one of the hardest mobility upgrades to acquire,
+- it becomes the fastest player-controlled vehicle,
+- it retains the Bike's exposure/stranding risk,
+- the number is balance data and may be tuned after economy telemetry without changing the semantic contract.
+
+The unlock gate and physical-fit validation remain prerequisites; paying Cells cannot bypass them.
