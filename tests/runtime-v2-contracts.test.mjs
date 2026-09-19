@@ -384,3 +384,54 @@ test('V2 contract: all intentional Hangar exits share the exit commit',async()=>
     assert.deepEqual(mod.hangarExitDecision({mode,commitSucceeded:false}),{leave:false,reason:'COMMIT_FAILED'});
   }
 });
+
+
+test('V2 contract: sortie loadout is locked and Bike-only launch is valid',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.SORTIE_LOADOUT_LOCKED,true);
+  assert.equal(mod.BIKE_ONLY_SORTIE_VALID,true);
+  assert.equal(mod.UNSELECTED_SHIP_WORLD_STATE,'HANGAR_ONLY');
+});
+
+test('V2 contract: ally can deploy without a ship',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.ALLY_SHIP_REQUIRED_FOR_DEPLOY,false);
+  assert.deepEqual(
+    mod.sortieRepresentation({
+      playerShipSelected:false,
+      allyShipSelected:false,
+      allySelected:true,
+      allyBikeSelected:true
+    }),
+    {
+      playerShipInWorld:false,
+      playerShipState:'HANGAR_ONLY',
+      allyInWorld:true,
+      allyShipInWorld:false,
+      allyBikeInWorld:true
+    }
+  );
+});
+
+test('V2 contract: required confirmed-setup asset failure aborts launch to Hangar',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.REQUIRED_ASSET_FAILURE_MODE,'ABORT_TO_HANGAR_PRESERVE_COMMIT');
+  assert.deepEqual(
+    mod.resolveLaunchAssetFailure({commitSucceeded:true,requiredAssetFailed:true}),
+    {
+      enterWorld:false,
+      stayInHangar:true,
+      preserveCommittedSetup:true,
+      reason:'REQUIRED_ASSET_FAILED'
+    }
+  );
+  assert.deepEqual(
+    mod.resolveLaunchAssetFailure({commitSucceeded:true,requiredAssetFailed:false}),
+    {
+      enterWorld:true,
+      stayInHangar:false,
+      preserveCommittedSetup:true,
+      reason:null
+    }
+  );
+});
