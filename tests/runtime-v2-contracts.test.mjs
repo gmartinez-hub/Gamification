@@ -523,3 +523,23 @@ test('V2 contract: Portal Recall arrival is guaranteed once accepted',async()=>{
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.PORTAL_RECALL_GUARANTEED,true);
 });
+
+
+test('V2 contract: Portable Portal is astronaut-inventory only and player activated',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTABLE_PORTAL_INVENTORY_HOST,'PLAYER_ASTRONAUT');
+  assert.equal(mod.PORTABLE_PORTAL_ACTIVATION_AUTHORITY,'PLAYER_ONLY');
+  assert.equal(mod.PORTABLE_PORTAL_DYNAMIC_APERTURE,true);
+});
+
+test('V2 contract: Portable Portal once-per-sortie use does not reset across worlds',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTABLE_PORTAL_SORTIE_RESET,'HANGAR_OR_DEATH_OR_INTERRUPTION');
+  assert.equal(mod.PORTABLE_PORTAL_RESETS_ON_WORLD_TRANSIT,false);
+});
+
+test('V2 contract: Portable Portal uses standard Party and Equipment Check',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTABLE_PORTAL_USES_STANDARD_PARTY_EQUIPMENT_CHECK,true);
+  assert.equal(mod.PORTABLE_PORTAL_SLOT_ACCOUNTING_STATUS,'SEMANTIC_QUESTION');
+});
