@@ -32,11 +32,14 @@ Natural extraction may not become impossible solely because Nóma is unavailable
 RESOLVED:
 - after detection, the remaining portal availability window is shown as a countdown.
 
+RESOLVED:
+- Tactical Map marker,
+- direction guidance,
+- distance,
+- countdown.
+
 Still open:
-- Tactical Map marker?
-- direction?
-- distance?
-- marker removal behavior when the window expires?
+- marker removal/history behavior when the portal window expires.
 
 ### AS-PORTAL-004 — Simultaneous natural portals
 **RESOLVED**
@@ -254,13 +257,6 @@ No Implementation Contract Freeze until every SEMANTIC_QUESTION above is either:
 
 
 ### AS-PPORTAL-006 — Slot accounting conflict
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Current answer says Portable Portal lives only in astronaut inventory.
-
-Earlier approved contract says it consumes one turret slot.
-
-Choose explicitly:
-- no turret-slot cost,
-- still consumes a turret-capacity slot globally,
-- another rule.
+Portable Portal lives in player astronaut inventory and does **not** consume a turret slot. Earlier turret-slot-cost wording is superseded.
