@@ -66,6 +66,15 @@ export const PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED = 2;
 export const PORTABLE_PORTAL_ACQUISITION_MODE = 'PURCHASE_AFTER_UNLOCK';
 export const PORTABLE_PORTAL_PRICE_STATUS = 'BALANCE';
 export const PORTABLE_PORTAL_UNLOCK_COUNTER_SCOPE = 'GLOBAL_ACROSS_WORLDS';
+export const NATURAL_PORTAL_PRIMARY_FINDER = 'NOMA';
+export const NATURAL_PORTAL_PLAYER_DETECTION = true;
+export const NATURAL_PORTAL_ALLY_FALLBACK_DETECTION = true;
+export const NATURAL_PORTAL_COUNTDOWN_REQUIRED = true;
+export const NATURAL_PORTAL_MAX_ACTIVE = 1;
+export const PORTAL_CURRENT_WORLD_DESTINATION_ALLOWED = false;
+export const FAILED_NATURAL_PORTAL_RETRY_AVAILABLE = true;
+export const FAILED_PORTABLE_PORTAL_CONSUMES_USE = false;
+export const PORTAL_RECALL_GUARANTEED = true;
 export const NATURAL_PORTAL_WINDOWED = true;
 export const NATURAL_PORTAL_RELOCATES_PROCEDURALLY = true;
 export const PORTABLE_PORTAL_SLOT_TYPE = 'TURRET_SLOT';
@@ -289,4 +298,28 @@ export function portablePortalUnlock({successfulNaturalPortalTransits}){
     progress:Math.max(0,Math.min(count,PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED)),
     required:PORTABLE_PORTAL_UNLOCK_TRANSITS_REQUIRED
   };
+}
+
+
+export function portalAttemptResolution({portable=false,handoffSucceeded}){
+  if(handoffSucceeded){
+    return {
+      returnToSource:false,
+      retryAvailable:false,
+      consumePortableUse:!!portable,
+      successfulTransit:true
+    };
+  }
+  return {
+    returnToSource:true,
+    retryAvailable:true,
+    consumePortableUse:false,
+    successfulTransit:false
+  };
+}
+
+export function portalDestinationAllowed({currentWorldId,destinationWorldId,destinationType}){
+  if(destinationType==='HANGAR')return true;
+  if(destinationType!=='WORLD')return false;
+  return destinationWorldId!==currentWorldId;
 }
