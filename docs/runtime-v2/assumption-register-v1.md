@@ -257,41 +257,42 @@ Destroyed attached/upgraded physical equipment follows normal loss and salvage r
 ## G. Pass 3 semantic blockers
 
 ### P3-PRESET-01 — Preset scope
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Approved:
-- maximum three saved preset templates,
-- composition + placements,
-- presets do not clone physical inventory,
-- one confirmed setup is active for the sortie.
-
-Still unresolved:
-- player Ship only vs inclusion of Ally Ship / other host assignments,
-- whether Ally Ship has independent presets, shares the same three, or has no independent preset system.
+- Save is local.
+- Player Ship has three explicit named preset slots.
+- Ally Ship has its own independent three explicit named preset slots.
+- Presets describe that ship's composition + placements only.
+- Presets do not clone physical inventory.
+- One confirmed physical setup is active for the sortie.
 
 ### P3-PRESET-02 — Preset references LOST item
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-If a saved preset references a physical module/turret later LOST, activation behavior must be explicit. No silent clone/substitution.
+The preset remains saved as INCOMPLETE.
+
+It may be inspected/edited but cannot confirm launch until the missing physical requirement is repaired/replaced/removed. No silent clone/substitution.
 
 ### P3-PRESET-03 — Save with all three slots occupied
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Legacy behavior silently dropped the oldest preset. That behavior is not approved for the clean-room runtime. Explicit replacement/overwrite behavior is required.
+No FIFO behavior exists.
+
+When all three local slots are occupied, Save As requires the player to explicitly choose which slot to replace. Presets may be renamed and overwritten explicitly; none is deleted silently.
 
 ### P3-W1-01 — Nereida unlock order
-**SEMANTIC_QUESTION / RECOVERY FIRST**
+**PARTIAL / SEMANTIC_QUESTION**
 
-Already fixed:
+Approved:
 - baseline Bike,
 - rescue Nóma,
 - Nóma gives the player Pistol,
-- ship-building / first ship-piece progression begins,
-- Cells fund physical equipment,
+- after safely returning to Hangar with Nóma, the Cabina / Front is available for assembly,
+- normal improvements/articles are then purchased with Energy Cells once their Director unlock event makes them purchasable,
 - protected encounter grants Gem 1 and unlocks World 2.
 
-Recover before asking product again:
-- exact identity/timing of first ship piece, Front, Beacon, Turret, Middle and Final.
+Still unresolved:
+- exact Director milestone/order that makes Beacon, Turret, Middle, Final and any other approved World-1 improvement/article purchasable.
 
 Do not restore legacy stage order by inference.
 
