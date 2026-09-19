@@ -486,3 +486,40 @@ test('V2 contract: Portable Portal unlocks for purchase after two successful nat
     {unlockedForPurchase:true,progress:2,required:2}
   );
 });
+
+
+test('V2 contract: natural portal detection is resilient to Noma absence',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.NATURAL_PORTAL_PRIMARY_FINDER,'NOMA');
+  assert.equal(mod.NATURAL_PORTAL_PLAYER_DETECTION,true);
+  assert.equal(mod.NATURAL_PORTAL_ALLY_FALLBACK_DETECTION,true);
+  assert.equal(mod.NATURAL_PORTAL_COUNTDOWN_REQUIRED,true);
+  assert.equal(mod.NATURAL_PORTAL_MAX_ACTIVE,1);
+});
+
+test('V2 contract: current world is excluded as portal destination',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTAL_CURRENT_WORLD_DESTINATION_ALLOWED,false);
+  assert.equal(mod.portalDestinationAllowed({currentWorldId:'w2',destinationWorldId:'w2',destinationType:'WORLD'}),false);
+  assert.equal(mod.portalDestinationAllowed({currentWorldId:'w2',destinationWorldId:'w3',destinationType:'WORLD'}),true);
+  assert.equal(mod.portalDestinationAllowed({currentWorldId:'w2',destinationType:'HANGAR'}),true);
+});
+
+test('V2 contract: failed portal handoff is retryable and does not consume Portable use',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.FAILED_NATURAL_PORTAL_RETRY_AVAILABLE,true);
+  assert.equal(mod.FAILED_PORTABLE_PORTAL_CONSUMES_USE,false);
+  assert.deepEqual(
+    mod.portalAttemptResolution({portable:true,handoffSucceeded:false}),
+    {returnToSource:true,retryAvailable:true,consumePortableUse:false,successfulTransit:false}
+  );
+  assert.deepEqual(
+    mod.portalAttemptResolution({portable:true,handoffSucceeded:true}),
+    {returnToSource:false,retryAvailable:false,consumePortableUse:true,successfulTransit:true}
+  );
+});
+
+test('V2 contract: Portal Recall arrival is guaranteed once accepted',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTAL_RECALL_GUARANTEED,true);
+});
