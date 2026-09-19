@@ -756,3 +756,42 @@ Requirements:
 Exact offsets, timing, camera path and ring aperture margin remain PRODUCE/VERIFY from the visual proof.
 
 The staggered formation does not require every element to cross the aperture at the exact same instant.
+
+
+### GZ-PORTAL-012 — Full-setup hero visibility
+**APPROVED**
+
+The main portal transit cinematic must clearly present the **full surviving/present selected setup**, not only the two ships.
+
+Depending on the confirmed sortie setup, that can include:
+- player ship,
+- ally ship,
+- player Bike,
+- ally Bike,
+- player astronaut when independently present,
+- ally character when independently present,
+- Nóma,
+- other selected mobile/deployed setup elements that logically travel through the handoff.
+
+The cinematic director may stagger these elements longitudinally/laterally and vary shot angle, but may not hide most of the setup merely to preserve the old ring size.
+
+### GZ-PORTAL-013 — Enlarge the whole portal
+**APPROVED DIRECTION / MEASURE exact dimensions**
+
+The V2 portal is intentionally larger than the current legacy procedural reference.
+
+The enlargement applies to the **whole portal presentation**:
+- usable aperture/event horizon,
+- ring structure,
+- halo/disc/effects,
+- visual presence/scale in the world.
+
+Do not enlarge only the empty opening while leaving an undersized visual ring.
+
+Exact dimensions are MEASURE/VERIFY from the approved staggered full-setup cinematic and largest supported travelling setup envelope.
+
+Constraints:
+- no hidden asset rescaling,
+- full selected setup must remain readable,
+- portal must feel materially larger/more monumental than the legacy 6.8 m event-horizon reference,
+- exact diameter is not frozen until visual proof establishes adequate cinematic margin.
