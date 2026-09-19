@@ -1044,20 +1044,22 @@ Travel is allowed only after required explicit choices are resolved and any requ
 ## 27. Session interruption, player death return, and dead-ally intact setup recovery
 
 ### GZ-SESSION-001 — Closing/reloading during a sortie returns to Hangar
-**APPROVED**
+**APPROVED — RECONCILED**
 
 If the game/session is closed, refreshed, suspended beyond recoverability, or reopened while the player is in an active world sortie, the runtime does **not** resume that exact sortie instance.
 
 On next valid resume:
 - return the player to Hangar,
-- preserve only persistent/banked campaign state,
+- preserve persistent/banked campaign state,
+- automatically recover intact surviving deployed setup,
+- keep destroyed units LOST,
 - discard the active world instance,
 - discard pending sortie Energy Cells,
 - do not restore the exact world position/seed/runtime state.
 
 This is intentionally different from a normal world-to-world portal handoff, where pending Cells remain part of the same continuing excursion.
 
-Exact crash-detection and save-journal implementation remain architecture details, but the product outcome above is fixed.
+Exact crash-detection implementation remains architecture detail, but the product outcome above is fixed.
 
 ### GZ-DEATH-004 — Player death returns directly to Hangar
 **APPROVED**
@@ -1251,3 +1253,48 @@ If a required asset for the confirmed setup fails to load/decode/instantiate:
 - do not substitute a different asset without an explicit later contract.
 
 A launch asset failure is a technical error/retry state, not permission to alter the player's confirmed setup.
+
+
+---
+
+## 31. Save-slot and normal Hangar-return semantics
+
+### GZ-SAVE-002 — Single local autosave campaign
+**APPROVED**
+
+V1 uses exactly one local campaign/autosave state.
+
+There are no player-visible multiple save slots in V1.
+
+### GZ-RETURN-001 — Portal is the only normal voluntary world exit
+**APPROVED**
+
+During an active sortie, the normal voluntary way to:
+- return to Hangar,
+- bank pending Energy Cells,
+- or travel to another unlocked world,
+
+is through a discovered usable portal.
+
+There is no free menu action that directly returns the player to Hangar from an active world.
+
+Exceptional non-voluntary returns remain separate:
+- player death -> death resolution -> Hangar,
+- session interruption/reload -> recovery semantics -> Hangar,
+- technical launch failure -> Hangar.
+
+These exceptions do not bank pending sortie Cells unless another explicit contract says so.
+
+### GZ-PORTAL-016 — Return-to-Hangar banking
+**APPROVED**
+
+Choosing Hangar as the portal destination:
+- resolves Party & Equipment Check,
+- completes any requested Portal Recall,
+- shows the full selected/recalled surviving setup in the portal transit presentation,
+- performs safe handoff to Hangar,
+- banks the surviving pending Energy Cell balance,
+- recovers surviving setup according to the normal Hangar recovery rules,
+- unloads/discards the source world only after successful handoff.
+
+World-to-world portal travel preserves pending Cells instead of banking them.
