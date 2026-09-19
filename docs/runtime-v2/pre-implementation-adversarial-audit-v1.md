@@ -47,7 +47,7 @@ For every transition assert:
 ### Likely semantic questions to expose, not infer
 
 - Left-behind intact player-owned equipment: **RESOLVED** — portal warns; player may recover manually, request Portal Recall, or Travel Anyway and lose it. Recalled equipment arrives diegetically after a short delay and joins the transit cinematic before handoff.
-- Deployed beacons/turrets are subject to the same unresolved eligibility detail only if their recallability differs from other intact owned equipment; do not infer exclusions.
+- Deployed beacons/turrets: **RESOLVED by generic equipment rule** — if intact, player-owned and left behind, they are eligible for the same explicit Portal Recall / manual recovery / Travel Anyway decision.
 - Companion base recovery vs companion-owned remote vehicle/equipment remains open unless covered by explicit equipment recall.
 
 ---
