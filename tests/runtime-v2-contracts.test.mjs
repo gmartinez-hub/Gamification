@@ -313,3 +313,26 @@ test('V2 contract: portal review is one panel with separate Party and Equipment 
   const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
   assert.equal(mod.PORTAL_REVIEW_UI,'UNIFIED_PARTY_EQUIPMENT_SECTIONS');
 });
+
+
+test('V2 contract: session interruption returns to Hangar and loses pending Cells',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.SESSION_RESUME_MODE,'RETURN_TO_HANGAR');
+  assert.deepEqual(
+    mod.resolveSessionInterruption({bankedCells:1000,pendingCells:250}),
+    {destination:'HANGAR',bankedCells:1000,pendingCells:0,lostPendingCells:250,resumeWorld:false}
+  );
+});
+
+test('V2 contract: player death destination is Hangar',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PLAYER_DEATH_DESTINATION,'HANGAR');
+});
+
+test('V2 contract: dead ally returns intact surviving setup but still requires revival',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.deepEqual(
+    mod.resolveDeadAllySetup({itemIds:['ally-bike','ally-pistol','turret-1'],destroyedItemIds:['ally-bike']}),
+    {allyRevivalRequired:true,recoveredItemIds:['ally-pistol','turret-1'],lostItemIds:['ally-bike']}
+  );
+});
