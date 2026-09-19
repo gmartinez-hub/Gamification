@@ -993,3 +993,44 @@ B. two sequential checks,
 C. one contextual panel with separate sections.
 
 No grouping is frozen yet.
+
+
+---
+
+## 26. Permanent baseline Bike and unified portal review UI
+
+### GZ-BIKE-RECOVERY-001 — Permanent baseline recovery Bike
+**APPROVED**
+
+The player always has access to one **baseline recovery Bike** for future sorties.
+
+Semantics:
+- the baseline recovery Bike is a permanent fallback and cannot be permanently removed from the player's campaign,
+- if the currently deployed Bike is destroyed, that deployed unit/setup may be lost according to normal destruction rules,
+- attached upgrades/equipment on the destroyed deployed Bike follow normal loss semantics,
+- destruction of a non-baseline/additional/Boosted Bike does not make that special unit permanent,
+- after death/recovery or return to Hangar, the player still has the baseline Bike available for the next sortie.
+
+This preserves the earlier rule that the permanent recovery Bike is a special baseline rather than a normal duplicable inventory unit.
+
+### GZ-PORTAL-015 — Unified Party & Equipment Check
+**APPROVED**
+
+Before portal handoff, unresolved party state and left-behind intact owned equipment are presented in a **single contextual review panel** with separate semantic sections.
+
+Required structure:
+
+- **Party**
+  - ally/Nóma status,
+  - unresolved/downed state,
+  - Rescue First / Travel Anyway consequences.
+
+- **Equipment**
+  - intact owned vehicles/deployables/equipment that would otherwise be left behind,
+  - Portal Recall / Recover Manually / Travel Anyway consequences.
+
+The panel unifies decision visibility, not the underlying rules.
+
+Party recovery semantics and equipment recall semantics remain distinct and must not be collapsed into one generic ownership rule.
+
+Travel is allowed only after required explicit choices are resolved and any requested Portal Recall arrivals have completed.
