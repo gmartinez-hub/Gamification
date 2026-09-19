@@ -435,3 +435,11 @@ test('V2 contract: required confirmed-setup asset failure aborts launch to Hanga
     }
   );
 });
+
+
+test('V2 contract: single autosave and portal-only normal extraction',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.SAVE_SLOT_MODE,'SINGLE_LOCAL_AUTOSAVE');
+  assert.equal(mod.NORMAL_WORLD_EXIT_MODE,'PORTAL_ONLY');
+  assert.equal(mod.FREE_MENU_RETURN_TO_HANGAR,false);
+});
