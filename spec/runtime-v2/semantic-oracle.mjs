@@ -20,6 +20,13 @@ export const GLOBAL_SPEED_UPGRADE_PRICE = 1000;
 export const ENERGY_CELL_BANKING_BOUNDARY = 'HANGAR_RETURN';
 export const HANGAR_REPAIR_MODE = 'AUTOMATIC';
 export const FRIENDLY_FIRE_ENABLED = false;
+export const PORTAL_EQUIPMENT_RECALL_ENABLED = true;
+export const PORTAL_TRAVEL_ANYWAY_ABANDONS_EQUIPMENT = true;
+export const PENDING_CELLS_BANK_AT = 'HANGAR_RETURN';
+export const PENDING_CELLS_LOST_ON_PLAYER_DEATH = true;
+export const PENDING_CELLS_PERSIST_ACROSS_WORLD_PORTAL = true;
+export const HANGAR_REPAIR_FREE = true;
+export const HANGAR_REPAIR_DELAY = 0;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
@@ -128,4 +135,23 @@ export function boostedBikePurchase({mothershipRevealed,geometryValidated,cells}
   if(!geometryValidated)return {allowed:false,reason:'GEOMETRY_VALIDATION_REQUIRED'};
   if(cells<BOOSTED_BIKE_PRICE)return {allowed:false,reason:'INSUFFICIENT_CELLS'};
   return {allowed:true,cost:BOOSTED_BIKE_PRICE};
+}
+
+
+export function resolvePendingCells({bankedCells,pendingCells,event}){
+  if(!Number.isFinite(bankedCells)||bankedCells<0)throw new Error('INVALID_BANKED_CELLS');
+  if(!Number.isFinite(pendingCells)||pendingCells<0)throw new Error('INVALID_PENDING_CELLS');
+  if(event==='PLAYER_DEATH')return {bankedCells,pendingCells:0,lostPendingCells:pendingCells};
+  if(event==='WORLD_PORTAL')return {bankedCells,pendingCells,lostPendingCells:0};
+  if(event==='HANGAR_RETURN')return {bankedCells:bankedCells+pendingCells,pendingCells:0,lostPendingCells:0};
+  throw new Error('UNKNOWN_PENDING_CELLS_EVENT');
+}
+
+export function portalEquipmentDecision({leftBehindIntactItemIds=[],choice}){
+  const ids=[...leftBehindIntactItemIds];
+  if(ids.length===0)return {travelAllowed:true,recallIds:[],lostIds:[],waitForArrival:false};
+  if(choice==='RECALL')return {travelAllowed:false,recallIds:ids,lostIds:[],waitForArrival:true};
+  if(choice==='TRAVEL_ANYWAY')return {travelAllowed:true,recallIds:[],lostIds:ids,waitForArrival:false};
+  if(choice==='RECOVER_MANUALLY')return {travelAllowed:false,recallIds:[],lostIds:[],waitForArrival:false};
+  return {travelAllowed:false,recallIds:[],lostIds:[],waitForArrival:false};
 }
