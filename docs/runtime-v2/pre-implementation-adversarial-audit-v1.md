@@ -340,3 +340,14 @@ RESOLVED:
 - active world instance and pending sortie Cells are discarded on that interruption,
 - player death resolves directly to Hangar after loss/salvage presentation,
 - a dead ally's intact surviving setup returns automatically to Hangar; destroyed units remain lost; revival remains separately paid.
+
+
+---
+
+## Interruption / death preservation — resolved
+
+RESOLVED:
+- close/refresh mid-sortie -> Hangar; intact deployed setup auto-recovers, destroyed units remain lost, pending Cells are lost,
+- player death -> only destroyed units are lost; intact player setup returns,
+- living/downed companions automatically return to Hangar on player death with intact surviving setup,
+- salvage is based only on actual LOST/destroyed units.
