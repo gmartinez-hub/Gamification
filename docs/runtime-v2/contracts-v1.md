@@ -1618,3 +1618,32 @@ or
 B. astronaut inventory item **but still consumes one turret-capacity slot globally**, even though it is not physically mounted to a turret host,
 or
 C. another slot/accounting rule.
+
+
+---
+
+## 35. Portable Portal slot reconciliation and natural-portal navigation UI
+
+### GZ-PPORTAL-006 — No turret-slot cost
+**APPROVED — SUPERSEDES GZ-PORTAL-023 SLOT COST**
+
+The Portable Portal:
+- lives only in the player astronaut inventory,
+- does **not** consume a turret slot,
+- does not reduce ship/Bike/Nóma/Beacon turret capacity,
+- remains one owned physical inventory item,
+- is still usable once per continuous sortie.
+
+This supersedes the earlier turret-slot-cost statement in GZ-PORTAL-023.
+
+### GZ-PORTAL-032 — Natural portal detection navigation UI
+**APPROVED PARTIAL PRESENTATION**
+
+Once a natural portal is detected, the player receives:
+- Tactical Map marker,
+- direction guidance,
+- distance,
+- remaining availability countdown.
+
+Still requires explicit confirmation:
+- whether the Tactical Map marker disappears immediately when the portal window closes or leaves any expired/history trace.
