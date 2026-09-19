@@ -158,3 +158,23 @@ After Nóma has been rescued and normal ship-building/improvement progression ha
 The first gem is therefore not granted merely for finding the signal; the protected encounter must be completed.
 
 Exact enemy composition, density, POI art and reward timing are BALANCE/PRODUCE/TUNE.
+
+
+### GZ-CAMPAIGN-024 — World 2 second-gem encounter
+**APPROVED DIRECTION**
+
+After the ally is rescued and joins persistently:
+
+1. the ally contributes information/intel about the location or route of the second gem,
+2. that intel opens a higher-threat objective involving a carrier/elite/fortified hostile encounter,
+3. the player prepares/builds the team using World 2 progression,
+4. the player intercepts/completes the hostile encounter,
+5. the second narrative gem is earned,
+6. World 3 unlocks.
+
+This combines:
+- ally narrative knowledge,
+- a difficult carrier/elite combat escalation,
+- team/loadout preparation before World 3.
+
+Exact carrier/fortress art, enemy composition, encounter density and mission dressing remain PRODUCE/BALANCE/TUNE.
