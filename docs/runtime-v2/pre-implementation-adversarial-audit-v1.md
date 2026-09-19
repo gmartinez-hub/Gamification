@@ -365,3 +365,16 @@ RESOLVED:
 
 RESOLVED:
 - crash/forced-close after confirm but before exit commit -> discard the uncommitted Hangar session and restore the last successfully persisted state on next launch.
+
+
+---
+
+## Hangar exit boundary — resolved
+
+RESOLVED:
+- Launch World -> exit commit,
+- Main/Menu -> exit commit,
+- explicit Exit/Quit -> exit commit,
+- crash/forced close before intentional exit -> no commit; discard uncommitted session.
+
+All intentional exits share the same atomic persistence boundary.
