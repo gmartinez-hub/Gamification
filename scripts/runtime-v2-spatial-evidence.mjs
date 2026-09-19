@@ -170,7 +170,7 @@ Anchor ray evidence:
 
 \`\`\`json
 ${JSON.stringify(hangarSummary.anchorRays,null,2)}
-```
+\`\`\`
 
 First-person grid enclosed-clearance samples: **${hangarSummary.enclosedVerticalClearance.samples}**; observed min/max vertical clearance **${hangarSummary.enclosedVerticalClearance.min ?? '—'} / ${hangarSummary.enclosedVerticalClearance.max ?? '—'} m**.
 
