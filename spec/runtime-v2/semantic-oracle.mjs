@@ -43,6 +43,9 @@ export const DEAD_ALLY_INTACT_SETUP_RECOVERY = 'AUTO_HANGAR';
 export const SESSION_INTERRUPTION_RECOVERS_INTACT_SETUP = true;
 export const PLAYER_DEATH_LOSS_MODE = 'DESTROYED_ONLY';
 export const PLAYER_DEATH_AUTO_RECOVERS_SURVIVING_COMPANIONS = true;
+export const HANGAR_PERSISTENCE_BOUNDARY = 'EXIT_COMMIT';
+export const HANGAR_CONFIRM_PERSISTS = false;
+export const HANGAR_EXIT_COMMIT_ATOMIC = true;
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
   if(!Number.isFinite(baseTopSpeed)||baseTopSpeed<0)throw new Error('INVALID_BASE_TOP_SPEED');
@@ -211,4 +214,11 @@ export function resolveDeadAllySetup({itemIds=[],destroyedItemIds=[]}){
   const recovered=itemIds.filter(id=>!destroyed.has(id));
   const lost=itemIds.filter(id=>destroyed.has(id));
   return {allyRevivalRequired:true,recoveredItemIds:recovered,lostItemIds:lost};
+}
+
+
+export function hangarTransaction({confirmed,exiting}){
+  if(!confirmed)return {persist:false,state:'DRAFT'};
+  if(!exiting)return {persist:false,state:'CONFIRMED_UNCOMMITTED'};
+  return {persist:true,state:'EXIT_COMMIT'};
 }
