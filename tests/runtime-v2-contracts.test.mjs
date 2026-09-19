@@ -258,3 +258,35 @@ test('V2 contract: Hangar repair is automatic free and immediate',async()=>{
   assert.equal(mod.HANGAR_REPAIR_FREE,true);
   assert.equal(mod.HANGAR_REPAIR_DELAY,0);
 });
+
+
+test('V2 contract: attachments are lost only with destroyed host vehicle',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.ATTACHMENT_DESTRUCTION_MODE,'WITH_HOST_ONLY');
+});
+
+test('V2 contract: ship and turret ammunition is unlimited',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.WEAPON_AMMO_MODE,'UNLIMITED');
+});
+
+test('V2 contract: living/downed companion base recovery includes intact surviving setup',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.deepEqual(
+    mod.resolveCompanionBaseRecovery({companionState:'downed',vehicleState:'intact',itemIds:['ally-ship','turret-1']}),
+    {recoverCompanion:true,recoveredItemIds:['ally-ship','turret-1'],lostItemIds:[]}
+  );
+  assert.deepEqual(
+    mod.resolveCompanionBaseRecovery({companionState:'alive',vehicleState:'destroyed',itemIds:['ally-ship','turret-1']}),
+    {recoverCompanion:true,recoveredItemIds:[],lostItemIds:['ally-ship','turret-1']}
+  );
+});
+
+test('V2 contract: death loses pending Cells but banks salvage immediately',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.DEATH_SALVAGE_BANKS_IMMEDIATELY,true);
+  assert.deepEqual(
+    mod.resolveDeathEconomy({bankedCells:1000,pendingCells:500,lostSetupValue:800}),
+    {bankedCells:1400,pendingCells:0,lostPendingCells:500,salvageCells:400}
+  );
+});
