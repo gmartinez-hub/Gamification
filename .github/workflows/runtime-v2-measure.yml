@@ -6,6 +6,7 @@ on:
       - docs/gz-runtime-v2-spec
     paths:
       - scripts/runtime-v2-measure-assets.mjs
+      - scripts/runtime-v2-spatial-evidence.mjs
       - .github/workflows/runtime-v2-measure.yml
       - assets/runtime/**/*.glb
       - assets/runtime/**/manifest.json
@@ -27,6 +28,9 @@ jobs:
       - name: Run clean-room asset measurement harness
         run: node scripts/runtime-v2-measure-assets.mjs
 
+      - name: Run spatial evidence harness
+        run: node scripts/runtime-v2-spatial-evidence.mjs
+
       - name: Upload measurement evidence
         uses: actions/upload-artifact@v4
         with:
@@ -34,12 +38,14 @@ jobs:
           path: |
             docs/runtime-v2/evidence/asset-measurements-v1.json
             docs/runtime-v2/evidence/asset-measurements-v1.md
+            docs/runtime-v2/evidence/spatial-evidence-v1.json
+            docs/runtime-v2/evidence/spatial-evidence-v1.md
 
       - name: Commit evidence to spec branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/runtime-v2/evidence/asset-measurements-v1.json docs/runtime-v2/evidence/asset-measurements-v1.md
+          git add docs/runtime-v2/evidence/asset-measurements-v1.json docs/runtime-v2/evidence/asset-measurements-v1.md docs/runtime-v2/evidence/spatial-evidence-v1.json docs/runtime-v2/evidence/spatial-evidence-v1.md
           if git diff --cached --quiet; then
             echo "No evidence changes"
           else
