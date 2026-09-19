@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gravedad Zero · Turret Host Fit Study</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b0e12;color:#edf2f6}
+*{box-sizing:border-box} body{margin:0;padding:28px;background:linear-gradient(#0b0e12,#11161d)}
+header{max-width:1500px;margin:0 auto 22px;display:flex;justify-content:space-between;gap:24px;align-items:end}
+h1{font-size:30px;margin:0 0 8px;letter-spacing:.02em} p{margin:0;color:#a9b3bf;line-height:1.45}
+.badge{border:1px solid #485260;border-radius:999px;padding:8px 12px;font-size:12px;color:#cbd5df;white-space:nowrap}
+.grid{max-width:1500px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:#141a21;border:1px solid #303945;border-radius:18px;overflow:hidden;position:relative}
+.card h2{position:absolute;z-index:2;left:18px;top:14px;margin:0;font-size:19px}
+.meta{position:absolute;z-index:2;left:18px;top:44px;font-size:12px;color:#9eabb8;max-width:72%}
+canvas{display:block;width:100%;height:500px;background:radial-gradient(circle at 50% 38%,#27313c 0,#151b22 44%,#0d1116 100%)}
+.controls{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px 16px 16px;border-top:1px solid #303945;font-size:12px;color:#aeb9c4}
+input[type=range]{width:100%}.readout{font-variant-numeric:tabular-nums;color:#fff}
+footer{max-width:1500px;margin:18px auto 0;color:#83909d;font-size:12px;display:flex;gap:18px;flex-wrap:wrap}
+@media(max-width:900px){.grid{grid-template-columns:1fr}canvas{height:460px}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<header>
+<div><h1>Turret family · multi-host fit study</h1><p>Modelos GLB reales del repo. Montaje automático sobre el bounding-box superior sólo para comparar escala; no fija socket ni geometría final.</p></div>
+<div class="badge">NO FINAL SCALE · NO DEFORMATION · ACTUAL ASSETS</div>
+</header>
+<main class="grid">
+<section class="card" data-card="ship">
+<h2>Ship / Front</h2>
+<div class="meta" data-meta="ship">Cargando modelo…</div>
+<canvas data-canvas="ship" width="720" height="500"></canvas>
+<div class="controls"><span>Turret scale</span><input data-scale="ship" type="range" min="0.30" max="1.20" value="1.00" step="0.01"><span class="readout" data-readout="ship">1.00×</span></div>
+</section><section class="card" data-card="bike">
+<h2>Bike</h2>
+<div class="meta" data-meta="bike">Cargando modelo…</div>
+<canvas data-canvas="bike" width="720" height="500"></canvas>
+<div class="controls"><span>Turret scale</span><input data-scale="bike" type="range" min="0.30" max="1.20" value="1.00" step="0.01"><span class="readout" data-readout="bike">1.00×</span></div>
+</section><section class="card" data-card="noma">
+<h2>Nóma</h2>
+<div class="meta" data-meta="noma">Cargando modelo…</div>
+<canvas data-canvas="noma" width="720" height="500"></canvas>
+<div class="controls"><span>Turret scale</span><input data-scale="noma" type="range" min="0.30" max="1.20" value="1.00" step="0.01"><span class="readout" data-readout="noma">1.00×</span></div>
+</section><section class="card" data-card="beacon">
+<h2>Beacon / Baliza</h2>
+<div class="meta" data-meta="beacon">Cargando modelo…</div>
+<canvas data-canvas="beacon" width="720" height="500"></canvas>
+<div class="controls"><span>Turret scale</span><input data-scale="beacon" type="range" min="0.30" max="1.20" value="1.00" step="0.01"><span class="readout" data-readout="beacon">1.00×</span></div>
+</section>
+</main>
+<footer>
+<span>Referencia humana: astronauta real del repo, 1.899 m raw.</span>
+<span>Ship usa el runtime scale actual 2.5×.</span>
+<span>Nóma usa la referencia legacy medida 0.36×.</span>
+<span>Bike y Beacon se muestran con su transform de asset actual para no inventar un ScaleProfile nuevo.</span>
+</footer>
+<script type="module" src="./study.js"></script>
+</body>
+</html>
