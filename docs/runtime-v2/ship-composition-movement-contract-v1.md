@@ -336,11 +336,15 @@ Exact EVA boost top speed, acceleration response and presentation intensity rema
 Ship and Bike Boost are freely holdable in V1 with no heat, cooldown, fuel or Energy Cell drain. See GZ-BOOST-009.
 
 ### GZ-MOVE-OPEN-005 — Generic speed upgrade progression
-**OPEN / DEFERRED**
+**RESOLVED / SUPERSEDED**
 
-A generic speed/acceleration upgrade family is allowed conceptually, but its unlock/purchase semantics remain unresolved.
-
-This does NOT apply to the Boosted Bike, whose initial progression/price is already defined separately.
+Resolved by GZ-SPEED-UPGRADE-007 through GZ-SPEED-UPGRADE-009:
+- one global friendly upgrade,
+- +15% base top speed,
+- +20% base acceleration,
+- 1,000 Energy Cells,
+- unlock after second gem / World 3 access,
+- additive with moment-to-moment Boost.
 
 ### GZ-FIRE-001 — Minimum ship weapon
 **APPROVED**
@@ -699,7 +703,7 @@ While Boost is active:
 - acceleration increases as well,
 - the presentation stack intensifies to communicate the state.
 
-The exact acceleration multiplier is still **OPEN** and must not be inferred from the +25% top-speed rule.
+Acceleration increase is **+40%** over the resolved non-Boost acceleration. This is approved by GZ-BOOST-021.
 
 ### GZ-BOOST-011 — Boost duration/resource semantics
 **APPROVED**
@@ -730,25 +734,22 @@ Boost presentation includes:
 Exact FX layers, intensities and camera treatment remain TUNE/VERIFY and must preserve aim readability.
 
 ### GZ-BOOST-014 — Separate permanent speed-upgrade family exists
-**APPROVED existence / OPEN semantics**
+**APPROVED / SEMANTICS CLOSED**
 
 There are two distinct concepts:
 1. moment-to-moment Boost activated during play,
-2. a separate permanent generic speed/acceleration upgrade family.
+2. one permanent global friendly speed/acceleration upgrade.
 
-The permanent upgrade's ownership scope, stat effect, unlock gate and price are NOT yet frozen. Do not infer them from Boost.
+Its scope, stats, unlock gate, price and additive stacking are closed by GZ-SPEED-UPGRADE-007 through GZ-SPEED-UPGRADE-009.
 
 ### GZ-BOOST-015 — Friendly-side coverage
-**PARTIAL / CONFIRM ACTOR LIST**
+**RESOLVED / SUPERSEDED**
 
-Current product statement: Boost applies to the player and allies.
-
-The exact actor/vehicle coverage list still requires explicit confirmation before implementation, especially:
+Closed by GZ-BOOST-017:
+- player astronaut/Bike/Ship,
+- ally EVA/Bike/Ship,
 - Nóma,
-- ally EVA/on-foot state,
-- ally Bike,
-- ally Ship,
-- enemy/hostile actors (currently not inferred).
+- enemies do not inherit the friendly Boost mechanic.
 
 
 ---
@@ -770,7 +771,7 @@ Approved top-speed formula:
 
 `boostTopSpeed = resolvedBaseTopSpeed × 1.25`
 
-Acceleration also increases during Boost, but its exact multiplier remains OPEN pending explicit selection.
+Acceleration increases by **+40%** during Boost, as closed by GZ-BOOST-021.
 
 ### GZ-BOOST-017 — Friendly-side actor coverage
 **APPROVED**
@@ -831,19 +832,15 @@ Directional input may still steer/modify movement while Boost is active.
 Mobile Boost control must preserve the same semantic behavior.
 
 ### GZ-SPEED-UPGRADE-002 — Permanent generic speed upgrade scope
-**PARTIAL FREEZE**
+**RESOLVED / SUPERSEDED**
 
-The permanent generic speed upgrade is:
-- global across player + friendly traversal actors/vehicles,
-- a single upgrade level, not a multi-tier tree.
-
-Still OPEN:
-- exact permanent speed increase,
-- exact permanent acceleration increase,
-- unlock gate,
-- Energy Cell price.
-
-Do not infer these values from the moment-to-moment +25% Boost.
+Closed by GZ-SPEED-UPGRADE-007 through GZ-SPEED-UPGRADE-009:
+- global friendly scope,
+- one level,
+- +15% base top speed,
+- +20% base acceleration,
+- 1,000 Energy Cells,
+- second gem / World 3 access.
 
 
 ---
@@ -891,26 +888,19 @@ Formula:
 Do not multiply 1.15 × 1.25 for top speed.
 
 ### GZ-SPEED-UPGRADE-005 — Remaining progression values
-**OPEN — EXPLICIT CONFIRMATION REQUIRED**
+**RESOLVED / SUPERSEDED**
 
-The permanent upgrade's purchase gate and Energy Cell price are still not frozen.
-
-The latest user response confirmed the P2 stat package and additive 140 top-speed result, but did not uniquely identify one of the previously proposed price/gate pairs.
-
-Do not infer price or unlock milestone.
+Closed by GZ-SPEED-UPGRADE-007:
+- unlock after second gem / World 3 access,
+- price 1,000 Energy Cells.
 
 ### GZ-SPEED-UPGRADE-006 — Acceleration stacking with permanent upgrade
-**OPEN — EXPLICIT CONFIRMATION REQUIRED**
+**RESOLVED / SUPERSEDED**
 
-Known:
-- permanent acceleration upgrade = +20%
-- momentary Boost acceleration = +40%
-
-Need explicit rule for simultaneous use:
-- additive against original resolved base acceleration -> 160% of base,
-- or multiplicative -> 168% of base.
-
-Top-speed additive rule does not automatically decide acceleration stacking.
+Closed by GZ-SPEED-UPGRADE-008:
+- additive stacking,
+- +20% permanent + +40% Boost,
+- final acceleration = 160% of resolved base.
 
 
 ---
