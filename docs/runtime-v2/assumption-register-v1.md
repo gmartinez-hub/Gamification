@@ -13,52 +13,53 @@ Rules:
 ## A. Portal detection / lifecycle
 
 ### AS-PORTAL-001 — Who detects natural portals?
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-When a natural portal opportunity appears, who can discover/detect it:
-- Nóma only,
-- Nóma + ally,
-- player also independently,
-- another rule?
+Nóma is the primary portal finder, but the player can also independently discover/detect a natural portal. Nóma is not a hard extraction gate.
 
 ### AS-PORTAL-002 — Natural portal when no companion is deployed
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-If the portal finder is not deployed/downed/unavailable, how can the player still discover a natural portal before its window closes?
+If Nóma is absent/unavailable/DOWNED:
+- player detection remains available,
+- ally detection is also available as fallback.
+
+Natural extraction may not become impossible solely because Nóma is unavailable.
 
 ### AS-PORTAL-003 — Portal notification / map marker
-**SEMANTIC_QUESTION**
+**PARTIAL / SEMANTIC_QUESTION**
 
-After detection:
-- does it become a Tactical Map marker,
-- is distance/direction shown,
-- does the marker disappear when the window closes,
-- is remaining time/countdown shown?
+RESOLVED:
+- after detection, the remaining portal availability window is shown as a countdown.
+
+Still open:
+- Tactical Map marker?
+- direction?
+- distance?
+- marker removal behavior when the window expires?
 
 ### AS-PORTAL-004 — Simultaneous natural portals
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Can more than one natural portal opportunity be active at the same time, or maximum one active natural portal per world instance?
+Maximum one active natural portal opportunity per world instance at a time.
 
 ### AS-PORTAL-005 — Current-world destination
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-May a portal select the current world as destination and intentionally reroll into a fresh instance, or must destination worlds exclude the current world?
+Current world is excluded. Destinations are Hangar + other unlocked worlds.
 
 ### AS-PORTAL-006 — Failed handoff consumption
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-If destination preload/handoff fails:
-- does a natural portal remain usable/reopen,
-- does Portable Portal retain its once-per-sortie use,
-- or is the attempt consumed?
+If destination load/handoff fails:
+- natural portal remains/reopens for retry,
+- Portable Portal retains its once-per-sortie use,
+- only successful handoff consumes/counts the use.
 
 ### AS-PORTAL-007 — Portal Recall guarantee
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-After the player requests Portal Recall for intact equipment, is arrival guaranteed after the diegetic wait, or may the recalled equipment still be attacked/destroyed/fail to arrive?
-
-## B. Portable Portal physical behavior
+Once Portal Recall is accepted, arrival is guaranteed and protected. Equipment cannot fail/be destroyed during the recall transition; arrival is shown cinematically.
 
 ### AS-PPORTAL-001 — Compatible turret-slot hosts
 **SEMANTIC_QUESTION**
