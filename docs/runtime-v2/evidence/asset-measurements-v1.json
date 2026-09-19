@@ -1,0 +1,878 @@
+{
+  "schema": "gz-scale-measurement-v1",
+  "generatedAt": "2026-09-19T01:06:00.021Z",
+  "sourceBranch": "docs/gz-runtime-v2-spec",
+  "note": "Raw authoring bounds + explicitly labeled legacy evidence. No gameplay code copied into V2.",
+  "measured": [
+    {
+      "key": "character.player",
+      "role": "human",
+      "file": "assets/runtime/models/astronauta-armado.glb",
+      "bytes": 23448468,
+      "triangles": 215082,
+      "primitives": 2,
+      "rawBounds": {
+        "min": [
+          -0.488273,
+          0,
+          -0.405218
+        ],
+        "max": [
+          0.484296,
+          1.89899,
+          0.583191
+        ],
+        "dimensions": [
+          0.972569,
+          1.89899,
+          0.988409
+        ],
+        "center": [
+          -0.001989,
+          0.949495,
+          0.088986
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.89899
+      },
+      "namedNodes": [
+        {
+          "index": 56,
+          "name": "EVA_Eye",
+          "translation": [
+            0,
+            1.69,
+            0.16
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 15,
+          "name": "hand.L",
+          "translation": [
+            0.393,
+            0.99,
+            0.258
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 37,
+          "name": "hand.R",
+          "translation": [
+            -0.393,
+            0.99,
+            0.258
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 34,
+          "name": "WeaponGrip",
+          "translation": [
+            -0.345,
+            0.888,
+            0.333
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 35,
+          "name": "WeaponMuzzle",
+          "translation": [
+            -0.322953,
+            0.57272,
+            0.492099
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 41,
+          "name": "head",
+          "translation": [
+            0,
+            1.565,
+            0.082
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        }
+      ]
+    },
+    {
+      "key": "cockpit.integrated",
+      "role": "cockpit",
+      "file": "assets/runtime/models/cabina-integrada.glb",
+      "bytes": 18778952,
+      "triangles": 348936,
+      "primitives": 12,
+      "rawBounds": {
+        "min": [
+          -1.02,
+          -0.65,
+          -0.489153
+        ],
+        "max": [
+          1.02,
+          0.65,
+          2.08
+        ],
+        "dimensions": [
+          2.04,
+          1.3,
+          2.569153
+        ],
+        "center": [
+          0,
+          0,
+          0.795423
+        ],
+        "longestAxis": "z",
+        "longestDimension": 2.569153
+      },
+      "namedNodes": [
+        {
+          "index": 5,
+          "name": "Central transparent cockpit glass",
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "mesh": 4,
+          "directMeshBounds": {
+            "min": [
+              -0.371204,
+              -0.157348,
+              -0.177
+            ],
+            "max": [
+              0.367212,
+              0.448,
+              -0.177
+            ],
+            "dimensions": [
+              0.738416,
+              0.605348,
+              0
+            ],
+            "center": [
+              -0.001996,
+              0.145326,
+              -0.177
+            ],
+            "longestAxis": "x",
+            "longestDimension": 0.738416
+          }
+        },
+        {
+          "index": 6,
+          "name": "Curved pilot cabin walls and ceiling",
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "mesh": 5,
+          "directMeshBounds": {
+            "min": [
+              -1.02,
+              -0.65,
+              -0.18
+            ],
+            "max": [
+              1.02,
+              0.65,
+              2.08
+            ],
+            "dimensions": [
+              2.04,
+              1.3,
+              2.26
+            ],
+            "center": [
+              0,
+              0,
+              0.95
+            ],
+            "longestAxis": "z",
+            "longestDimension": 2.26
+          }
+        },
+        {
+          "index": 7,
+          "name": "eye",
+          "translation": [
+            0,
+            0.1,
+            1.3
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        }
+      ]
+    },
+    {
+      "key": "ship.front",
+      "role": "ship-module",
+      "file": "assets/runtime/models/capsula.glb",
+      "bytes": 26803532,
+      "triangles": 643450,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.949604,
+          -0.900623,
+          -0.91841
+        ],
+        "max": [
+          0.945968,
+          0.895903,
+          0.896187
+        ],
+        "dimensions": [
+          1.895572,
+          1.796526,
+          1.814597
+        ],
+        "center": [
+          -0.001818,
+          -0.00236,
+          -0.011111
+        ],
+        "longestAxis": "x",
+        "longestDimension": 1.895572
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "ship.middle",
+      "role": "ship-module",
+      "file": "assets/runtime/models/habitat.glb",
+      "bytes": 25996400,
+      "triangles": 609962,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.796221,
+          -0.951476,
+          -0.64596
+        ],
+        "max": [
+          0.792191,
+          0.94802,
+          0.642318
+        ],
+        "dimensions": [
+          1.588412,
+          1.899496,
+          1.288278
+        ],
+        "center": [
+          -0.002015,
+          -0.001728,
+          -0.001821
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.899496
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "ship.final",
+      "role": "ship-module",
+      "file": "assets/runtime/models/propulsion.glb",
+      "bytes": 39651188,
+      "triangles": 1061624,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.914406,
+          -0.950797,
+          -0.924477
+        ],
+        "max": [
+          0.910318,
+          0.948133,
+          0.920762
+        ],
+        "dimensions": [
+          1.824724,
+          1.89893,
+          1.845239
+        ],
+        "center": [
+          -0.002044,
+          -0.001332,
+          -0.001857
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.89893
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "vehicle.bike",
+      "role": "vehicle",
+      "file": "assets/runtime/encounter-models/bike.glb",
+      "bytes": 5966600,
+      "triangles": 461528,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.697586,
+          0,
+          -1.499954
+        ],
+        "max": [
+          0.697586,
+          1.298996,
+          1.499954
+        ],
+        "dimensions": [
+          1.395172,
+          1.298996,
+          2.999908
+        ],
+        "center": [
+          0,
+          0.649498,
+          0
+        ],
+        "longestAxis": "z",
+        "longestDimension": 2.999908
+      },
+      "namedNodes": [
+        {
+          "index": 1,
+          "name": "Bike_asset",
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        }
+      ]
+    },
+    {
+      "key": "enemy.alienShip",
+      "role": "enemy-ship",
+      "file": "assets/runtime/encounter-models/alien-ship.glb",
+      "bytes": 4961560,
+      "triangles": 374024,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.274399,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.274399,
+          0.290573,
+          0.5
+        ],
+        "dimensions": [
+          0.548798,
+          0.290573,
+          1
+        ],
+        "center": [
+          0,
+          0.145287,
+          0
+        ],
+        "longestAxis": "z",
+        "longestDimension": 1
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "hangar.serviceBay",
+      "role": "hangar",
+      "file": "assets/runtime/closeout-models/orbital-service-bay.glb",
+      "bytes": 26155312,
+      "triangles": 537935,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.951716,
+          -0.434089,
+          -0.894531
+        ],
+        "max": [
+          0.947595,
+          0.426698,
+          0.89628
+        ],
+        "dimensions": [
+          1.899311,
+          0.860787,
+          1.790811
+        ],
+        "center": [
+          -0.002061,
+          -0.003696,
+          0.000874
+        ],
+        "longestAxis": "x",
+        "longestDimension": 1.899311
+      },
+      "namedNodes": [
+        {
+          "index": 1,
+          "name": "orbital-service-bay-mesh-00",
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "mesh": 0,
+          "directMeshBounds": {
+            "min": [
+              -0.951716,
+              -0.434089,
+              -0.894531
+            ],
+            "max": [
+              0.947595,
+              0.426698,
+              0.89628
+            ],
+            "dimensions": [
+              1.899311,
+              0.860787,
+              1.790811
+            ],
+            "center": [
+              -0.002061,
+              -0.003696,
+              0.000874
+            ],
+            "longestAxis": "x",
+            "longestDimension": 1.899311
+          }
+        },
+        {
+          "index": 2,
+          "name": "service-bike",
+          "translation": [
+            -0.68,
+            0.06,
+            -0.18
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 3,
+          "name": "service-crew",
+          "translation": [
+            0.68,
+            0.06,
+            -0.18
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 4,
+          "name": "service-long-ship",
+          "translation": [
+            0,
+            0.16,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        }
+      ]
+    },
+    {
+      "key": "weapon.turret",
+      "role": "equipment",
+      "file": "assets/runtime/closeout-models/modular-turret.glb",
+      "bytes": 14144992,
+      "triangles": 179546,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.950114,
+          -1.227407,
+          -0.436679
+        ],
+        "max": [
+          0.946977,
+          -0.075025,
+          0.433088
+        ],
+        "dimensions": [
+          1.897091,
+          1.152382,
+          0.869767
+        ],
+        "center": [
+          -0.001568,
+          -0.651216,
+          -0.001796
+        ],
+        "longestAxis": "x",
+        "longestDimension": 1.897091
+      },
+      "namedNodes": [
+        {
+          "index": 5,
+          "name": "turret-mount",
+          "translation": [
+            0,
+            -0.55,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 0,
+          "name": "turret-clearance",
+          "translation": [
+            0,
+            -0.43,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 4,
+          "name": "turret-yaw",
+          "translation": [
+            0,
+            -0.75,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 3,
+          "name": "turret-pitch",
+          "translation": [
+            0,
+            -0.65,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 1,
+          "name": "modular-turret-mesh-00",
+          "translation": [
+            0,
+            -0.65,
+            0
+          ],
+          "mesh": 0,
+          "directMeshBounds": {
+            "min": [
+              -0.950114,
+              -1.227407,
+              -0.436679
+            ],
+            "max": [
+              0.946977,
+              -0.075025,
+              0.433088
+            ],
+            "dimensions": [
+              1.897091,
+              1.152382,
+              0.869767
+            ],
+            "center": [
+              -0.001568,
+              -0.651216,
+              -0.001796
+            ],
+            "longestAxis": "x",
+            "longestDimension": 1.897091
+          }
+        },
+        {
+          "index": 2,
+          "name": "turret-muzzle",
+          "translation": [
+            0,
+            -0.57,
+            0.88
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        }
+      ]
+    },
+    {
+      "key": "character.ally",
+      "role": "human",
+      "file": "assets/runtime/closeout-models/green-ally.glb",
+      "bytes": 11393432,
+      "triangles": 113438,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.76685,
+          -0.951272,
+          -0.310235
+        ],
+        "max": [
+          0.763406,
+          0.947994,
+          0.306601
+        ],
+        "dimensions": [
+          1.530256,
+          1.899266,
+          0.616836
+        ],
+        "center": [
+          -0.001722,
+          -0.001639,
+          -0.001817
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.899266
+      },
+      "namedNodes": [
+        {
+          "index": 9,
+          "name": "muzzle-support",
+          "translation": [
+            0.58,
+            0.02,
+            0.78
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 10,
+          "name": "weapon-grip",
+          "translation": [
+            0.58,
+            0.02,
+            0.18
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        },
+        {
+          "index": 1,
+          "name": "head",
+          "translation": [
+            0,
+            0.55,
+            0
+          ],
+          "mesh": null,
+          "directMeshBounds": null
+        }
+      ]
+    },
+    {
+      "key": "companion.noma",
+      "role": "companion",
+      "file": "assets/runtime/models/robot.glb",
+      "bytes": 11131080,
+      "triangles": 148474,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.951124,
+          -0.586566,
+          -0.680247
+        ],
+        "max": [
+          0.947195,
+          0.587711,
+          0.6744
+        ],
+        "dimensions": [
+          1.898319,
+          1.174277,
+          1.354647
+        ],
+        "center": [
+          -0.001965,
+          0.000573,
+          -0.002924
+        ],
+        "longestAxis": "x",
+        "longestDimension": 1.898319
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "deployable.beacon",
+      "role": "deployable",
+      "file": "assets/runtime/models/baliza.glb",
+      "bytes": 10225840,
+      "triangles": 124940,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.641619,
+          -0.951554,
+          -0.51196
+        ],
+        "max": [
+          0.637763,
+          0.946343,
+          0.508077
+        ],
+        "dimensions": [
+          1.279382,
+          1.897897,
+          1.020037
+        ],
+        "center": [
+          -0.001928,
+          -0.002605,
+          -0.001942
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.897897
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "resource.energyCell",
+      "role": "resource",
+      "file": "assets/runtime/closeout-models/energy-cell.glb",
+      "bytes": 15817148,
+      "triangles": 251287,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.591789,
+          -0.951494,
+          -0.59177
+        ],
+        "max": [
+          0.587791,
+          0.94724,
+          0.588276
+        ],
+        "dimensions": [
+          1.17958,
+          1.898734,
+          1.180046
+        ],
+        "center": [
+          -0.001999,
+          -0.002127,
+          -0.001747
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.898734
+      },
+      "namedNodes": []
+    },
+    {
+      "key": "artifact.gem",
+      "role": "artifact",
+      "file": "assets/runtime/mission-models/gema.glb",
+      "bytes": 1065592,
+      "triangles": 50542,
+      "primitives": 1,
+      "rawBounds": {
+        "min": [
+          -0.37142,
+          -0.950747,
+          -0.30781
+        ],
+        "max": [
+          0.367222,
+          0.947858,
+          0.305226
+        ],
+        "dimensions": [
+          0.738642,
+          1.898605,
+          0.613036
+        ],
+        "center": [
+          -0.002099,
+          -0.001445,
+          -0.001292
+        ],
+        "longestAxis": "y",
+        "longestDimension": 1.898605
+      },
+      "namedNodes": []
+    }
+  ],
+  "derived": {
+    "humanAnchorMetres": 1.9,
+    "astronaut": {
+      "rawHeight": 1.89899,
+      "scaleToCanonicalHeight": 1.000532
+    },
+    "playerShipLegacyEvidence": {
+      "front": {
+        "dimensions": [
+          4.73893,
+          4.536493,
+          4.491315
+        ],
+        "note": "Evidence only: legacy ship module rotation X=-90deg and scale=2.5"
+      },
+      "middle": {
+        "dimensions": [
+          3.97103,
+          3.220695,
+          4.74874
+        ],
+        "note": "Evidence only: legacy ship module rotation X=-90deg and scale=2.5"
+      },
+      "final": {
+        "dimensions": [
+          4.56181,
+          4.613097,
+          4.747325
+        ],
+        "note": "Evidence only: legacy ship module rotation X=-90deg and scale=2.5"
+      },
+      "legacyCompositionSpacingMetres": 4.125,
+      "nominalThreeModuleLengthMetres": 12.375,
+      "warning": "These are legacy measured references, NOT V2 semantic dimensions."
+    },
+    "alienShipLegacyEvidence": {
+      "runtimeDeclaredLengthMetres": 25.7335,
+      "sourceCommentLengthMetres": 12.86675,
+      "warning": "Declared legacy runtime length is evidence only."
+    },
+    "authoringNormalizationCheck": {
+      "allyLongest": 1.899266,
+      "turretLongest": 1.897091,
+      "hangarLongest": 1.899311,
+      "energyCellLongest": 1.898734
+    },
+    "missingRuntimeAssets": [
+      {
+        "key": "portal.ring",
+        "status": "NO_GLB_FOUND_IN_MAIN"
+      },
+      {
+        "key": "boss.mothership",
+        "status": "NO_GLB_FOUND_IN_MAIN"
+      }
+    ]
+  }
+}
