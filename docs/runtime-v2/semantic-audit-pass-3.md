@@ -187,8 +187,9 @@ Still needs content-level contract:
 Exact counts/weights remain BALANCE after the family matrix is fixed.
 
 ### P3-POSTGAME-01 — Mothership incursions after final boss
-Free postgame is approved.
-Still needs explicit rule for whether Mothership-incursion events cease permanently after `bossDefeated = true`.
+**RESOLVED**
+
+Free postgame remains approved. After `bossDefeated = true`, Mothership-incursion events cease permanently and are removed from EventDirector eligibility; other approved postgame farming/encounter systems remain available.
 
 ## 5. Non-semantic work — do not ask product to guess
 
@@ -210,7 +211,7 @@ Remain MEASURE / VERIFY / PRODUCE / BALANCE:
 
 ## 6. Required next pass before implementation freeze
 
-1. Resolve P3-PRESET-01..03, P3-W1-01, P3-TURRET-01, P3-ENCOUNTER-01 and P3-POSTGAME-01.
+1. Resolve P3-PRESET-01..03, P3-W1-01, P3-TURRET-01 and P3-ENCOUNTER-01.
 2. Rewrite stale sections in contracts / assumption register / semantic oracle.
 3. Add/update semantic tests for every newly approved rule.
 4. Run semantic CI.
