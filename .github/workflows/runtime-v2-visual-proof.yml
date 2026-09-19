@@ -1,0 +1,43 @@
+name: Runtime V2 Visual Proof
+
+on:
+  push:
+    branches:
+      - docs/gz-runtime-v2-spec
+    paths:
+      - tools/runtime-v2-visual-proof.html
+      - tools/runtime-v2-visual-proof.js
+      - scripts/runtime-v2-capture-visual-proof.mjs
+      - docs/runtime-v2/visual-proof-pack-v1.md
+      - assets/runtime/**/*.glb
+      - src/lowpoly/bike-actor.js
+      - src/lowpoly/plasma.js
+      - src/lowpoly/actor-motion.js
+      - vendor/GLTFLoader.js
+      - vendor/meshopt_decoder.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proof branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/gz-runtime-v2-spec
+          fetch-depth: 1
+
+      - name: Install Chromium for evidence capture
+        run: npx -y playwright@1.55.0 install --with-deps chromium
+
+      - name: Capture visual proof pack
+        run: node scripts/runtime-v2-capture-visual-proof.mjs
+
+      - name: Upload visual proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-v2-visual-proof-v1
+          path: docs/runtime-v2/evidence/visual-proof-v1
