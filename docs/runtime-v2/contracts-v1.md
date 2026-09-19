@@ -1659,3 +1659,93 @@ When a natural portal availability window expires:
 - no expired/history marker remains from that opportunity.
 
 A later natural portal opportunity creates a new marker at its new procedural location.
+
+
+---
+
+## 36. Immediate narrative persistence and Beacon gameplay contract
+
+### GZ-PERSIST-001 — Narrative milestones persist immediately
+**APPROVED**
+
+Narrative/campaign milestones are persisted immediately when they are successfully earned.
+
+This includes:
+- narrative gem acquisition,
+- Nóma rescue/unlock,
+- ally rescue/unlock,
+- World 3 mothership reveal,
+- Portable Portal natural-transit unlock progress.
+
+These milestones do not wait for Hangar return.
+
+Therefore:
+- player death does not roll back an already-earned milestone,
+- session interruption does not roll back an already-earned milestone,
+- pending Energy Cells remain a separate banking system and are still governed by Hangar-return rules.
+
+Persistence must be idempotent: replay/retry may not duplicate a milestone or increment a completed unlock twice.
+
+### GZ-BEACON-001 — Manual astronaut deployment
+**APPROVED**
+
+The Beacon is a physical deployable carried/deployed manually by the player astronaut.
+
+The astronaut plants/deploys the Beacon into the active world from inventory/setup context.
+
+### GZ-BEACON-002 — Persistent Tactical Map visibility while deployed
+**APPROVED**
+
+While an intact Beacon is deployed in the current world:
+- it is always visible on the Tactical Map,
+- it acts as a stable navigation reference/anchor for the player.
+
+### GZ-BEACON-003 — Sensor coverage
+**APPROVED DIRECTION / MEASURE exact radius**
+
+A deployed Beacon detects:
+- hostile enemies,
+- hordes,
+- natural portals.
+
+Detected Beacon sensor results may be surfaced through Tactical Map / alert presentation according to the UI contract.
+
+Exact:
+- detection radius,
+- scan/update frequency,
+- alert cadence,
+- occlusion/line-of-sight policy,
+
+remain MEASURE/TUNE unless explicitly promoted to product semantics.
+
+The Beacon does **not** currently have an approved generic POI-detection function.
+
+### GZ-BEACON-004 — Vehicle parking anchor
+**APPROVED DIRECTION**
+
+The player may use a deployed Beacon location as a place to park/leave:
+- the player ship,
+- a Bike.
+
+The Beacon therefore acts as a known map/navigation anchor for returning to a parked vehicle.
+
+This contract does not yet imply:
+- invulnerability for parked vehicles,
+- automatic docking/repair,
+- autopilot to the Beacon.
+
+Those behaviors remain unapproved unless explicitly added.
+
+### GZ-BEACON-005 — Portal/world-transition inventory recovery
+**APPROVED**
+
+When the player changes world/level through portal transit:
+- an intact deployed Beacon does **not** physically travel to the portal/ring for the recall cinematic,
+- it is returned directly to the player's inventory as part of the handoff,
+- it may then be deployed again in the destination world.
+
+This is a Beacon-specific recovery presentation rule.
+
+Destroyed Beacons remain LOST under normal destruction rules.
+
+The Beacon is not shown flying through the portal merely to satisfy generic equipment-recall presentation.
