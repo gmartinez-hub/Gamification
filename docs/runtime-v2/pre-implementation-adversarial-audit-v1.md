@@ -305,3 +305,16 @@ Implementation Contract Freeze requires:
 9. clean-room boundary green.
 
 Only after this gate should the new runtime repository/skeleton be created.
+
+
+---
+
+## Newly resolved / open from lifecycle review
+
+RESOLVED:
+- surviving characters heal to full at Hangar, free and immediate,
+- player has no DOWNED state; terminal health goes directly to death resolution.
+
+OPEN:
+- "la moto la tenes siempre" requires explicit scope clarification before altering Bike loss semantics,
+- Party Check + Equipment Check presentation grouping remains a product/UI choice.
