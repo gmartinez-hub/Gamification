@@ -815,30 +815,31 @@ Constraints:
 ## 23. Banking, repair and friendly-fire semantics
 
 ### GZ-ECO-002 — Energy Cell banking boundary
-**APPROVED DIRECTION / one failure case still open**
+**APPROVED**
 
 Energy Cells collected during a sortie are **not permanently banked on pickup**.
 
-The approved banking boundary is **return to Hangar**.
+The banking boundary is **return to Hangar**.
 
 Until Hangar return, newly collected Cells are sortie-pending rather than persistent banked currency.
 
-Still requires explicit confirmation:
-- what happens to pending Cells when the player dies before a successful Hangar return,
-- whether a world-to-world portal handoff preserves pending Cells as part of the same excursion.
-
-Do not infer either case.
+Resolved lifecycle:
+- player death before Hangar loses pending Cells,
+- world-to-world portal handoff preserves pending Cells,
+- successful Hangar return banks the surviving pending balance.
 
 ### GZ-REPAIR-001 — Automatic Hangar repair
-**APPROVED DIRECTION / cost semantics still open**
+**APPROVED**
 
 A surviving damaged vehicle/ship is automatically repaired when it returns to Hangar.
 
-Still requires explicit confirmation:
-- whether that repair is free,
-- whether any repair delay/resource exists.
+Repair is:
+- free,
+- immediate,
+- no Energy Cell cost,
+- no repair timer/resource.
 
-Do not infer cost merely from automatic behavior.
+Destroyed units remain lost and are not recreated by Hangar repair.
 
 ### GZ-COMBAT-FF-001 — No friendly fire
 **APPROVED**
@@ -982,30 +983,19 @@ When player health reaches the terminal threshold, the player transitions direct
 The companion DOWNED lifecycle remains unchanged and must not be copied onto the player.
 
 ### GZ-BIKE-RECOVERY-OPEN — Permanent Bike semantic clarification
-**SEMANTIC_QUESTION**
+**RESOLVED / SUPERSEDED**
 
-The user stated: "la moto la tenes siempre".
-
-Do not infer whether this means:
-A. only the permanent baseline recovery Bike is always available while additional owned Bikes remain destructible/lossy,
-or
-B. every player Bike is non-lossy/permanently available.
-
-This must be explicitly resolved before changing existing Bike destruction/loss semantics.
+Resolved by GZ-BIKE-RECOVERY-001:
+- one baseline recovery Bike is permanently available,
+- additional/special/Boosted Bikes remain normal destructible physical units.
 
 ### GZ-PORTAL-CHECK-OPEN — Party + equipment check UI grouping
-**SEMANTIC_QUESTION**
+**RESOLVED / SUPERSEDED**
 
-The semantic logic is already separate:
-- companion unresolved/downed state,
-- intact owned equipment left behind.
-
-The UI/presentation may be:
-A. one unified "Party & Equipment Check",
-B. two sequential checks,
-C. one contextual panel with separate sections.
-
-No grouping is frozen yet.
+Resolved by GZ-PORTAL-015:
+- one contextual Party & Equipment Check,
+- separate Party and Equipment sections,
+- underlying recovery/recall semantics remain distinct.
 
 
 ---
@@ -1162,12 +1152,11 @@ The exit commit atomically persists, as one coherent campaign state:
 A successful exit must never produce partial persistence.
 
 ### GZ-HANGAR-TXN-002 — Pre-exit interruption
-**SEMANTIC_QUESTION**
+**RESOLVED / SUPERSEDED**
 
-Still requires explicit decision:
-- if the app/browser closes or crashes after configuration was confirmed but before the Hangar exit commit, does the next launch restore the last persisted Hangar state and discard the confirmed-but-uncommitted session, or should that confirmed session be recovered?
-
-Do not infer this behavior.
+Resolved by GZ-HANGAR-TXN-003:
+- confirmed-but-uncommitted Hangar state is discarded on unexpected interruption,
+- next launch restores the last successfully persisted state.
 
 
 ### GZ-HANGAR-TXN-003 — Pre-exit interruption discards uncommitted Hangar session
