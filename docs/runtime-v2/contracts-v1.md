@@ -1749,3 +1749,60 @@ This is a Beacon-specific recovery presentation rule.
 Destroyed Beacons remain LOST under normal destruction rules.
 
 The Beacon is not shown flying through the portal merely to satisfy generic equipment-recall presentation.
+
+
+### GZ-BEACON-006 — Multiple deployed Beacons
+**APPROVED**
+
+The player may deploy multiple owned Beacons simultaneously in the same active world.
+
+Semantics:
+- each deployed Beacon is one physical owned unit,
+- there is no semantic global cap of one active Beacon,
+- maximum simultaneous deployed count is bounded by actually owned Beacon units and later technical/performance evidence if needed,
+- each Beacon may host at most one turret under the existing Beacon capacity rule,
+- turret ownership remains separate: deploying three Beacons does not create three turrets; only actually owned turret units can be mounted.
+
+This allows the player to build a distributed defensive/sensor network according to their economy and inventory.
+
+### GZ-BEACON-007 — No normal-world remote recall
+**APPROVED**
+
+During ordinary world play, a deployed Beacon cannot be recalled remotely back into inventory.
+
+Recovery options:
+- the player physically returns to recover/pick it up,
+- or a successful world/level transition returns an intact deployed Beacon directly to inventory under GZ-BEACON-005.
+
+Destroyed Beacons remain LOST.
+
+### GZ-BEACON-008 — Protection comes only from mounted turret
+**APPROVED**
+
+A Beacon provides no passive shield, invulnerability or damage reduction to a parked ship/Bike merely because the vehicle is parked at the Beacon.
+
+A parked vehicle remains damageable under normal combat rules.
+
+If the Beacon has a mounted turret, that turret may provide defensive fire according to the normal turret-targeting contract.
+
+Therefore:
+- Beacon without turret = navigation/sensor/parking anchor, no combat protection,
+- Beacon with turret = same anchor plus turret-based defensive capability.
+
+This rule does not yet choose the unresolved turret targeting mode itself.
+
+### GZ-BEACON-009 — Sensor markers are live, not persistent history
+**APPROVED**
+
+Markers created by Beacon sensor detections are live/current-state markers.
+
+When a detected enemy, horde or natural portal:
+- leaves Beacon sensor coverage,
+- is destroyed/resolved,
+- or otherwise stops being a valid detected target,
+
+its Beacon-derived marker disappears.
+
+The Beacon does not retain a permanent historical trail of prior sensor detections.
+
+A newly detected valid target creates a new/current marker.
