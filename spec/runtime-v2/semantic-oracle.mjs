@@ -47,6 +47,11 @@ export const HANGAR_PERSISTENCE_BOUNDARY = 'EXIT_COMMIT';
 export const HANGAR_CONFIRM_PERSISTS = false;
 export const HANGAR_EXIT_COMMIT_ATOMIC = true;
 export const HANGAR_PREEXIT_INTERRUPTION_MODE = 'DISCARD_UNCOMMITTED_RESTORE_LAST_PERSISTED';
+export const SORTIE_LOADOUT_LOCKED = true;
+export const BIKE_ONLY_SORTIE_VALID = true;
+export const UNSELECTED_SHIP_WORLD_STATE = 'HANGAR_ONLY';
+export const ALLY_SHIP_REQUIRED_FOR_DEPLOY = false;
+export const REQUIRED_ASSET_FAILURE_MODE = 'ABORT_TO_HANGAR_PRESERVE_COMMIT';
 export const HANGAR_INTENTIONAL_EXIT_MODES = Object.freeze(['LAUNCH_WORLD','MAIN_MENU','EXIT_QUIT']);
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
@@ -239,4 +244,21 @@ export function hangarExitDecision({mode,commitSucceeded}){
   if(!HANGAR_INTENTIONAL_EXIT_MODES.includes(mode))return {leave:false,reason:'NOT_INTENTIONAL_EXIT'};
   if(!commitSucceeded)return {leave:false,reason:'COMMIT_FAILED'};
   return {leave:true,reason:null};
+}
+
+
+export function resolveLaunchAssetFailure({commitSucceeded,requiredAssetFailed}){
+  if(!commitSucceeded)return {enterWorld:false,stayInHangar:true,preserveCommittedSetup:false,reason:'COMMIT_REQUIRED'};
+  if(requiredAssetFailed)return {enterWorld:false,stayInHangar:true,preserveCommittedSetup:true,reason:'REQUIRED_ASSET_FAILED'};
+  return {enterWorld:true,stayInHangar:false,preserveCommittedSetup:true,reason:null};
+}
+
+export function sortieRepresentation({playerShipSelected,allyShipSelected,allySelected,allyBikeSelected}){
+  return {
+    playerShipInWorld:!!playerShipSelected,
+    playerShipState:playerShipSelected?'DEPLOYED':'HANGAR_ONLY',
+    allyInWorld:!!allySelected,
+    allyShipInWorld:!!allySelected&&!!allyShipSelected,
+    allyBikeInWorld:!!allySelected&&!!allyBikeSelected
+  };
 }
