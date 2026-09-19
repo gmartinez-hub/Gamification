@@ -124,12 +124,15 @@ Nóma never enters a permanent DEAD state. At terminal health he becomes DOWNED/
 Ally DOWNED -> DEAD only through additional hostile damage while DOWNED. There is no automatic bleedout timer.
 
 ### AS-COMP-003 — Order/Recall range
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Are Explore / Defend / Recall commands:
-- proximity-only,
-- remotely available through Tactical Map,
-- mixed (e.g. Explore/Defend proximity, Recall remote)?
+- Explore / Defend can be issued remotely through Tactical Map.
+- Tactical Map pauses local gameplay/simulation while open.
+- Orders configured there begin executing when the map closes.
+- Recall is a transversal action, not a third tactical role.
+- Ally may execute the committed order by EVA, Bike or Ship according to the physical setup.
+- If the selected compatible vehicle is physically elsewhere, the Ally travels to it, boards it, then executes the task.
+- No teleport or remote loadout swap.
 
 ### AS-COMP-004 — Portal discovery ownership
 **PARTIAL / SEMANTIC_QUESTION**
@@ -148,28 +151,32 @@ Still requires explicit rule:
 ## E. Combat / equipment
 
 ### AS-COMBAT-001 — Turret targeting mode
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Are mounted turrets:
-- autonomous targeting/firing,
-- player-aimed/fired,
-- host-dependent,
-- switchable?
+Mounted turrets target/fire autonomously on all approved hosts.
+
+Host assignment and surface adaptation are configured in Hangar and are locked during the sortie. No in-world turret host swap.
 
 ### AS-COMBAT-002 — Bike baseline weapon
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Can a Bike with zero mounted turrets fire any baseline weapon, or is Bike combat entirely dependent on equipped turrets?
+Bike has no integrated baseline vehicle weapon.
+
+The rider may use the equipped personal Pistol according to the personal-weapon contract. Mounted Bike turrets, when present, remain autonomous.
 
 ### AS-COMBAT-003 — EVA / personal weapon
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Does the player astronaut have a usable personal weapon in EVA/on foot? If yes, is its ammunition unlimited like ship/turret weapons?
+The player astronaut has the Pistol as usable personal equipment after Nóma provides the first player Pistol in World 1.
+
+Pistol ammunition is unlimited.
 
 ### AS-COMBAT-004 — Ally pistol ammunition
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Is the ally pistol unlimited-ammo, finite-ammo, or governed by another resource rule?
+Ally Pistol ammunition is unlimited.
+
+The Ally does not clone the player's physical Pistol: a separate Pistol unit must be purchased through the same Energy Cell economy used for player/ally physical equipment.
 
 ### AS-BEACON-001 — Beacon gameplay function
 **RESOLVED**
@@ -189,16 +196,25 @@ Is the ally pistol unlimited-ammo, finite-ammo, or governed by another resource 
 - destroyed Beacon remains LOST.
 
 ### AS-BIKE-001 — Bike turret-capacity upgrade
-**SEMANTIC_QUESTION**
+**RESOLVED / SUPERSEDED**
 
-The current contract says Bike capacity is base 2 and an upgrade path may raise it to 4. Is the 2->4 upgrade a real V1 feature? If yes, its unlock/purchase semantics still need definition.
+The old semantic tier "Bike base 2 -> upgrade to 4" is superseded.
+
+There is no approved semantic 2->4 progression tier. A Bike may mount 0, 1, 2, 3 or another physically valid count when:
+- the player owns that many compatible physical turret units,
+- the verified Bike surfaces/mount geometry support them,
+- placements do not violate physical compatibility.
+
+The exact final physical maximum is VERIFY from geometry/surface evidence, not a product tier inferred from legacy tests.
 
 ## F. Map / camera / boss / economy edge cases
 
 ### AS-MAP-001 — Tactical Map pause behavior
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Does opening Tactical Map pause local gameplay/simulation, slow it, or leave the world fully live?
+Opening Tactical Map pauses local gameplay/simulation.
+
+Orders configured while paused begin execution after closing the map.
 
 ### AS-CAMERA-001 — Seated ship first-person
 **SEMANTIC_QUESTION**
@@ -206,36 +222,112 @@ Does opening Tactical Map pause local gameplay/simulation, slow it, or leave the
 Is seated first-person cockpit piloting a required V1 camera mode, or is seated third-person the required mode with FP only optional?
 
 ### AS-BOSS-001 — Escape from final boss
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-During the final World 3 boss fight:
-- can natural/Portable Portal be used to leave,
-- are portal opportunities suppressed,
-- another rule?
+Natural / Portable Portal travel remains available during the final World 3 boss encounter.
+
+The player may retreat, return to Hangar/rearm, and later return to continue the boss encounter under the milestone-persistence contract.
 
 ### AS-BOSS-002 — Final boss state after retreat
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-If retreat is allowed, when the player returns:
-- does boss phase/damage reset,
-- persist,
-- partially persist?
+Boss persistence is milestone-based:
+- destroyed weak points remain destroyed,
+- reached phase remains reached,
+- partial HP on a still-live weak point or Core resets to 100% of that current target when the player abandons and later returns.
 
 ### AS-ECO-001 — Salvage value basis
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-The salvage rate is 50% of value actually LOST. What contributes to item value:
-- base purchase price only,
-- purchase + installed upgrade value,
-- mount/reconfiguration spend,
-- another valuation?
+50% salvage value is based on the economic value of physical setup actually LOST:
+- base purchase/catalog value,
+- plus permanent installed upgrade value.
+
+Historical mount/reconfiguration service spend is not part of salvage value.
+
+A narratively granted physical item uses its normal catalog/economic value rather than zero.
 
 ### AS-ECO-002 — Permanent baseline Bike salvage
+**RESOLVED**
+
+The permanent baseline recovery Bike chassis itself is excluded from salvage when destroyed because the baseline fallback remains available.
+
+Destroyed attached/upgraded physical equipment follows normal loss and salvage rules.
+
+## G. Pass 3 semantic blockers
+
+### P3-PRESET-01 — Preset scope
 **SEMANTIC_QUESTION**
 
-If the permanent baseline recovery Bike is destroyed during a sortie:
-- is the Bike itself excluded from salvage because it is recreated/always available,
-- or does its nominal value contribute to salvage while the fallback still returns?
+Approved:
+- maximum three saved preset templates,
+- composition + placements,
+- presets do not clone physical inventory,
+- one confirmed setup is active for the sortie.
+
+Still unresolved:
+- player Ship only vs inclusion of Ally Ship / other host assignments,
+- whether Ally Ship has independent presets, shares the same three, or has no independent preset system.
+
+### P3-PRESET-02 — Preset references LOST item
+**SEMANTIC_QUESTION**
+
+If a saved preset references a physical module/turret later LOST, activation behavior must be explicit. No silent clone/substitution.
+
+### P3-PRESET-03 — Save with all three slots occupied
+**SEMANTIC_QUESTION**
+
+Legacy behavior silently dropped the oldest preset. That behavior is not approved for the clean-room runtime. Explicit replacement/overwrite behavior is required.
+
+### P3-W1-01 — Nereida unlock order
+**SEMANTIC_QUESTION / RECOVERY FIRST**
+
+Already fixed:
+- baseline Bike,
+- rescue Nóma,
+- Nóma gives the player Pistol,
+- ship-building / first ship-piece progression begins,
+- Cells fund physical equipment,
+- protected encounter grants Gem 1 and unlocks World 2.
+
+Recover before asking product again:
+- exact identity/timing of first ship piece, Front, Beacon, Turret, Middle and Final.
+
+Do not restore legacy stage order by inference.
+
+### P3-TURRET-01 — Surface adaptation / mounting cost
+**SEMANTIC_QUESTION / RECOVERY FIRST**
+
+Approved:
+- one turret = one physical unit,
+- host surface determines mount/visual scale,
+- reconfiguration occurs only in Hangar,
+- no in-world host swap,
+- preset activation may not charge invisibly.
+
+Still unresolved after current source reconciliation:
+- whether adapting/reassigning an already-owned turret to another compatible host in Hangar costs Energy Cells.
+
+### P3-ENCOUNTER-01 — World/campaign encounter-family matrix
+**SEMANTIC_QUESTION**
+
+Approved mechanics:
+- base world identity/content persists,
+- campaign progression may enable higher-threat encounter families,
+- H4 asteroid response,
+- Heat rises from time + activity and never decreases in the current world instance,
+- Heat resets on world change,
+- higher Heat selects genuinely higher-threat encounters with their own higher configured rewards,
+- no generic numerical level scaling.
+
+Still define the encounter-family matrix for Nereida/Vesper/Umbra at base, after World 2 unlock, after Mothership reveal and postgame. Counts/weights remain BALANCE.
+
+### P3-POSTGAME-01 — Mothership incursions after final boss
+**SEMANTIC_QUESTION**
+
+Free postgame sandbox is approved.
+
+Explicitly define whether Mothership-incursion events cease after `bossDefeated = true`.
 
 ## Intentional non-semantic opens — do not ask product to guess
 
