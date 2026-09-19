@@ -62,44 +62,35 @@ If destination load/handoff fails:
 Once Portal Recall is accepted, arrival is guaranteed and protected. Equipment cannot fail/be destroyed during the recall transition; arrival is shown cinematically.
 
 ### AS-PPORTAL-001 — Compatible turret-slot hosts
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Which turret-slot hosts may carry the Portable Portal:
-- player ship,
-- Bike,
-- ally ship,
-- ally Bike,
-- Nóma,
-- Beacon?
+No turret-slot host carries the Portable Portal.
 
-Using a turret slot does not itself define compatible hosts.
+It lives only in the player astronaut inventory.
+
+**NEW CONFLICT TO RESOLVE:** earlier contract said it consumes one turret slot; explicit slot-accounting clarification is still required.
 
 ### AS-PPORTAL-002 — Activation authority
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Who can activate the Portable Portal:
-- player only,
-- ally/Nóma autonomously or on command,
-- remotely from Tactical Map,
-- only while player is physically near/controlling its host?
+Player only. No ally/Nóma autonomous activation and no Tactical Map remote activation.
 
 ### AS-PPORTAL-003 — Physical deployment form
-**SEMANTIC_QUESTION**
+**RESOLVED DIRECTION**
 
-On use, does the mounted item:
-- remain on the host and project/open a full portal nearby,
-- detach/deploy into space as a separate emitter,
-- another physical behavior?
+Portable Portal manifests a full portal sized to fit the actual traveling setup. Exact appearance/margin is MEASURE/VERIFY.
+
+Still open only if a more specific emitter animation/form is desired later; no host-mounted projection assumption remains.
 
 ### AS-PPORTAL-004 — Once-per-sortie boundary
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Confirm that one sortie means one continuous excursion from Hangar departure until Hangar return, player death or session interruption, even if the player crosses multiple worlds. A Portable Portal used in World 1 would then remain spent in World 2 during the same excursion.
+One continuous sortie runs from Hangar departure until Hangar return, player death or session interruption, across any number of world-to-world portal crossings. Portable Portal use does not reset between worlds.
 
 ### AS-PPORTAL-005 — Same Party & Equipment Check
-**SEMANTIC_QUESTION**
+**RESOLVED**
 
-Does Portable Portal use the same Party & Equipment Check + Portal Recall rules as a natural portal?
+Yes. Portable Portal uses the same Party & Equipment Check + Portal Recall + safe-handoff/rollback semantics as natural portal travel.
 
 ## C. Campaign / persistence
 
@@ -260,3 +251,16 @@ These remain intentionally unresolved until evidence/tuning:
 No Implementation Contract Freeze until every SEMANTIC_QUESTION above is either:
 - explicitly answered and converted to APPROVED,
 - or explicitly removed from V1 by a product decision (never by implementation inference).
+
+
+### AS-PPORTAL-006 — Slot accounting conflict
+**SEMANTIC_QUESTION**
+
+Current answer says Portable Portal lives only in astronaut inventory.
+
+Earlier approved contract says it consumes one turret slot.
+
+Choose explicitly:
+- no turret-slot cost,
+- still consumes a turret-capacity slot globally,
+- another rule.
