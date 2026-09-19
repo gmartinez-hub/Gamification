@@ -208,3 +208,31 @@ Boosted Bike:
 6. Convert failures, if any, into exact Blender/Three tickets.
 
 No scope is reduced by these gates.
+
+
+---
+
+## Executable semantic oracle — PASS
+
+Clean-room executable contract tests now run independently from legacy gameplay code.
+
+CI result: **13 / 13 PASS**.
+
+Current machine-enforced semantics:
+- mandatory Front + valid Front-only craft,
+- extensible Middle×N grammar,
+- no extra movement tier from Middle count,
+- approved base movement hierarchy,
+- freely holdable Boost for astronaut/Bike/Ship,
+- physical-item no-clone assignment invariant,
+- player-death living/downed companion equipment priority,
+- dead companion does not receive that recovery exception,
+- destroyed ship -> surviving pilot EVA/manual recovery,
+- no viable vehicle recovery route -> lost sortie,
+- portal Party Check for unresolved/downed companions,
+- portal restores the same actor/vehicle after handoff,
+- Boosted Bike requires World 3 reveal + geometry PASS + 1,500 Cells.
+
+CI also fails if the semantic oracle imports `src/lowpoly`.
+
+These tests are contract evidence only; V2 production code must satisfy them without importing the oracle as runtime implementation.
