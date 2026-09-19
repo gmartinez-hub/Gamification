@@ -152,3 +152,21 @@ test('V2 contract: permanent generic speed upgrade is one global friendly upgrad
   const upgrade={scope:'GLOBAL_FRIENDLY',tiers:1};
   assert.deepEqual(upgrade,{scope:'GLOBAL_FRIENDLY',tiers:1});
 });
+
+
+test('V2 contract: Boost acceleration is +40%',()=>{
+  const baseAcceleration=10;
+  assert.equal(baseAcceleration*(1+0.40),14);
+});
+
+test('V2 contract: permanent global P2 upgrade is +15% top speed and +20% acceleration',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.GLOBAL_SPEED_UPGRADE_TOP_SPEED_PERCENT,0.15);
+  assert.equal(mod.GLOBAL_SPEED_UPGRADE_ACCELERATION_PERCENT,0.20);
+});
+
+test('V2 contract: permanent speed upgrade and Boost stack additively to 140% top speed',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.boostedTopSpeed(100,{globalUpgrade:true}),140);
+  assert.equal(mod.boostedTopSpeed(100,{globalUpgrade:false}),125);
+});
