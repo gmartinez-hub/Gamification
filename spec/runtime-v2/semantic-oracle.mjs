@@ -62,6 +62,10 @@ export const PORTABLE_PORTAL_DESTINATIONS = Object.freeze(['HANGAR','UNLOCKED_WO
 export const PORTABLE_PORTAL_USES_PER_SORTIE = 1;
 export const NATURAL_PORTAL_REMAINS_WITH_PORTABLE = true;
 export const PORTABLE_PORTAL_UNLOCK_STATUS = 'SEMANTIC_QUESTION';
+export const NATURAL_PORTAL_WINDOWED = true;
+export const NATURAL_PORTAL_RELOCATES_PROCEDURALLY = true;
+export const PORTABLE_PORTAL_SLOT_TYPE = 'TURRET_SLOT';
+export const PORTABLE_PORTAL_UNLOCK_SCOPE = 'GLOBAL_ONCE_ACQUIRED';
 export const HANGAR_INTENTIONAL_EXIT_MODES = Object.freeze(['LAUNCH_WORLD','MAIN_MENU','EXIT_QUIT']);
 
 export function boostedTopSpeed(baseTopSpeed,{globalUpgrade=false}={}){
