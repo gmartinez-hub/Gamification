@@ -185,3 +185,15 @@ test('V2 contract: permanent acceleration upgrade and Boost stack additively to 
   assert.equal(mod.boostedAcceleration(100,{globalUpgrade:true}),160);
   assert.equal(mod.boostedAcceleration(100,{globalUpgrade:false}),140);
 });
+
+
+test('V2 contract: portal transit formation is staggered and preserves scale',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTAL_TRANSIT_FORMATION,'STAGGERED');
+});
+
+test('V2 contract: Boosted Bike integration is embedded but exact Back scale remains VERIFY',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.BOOSTED_BIKE_INTEGRATION,'EMBEDDED');
+  assert.equal(mod.BOOSTED_BIKE_SCALE_STATUS,'VERIFY');
+});
