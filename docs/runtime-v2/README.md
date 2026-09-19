@@ -38,7 +38,7 @@ A performance failure does **not** authorize deleting a capability. First adjust
 - [scale-spatial-semantics-audit-v1.md](./scale-spatial-semantics-audit-v1.md) — canonical scale hierarchy and ScaleProfile audit.
 - [ship-composition-movement-contract-v1.md](./ship-composition-movement-contract-v1.md) — ship grammar, movement, Boost and Bike failure semantics.
 - [party-damage-death-presentation-v1.md](./party-damage-death-presentation-v1.md) — ally/Nóma/player damage, downed and death presentation.
-- [campaign-progression-contract-v1.md](./campaign-progression-contract-v1.md) — prologue, World 1/2/3 progression, ally rescue, incursions and final boss canon.
+- [campaign-progression-contract-v1.md](./campaign-progression-contract-v1.md) — prologue, World 1/2/3 progression, ally rescue, incursions and final boss canon.\n- [event-director-progression-contract-v1.md](./event-director-progression-contract-v1.md) — working EventDirector, Energy Cell lifecycle and explicit unlock-event matrix.
 - [semantic-audit-pass-1.md](./semantic-audit-pass-1.md) — contradiction log and resolved pass-1 blockers.
 - [semantic-audit-pass-2.md](./semantic-audit-pass-2.md) — core semantic freeze result and evidence gates before implementation freeze.
 - [semantic-audit-pass-3.md](./semantic-audit-pass-3.md) — working reconciliation of the latest direct decisions before final semantic freeze.
