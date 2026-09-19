@@ -197,3 +197,11 @@ test('V2 contract: Boosted Bike integration is embedded but exact Back scale rem
   assert.equal(mod.BOOSTED_BIKE_INTEGRATION,'EMBEDDED');
   assert.equal(mod.BOOSTED_BIKE_SCALE_STATUS,'VERIFY');
 });
+
+
+test('V2 contract: portal full setup is visible and whole portal is enlarged',async()=>{
+  const mod=await import('../spec/runtime-v2/semantic-oracle.mjs');
+  assert.equal(mod.PORTAL_FULL_SETUP_VISIBLE,true);
+  assert.equal(mod.PORTAL_SCALE_DIRECTION,'ENLARGE_WHOLE_PORTAL');
+  assert.equal(mod.PORTAL_EXACT_DIMENSIONS_STATUS,'MEASURE_VERIFY');
+});
