@@ -335,10 +335,12 @@ Exact EVA boost top speed, acceleration response and presentation intensity rema
 
 Ship and Bike Boost are freely holdable in V1 with no heat, cooldown, fuel or Energy Cell drain. See GZ-BOOST-009.
 
-### GZ-MOVE-OPEN-005 — Speed upgrade progression
-**OPEN**
+### GZ-MOVE-OPEN-005 — Generic speed upgrade progression
+**OPEN / DEFERRED**
 
-A speed/acceleration upgrade family is allowed conceptually, but unlock/purchase semantics remain unresolved.
+A generic speed/acceleration upgrade family is allowed conceptually, but its unlock/purchase semantics remain unresolved.
+
+This does NOT apply to the Boosted Bike, whose initial progression/price is already defined separately.
 
 ### GZ-FIRE-001 — Minimum ship weapon
 **APPROVED**
@@ -520,7 +522,7 @@ Performance/VFX systems must sustain the Boost presentation without unbounded pa
 ## Boosted Bike candidate
 
 ### GZ-BIKE-EXP-002 — Back-derived Boosted Bike
-**CONDITIONAL PRODUCT INTENT — VERIFY GEOMETRY**
+**CONDITIONAL PRODUCT APPROVAL — VERIFY GEOMETRY**
 
 If the Final/Back visual language can be adapted/scaled to the Bike without breaking silhouette, rider clearance, first-person view, third-person camera, collision envelope or current nozzle layout, it becomes a late-game Boosted Bike variant/upgrade.
 
@@ -530,7 +532,7 @@ If approved after visual/geometry audit:
 - it preserves Bike vulnerability/exposure compared with travelling inside a ship,
 - it uses the central PrimaryBoostExhaust as its hero propulsion cue.
 
-Exact unlock economy is OPEN.
+Initial unlock economy is RESOLVED in GZ-BIKE-PROG-001/002: World 3 mothership reveal gate + 1,500 Energy Cells, conditional on geometry validation.
 
 The geometry audit must classify:
 - FIT_OK,
